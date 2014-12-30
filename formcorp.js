@@ -211,8 +211,6 @@ var fc = new function ($) {
      */
     var renderTextfield = function (field) {
         var html = '<input type="text" formcorp-data-id="' + field._id.$id + '">';
-        console.log(field);
-
         return html;
     }
 
