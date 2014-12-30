@@ -1,3 +1,10 @@
+/**
+ * FormCorp JS SDK
+ * @author Alex Berriman <alexb@fishvision.com>
+ * @website http://www.formcorp.com.au/
+ *
+ * Ability to embed a JS client side form on to an external webpage.
+ */
 var fc = new function ($) {
     var apiUrl = '//192.168.0.106:9001/';
 
