@@ -82,11 +82,68 @@ var fc = new function ($) {
                 }
 
                 if (typeof(data.stage) != 'undefined') {
-                    fc.schema = data;
+                    fc.schema = orderSchema(data);
+                    console.log(fc.schema);
+                    return;
+
                     render();
                 }
             });
         });
+    }
+
+    /**
+     * Order schema numerically by data columns.
+     * @param schema
+     * @param orderColumn
+     * @returns {*}
+     */
+    var orderSchema = function (schema, orderColumn) {
+        if (typeof(orderColumn) == 'undefined') {
+            orderColumn = 'order';
+        }
+
+        if (typeof(schema) == 'object') {
+            // Recursively order children
+            for (var key in schema) {
+                // Chilcren have order, try to order the object
+                if (typeof(schema[key]) == 'object' && typeof(schema[key][0]) != 'undefined' && typeof(schema[key][0]['order']) != 'undefined') {
+                    schema[key] = orderObject(schema[key], orderColumn);
+                } else {
+                    schema[key] = orderSchema(schema[key], orderColumn);
+                }
+            }
+        }
+
+        return schema;
+    }
+
+    /**
+     * Orders an object numerically in ascending order by a given data column.
+     * @param object
+     * @param orderColumn
+     * @returns {Array}
+     */
+    var orderObject = function (object, orderColumn) {
+        // Construct a 2-dimensional array (so pages with same order don't override each other)
+        var orderedObject = [];
+        for (var key in object) {
+            var order = typeof(object[key]['order']) != 'undefined' ? object[key]['order'] : 0;
+            if (typeof(orderedObject[order]) == 'undefined') {
+                orderedObject[order] = [];
+                orderedObject[order].push(object[key]);
+            }
+        }
+
+        // Flatten the two-dimensional array in to a single array
+        var objects = [];
+        for (var key in orderedObject) {
+            for (var x = 0; x < orderedObject[key].length; x++) {
+                objects.push(orderedObject[key][x]);
+            }
+        }
+
+        return objects;
     }
 
     /**
