@@ -154,27 +154,39 @@ var fc = new function ($) {
 
                 // Render the fields
                 if (typeof(section.field) != 'undefined' && section.field.length > 0) {
-                    for (var y = 0; y < section.field.length; y++) {
-                        var field = section.field[y],
-                            fieldHtml = '<div class="field">';
-
-                        if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
-                            fieldHtml += '<label>' + field.config.label + '</label>';
-                        }
-
-                        switch (field.type) {
-                            case 'text':
-                                fieldHtml += renderTextfield(field);
-                                break;
-                        }
-
-                        fieldHtml += '</div>';
-                        sectionHtml += fieldHtml;
-                    }
+                    sectionHtml += renderFields(section.field);
                 }
 
                 sectionHtml += '</div>';
                 html += sectionHtml;
+            }
+
+            return html;
+        }
+
+        /**
+         * Render a collection of fields.
+         * @param fields
+         * @returns {string}
+         */
+        var renderFields = function (fields) {
+            var html = '';
+            for (var y = 0; y < fields.length; y++) {
+                var field = fields[y],
+                    fieldHtml = '<div class="field">';
+
+                if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
+                    fieldHtml += '<label>' + field.config.label + '</label>';
+                }
+
+                switch (field.type) {
+                    case 'text':
+                        fieldHtml += renderTextfield(field);
+                        break;
+                }
+
+                fieldHtml += '</div>';
+                html += fieldHtml;
             }
 
             return html;
