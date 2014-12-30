@@ -69,26 +69,28 @@ var fc = new function ($) {
             }
             fc.formId = $(fc.jQueryContainer).attr('data-id');
 
-            // Register event listener
+            // Register event listeners and load the form schema
             registerEventListeners();
+            loadSchema();
+        });
+    }
 
-            // Load the form schema
-            api('form/schema', {
-                form_id: fc.formId
-            }, 'post', function (data) {
-                if (typeof(data.error) == 'boolean' && data.error) {
-                    console.log('FC Error: ' + data.message);
-                    return;
-                }
+    /**
+     * Load the form schema/definition
+     */
+    var loadSchema = function () {
+        api('form/schema', {
+            form_id: fc.formId
+        }, 'post', function (data) {
+            if (typeof(data.error) == 'boolean' && data.error) {
+                console.log('FC Error: ' + data.message);
+                return;
+            }
 
-                if (typeof(data.stage) != 'undefined') {
-                    fc.schema = orderSchema(data);
-                    console.log(fc.schema);
-                    return;
-
-                    render();
-                }
-            });
+            if (typeof(data.stage) != 'undefined') {
+                fc.schema = orderSchema(data);
+                render();
+            }
         });
     }
 
@@ -256,9 +258,11 @@ var fc = new function ($) {
         }
 
         // Submit button
-        pageDiv += '<div class="submit">';
-        pageDiv += '<input type="submit" value="Submit">';
-        pageDiv += '</div>';
+        if (hasNextPage()) {
+            pageDiv += '<div class="submit">';
+            pageDiv += '<input type="submit" value="Submit">';
+            pageDiv += '</div>';
+        }
 
         // Close page div
         pageDiv += '</div>';
@@ -340,9 +344,15 @@ var fc = new function ($) {
             render();
             return;
         }
+    }
 
-        // Reached the end
-
+    /**
+     * Returns true when a next stage exists.
+     * @returns {boolean}
+     */
+    var hasNextPage = function () {
+        var currentStage = typeof(fc.currentStage) != 'undefined' ? fc.currentStage : 1;
+        return typeof(fc.schema.stage[currentStage]) == 'object';
     }
 
 }(jQuery);
