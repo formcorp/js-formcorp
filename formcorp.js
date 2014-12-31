@@ -6,7 +6,8 @@
  * Ability to embed a JS client side form on to an external webpage.
  */
 var fc = new function ($) {
-    var apiUrl = '//192.168.0.106:9001/';
+    var apiUrl = '//192.168.0.106:9001/',
+        cdnUrl = '//192.168.0.106:9004/';
 
     /**
      * Send off an API call.
@@ -89,6 +90,7 @@ var fc = new function ($) {
 
             if (typeof(data.stage) != 'undefined') {
                 fc.schema = orderSchema(data);
+                console.log(fc.schema);
                 render();
             }
         });
@@ -183,11 +185,21 @@ var fc = new function ($) {
      * @returns {boolean}
      */
     var validForm = function () {
-        $('[formcorp-data-id]').each(function () {
-            if ($(this).attr('data-required') == 'true' && getFieldValue($(this)) == '') {
-                return false;
+        var errors = {};
+
+        // Test if required fields have a value
+        $('[data-required="true"]').each(function () {
+            if (fieldIsEmpty($(this))) {
+                errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
             }
         });
+
+        // Terminate when errors exist
+        if (Object.keys(errors).length > 0) {
+            console.log('errors:');
+            console.log(errors);
+            return false;
+        }
         return true;
     }
 
@@ -205,12 +217,23 @@ var fc = new function ($) {
     }
 
     /**
+     * Returns true if a field is empty, false if not.
+     * @param field
+     * @returns {boolean}
+     */
+    var fieldIsEmpty = function (field) {
+        var value = getFieldValue(field);
+        return !value || value.length === 0;
+    }
+
+    /**
      * Render a text field.
      * @param field
      * @returns {string}
      */
     var renderTextfield = function (field) {
-        var html = '<input type="text" formcorp-data-id="' + field._id.$id + '">';
+        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
+            html = '<input type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">';
         return html;
     }
 
