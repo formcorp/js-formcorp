@@ -74,6 +74,6 @@ div.fc-submit {
     display: inline;
 }
 
-.fc-field-radioList .fc-inline {
+.fc-field-radioList .fc-inline, .fc-field-checkboxList .fc-inline {
     padding-right: 10px;
 }

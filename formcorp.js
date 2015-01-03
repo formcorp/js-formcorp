@@ -236,10 +236,22 @@ var fc = new function ($) {
     var getFieldValue = function (field) {
         if (field.is('input') || field.is('textarea')) {
             if (field.attr('type') == 'radio') {
+                // Radio lists
                 if ($('input[name=' + $(field).attr('name') + ']:checked').length > 0) {
                     return $('input[name=' + $(field).attr('name') + ']:checked').val();
                 }
                 return '';
+            } else if (field.attr('type') == 'checkbox') {
+                // Checkbox lists
+                var selector = $('input[formcorp-data-id=' + $(field).attr('formcorp-data-id') + ']:checked');
+                if (selector.length === 0) {
+                    return '';
+                }
+                var values = [];
+                selector.each(function() {
+                    values.push($(this).val());
+                });
+                return JSON.stringify(values);
             } else {
                 return field.val();
             }
@@ -395,6 +407,9 @@ var fc = new function ($) {
                 case 'radioList':
                     fieldHtml += renderRadioList(field);
                     break;
+                case 'checkboxList':
+                    fieldHtml += renderCheckboxList(field);
+                    break;
             }
 
             fieldHtml += '</div></div>';
@@ -497,6 +512,33 @@ var fc = new function ($) {
 
                 html += '<div class="' + cssClass + '">';
                 html += '<input type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
+                html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                html += '</div>';
+            }
+        }
+
+        return html;
+    }
+
+    /**
+     * Render a checkbox list.
+     * @param field
+     * @returns {string}
+     */
+    var renderCheckboxList = function (field) {
+        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
+            options = getConfig(field, 'options', ''),
+            html = '';
+
+        if (options.length > 0) {
+            options = options.split("\n");
+            var cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
+            for (var x = 0; x < options.length; x++) {
+                var option = options[x].replace(/(\r\n|\n|\r)/gm, ""),
+                    id = field._id.$id + '_' + x;
+
+                html += '<div class="' + cssClass + '">';
+                html += '<input type="checkbox" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
                 html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
                 html += '</div>';
             }
