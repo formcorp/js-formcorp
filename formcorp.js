@@ -410,6 +410,9 @@ var fc = new function ($) {
                 case 'checkboxList':
                     fieldHtml += renderCheckboxList(field);
                     break;
+                case 'hidden':
+                    fieldHtml += renderHiddenField(field);
+                    break;
             }
 
             fieldHtml += '</div></div>';
@@ -544,6 +547,16 @@ var fc = new function ($) {
             }
         }
 
+        return html;
+    }
+
+    /**
+     * Render a hidden field.
+     * @param field
+     * @returns {string}
+     */
+    var renderHiddenField = function (field) {
+        var html = '<input type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
         return html;
     }
 
