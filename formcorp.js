@@ -213,9 +213,9 @@ var fc = new function ($) {
         $('[data-required="true"]').each(function () {
             if (fieldIsEmpty($(this))) {
                 errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
-                $(this).parent().addClass('fc-error');
+                $(this).parent().parent().addClass('fc-error');
             } else {
-                $(this).parent().removeClass('fc-error');
+                $(this).parent().parent().removeClass('fc-error');
             }
         });
 
@@ -235,7 +235,14 @@ var fc = new function ($) {
      */
     var getFieldValue = function (field) {
         if (field.is('input') || field.is('textarea')) {
-            return field.val();
+            if (field.attr('type') == 'radio') {
+                if ($('input[name=' + $(field).attr('name') + ']:checked').length > 0) {
+                    return $('input[name=' + $(field).attr('name') + ']:checked').val();
+                }
+                return '';
+            } else {
+                return field.val();
+            }
         } else if (field.is('select')) {
             return $(field).find('option:selected').text();
         }
@@ -367,11 +374,13 @@ var fc = new function ($) {
         var html = '';
         for (var y = 0; y < fields.length; y++) {
             var field = fields[y],
-                fieldHtml = '<div class="fc-field">';
+                fieldHtml = '<div class="fc-field fc-field-' + field.type + '">';
 
             if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
             }
+
+            fieldHtml += '<div class="fc-fieldgroup">';
 
             switch (field.type) {
                 case 'text':
@@ -383,9 +392,12 @@ var fc = new function ($) {
                 case 'textarea':
                     fieldHtml += renderTextarea(field);
                     break;
+                case 'radioList':
+                    fieldHtml += renderRadioList(field);
+                    break;
             }
 
-            fieldHtml += '</div>';
+            fieldHtml += '</div></div>';
             html += fieldHtml;
         }
 
@@ -445,7 +457,7 @@ var fc = new function ($) {
         if (options.length > 0) {
             options = options.split("\n");
             for (var x = 0; x < options.length; x++) {
-                options[x] = options[x].replace(/(\r\n|\n|\r)/gm,"");
+                options[x] = options[x].replace(/(\r\n|\n|\r)/gm, "");
                 html += '<option value="' + htmlEncode(options[x]) + '">' + htmlEncode(options[x]) + '</option>';
             }
         }
@@ -462,6 +474,34 @@ var fc = new function ($) {
     var renderTextarea = function (field) {
         var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
             html = '<textarea formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
+        return html;
+    }
+
+    /**
+     * Render a radio list.
+     * @param field
+     * @returns {string}
+     */
+    var renderRadioList = function (field) {
+        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
+            options = getConfig(field, 'options', ''),
+            html = '';
+
+        if (options.length > 0) {
+            options = options.split("\n");
+            var cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
+            for (var x = 0; x < options.length; x++) {
+                var option = options[x].replace(/(\r\n|\n|\r)/gm, ""),
+                    id = field._id.$id + '_' + x,
+                    checked = getConfig(field, 'default') == option ? ' checked' : '';
+
+                html += '<div class="' + cssClass + '">';
+                html += '<input type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
+                html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                html += '</div>';
+            }
+        }
+
         return html;
     }
 

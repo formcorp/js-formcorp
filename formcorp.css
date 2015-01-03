@@ -25,7 +25,7 @@
     height: auto;
 }
 
-.fc-form .fc-error input {
+.fc-form .fc-error input, .fc-form .fc-error textarea {
     border: 1px solid #ebccd1;
     -webkit-box-shadow: none;
     box-shadow: none;
@@ -64,4 +64,16 @@ div.fc-submit {
 
 .fc-field {
     margin: 15px 0 20px 0;
+}
+
+.fc-fieldgroup label {
+    font-weight: normal;
+}
+
+.fc-inline {
+    display: inline;
+}
+
+.fc-field-radioList .fc-inline {
+    padding-right: 10px;
 }
