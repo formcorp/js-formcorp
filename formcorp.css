@@ -2,7 +2,7 @@
     display: block;
 }
 
-.fc-form input[type=text], .fc-form select {
+.fc-form input[type=text], .fc-form select, .fc-form textarea {
     padding-right: 33px;
     padding-left: 12px;
     font-size: 14px;
@@ -19,6 +19,10 @@
     line-height: 1.42857143;
     background-image: none;
     border-radius: 4px;
+}
+
+.fc-form textarea {
+    height: auto;
 }
 
 .fc-form .fc-error input {

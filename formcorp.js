@@ -237,7 +237,7 @@ var fc = new function ($) {
         if (field.is('input')) {
             return field.val();
         } else if (field.is('select')) {
-            return $(this).find('option:selected').text();
+            return $(field).find('option:selected').text();
         }
 
         return '';
@@ -380,6 +380,9 @@ var fc = new function ($) {
                 case 'dropdown':
                     fieldHtml += renderDropdown(field);
                     break;
+                case 'textarea':
+                    fieldHtml += renderTextarea(field);
+                    break;
             }
 
             fieldHtml += '</div>';
@@ -442,11 +445,23 @@ var fc = new function ($) {
         if (options.length > 0) {
             options = options.split("\n");
             for (var x = 0; x < options.length; x++) {
+                options[x] = options[x].replace(/(\r\n|\n|\r)/gm,"");
                 html += '<option value="' + htmlEncode(options[x]) + '">' + htmlEncode(options[x]) + '</option>';
             }
         }
 
         html += '</select>';
+        return html;
+    }
+
+    /**
+     * Render a text area field.
+     * @param field
+     * @returns {string}
+     */
+    var renderTextarea = function (field) {
+        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
+            html = '<textarea formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
         return html;
     }
 
