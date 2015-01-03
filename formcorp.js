@@ -234,7 +234,7 @@ var fc = new function ($) {
      * @returns {*}
      */
     var getFieldValue = function (field) {
-        if (field.is('input')) {
+        if (field.is('input') || field.is('textarea')) {
             return field.val();
         } else if (field.is('select')) {
             return $(field).find('option:selected').text();
