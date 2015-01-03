@@ -71,9 +71,29 @@ var fc = new function ($) {
             fc.formId = $(fc.jQueryContainer).attr('data-id');
 
             // Register event listeners and load the form schema
+            loadCssFiles();
             registerEventListeners();
             loadSchema();
         });
+    }
+
+    /**
+     * Register the formcorp css files
+     */
+    var loadCssFiles = function () {
+        var cssId = 'formcorp-css',
+            cssUri = 'formcorp.css';
+
+        if ($('#' + cssId).length == 0) {
+            console.log('register css');
+            var head = document.getElementsByTagName('head')[0];
+            var link = document.createElement('link');
+            link.id = cssId;
+            link.rel = 'stylesheet';
+            link.href = cdnUrl + cssUri;
+            link.media = 'all';
+            head.appendChild(link);
+        }
     }
 
     /**
@@ -155,7 +175,7 @@ var fc = new function ($) {
      */
     var registerEventListeners = function () {
         // Submit a form page
-        $(fc.jQueryContainer).on('click', 'div.submit input[type=submit]', function () {
+        $(fc.jQueryContainer).on('click', 'div.fc-submit input[type=submit]', function () {
             if (!validForm()) {
                 console.log('FC Error: Form is not valid');
                 return false;
@@ -177,6 +197,8 @@ var fc = new function ($) {
                     nextPage();
                 }
             });
+
+            return false;
         });
     }
 
@@ -191,6 +213,9 @@ var fc = new function ($) {
         $('[data-required="true"]').each(function () {
             if (fieldIsEmpty($(this))) {
                 errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
+                $(this).parent().addClass('fc-error');
+            } else {
+                $(this).parent().removeClass('fc-error');
             }
         });
 
@@ -211,6 +236,8 @@ var fc = new function ($) {
     var getFieldValue = function (field) {
         if (field.is('input')) {
             return field.val();
+        } else if (field.is('select')) {
+            return $(this).find('option:selected').text();
         }
 
         return '';
@@ -227,14 +254,22 @@ var fc = new function ($) {
     }
 
     /**
-     * Render a text field.
+     * Return a value from the field's configuration options.
      * @param field
-     * @returns {string}
+     * @param key
+     * @param defaultVal
+     * @returns {*}
      */
-    var renderTextfield = function (field) {
-        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
-            html = '<input type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">';
-        return html;
+    var getConfig = function (field, key, defaultVal) {
+        if (defaultVal === undefined) {
+            defaultVal = '';
+        }
+
+        if (typeof(field.config) == 'object' && typeof(field.config[key]) !== 'undefined') {
+            return field.config[key];
+        }
+
+        return defaultVal;
     }
 
     /**
@@ -264,7 +299,7 @@ var fc = new function ($) {
      */
     var renderPage = function (page) {
         // Page details
-        var pageDiv = '<div class="page">';
+        var pageDiv = '<div class="page"><form class="fc-form">';
         fc.pageId = page._id.$id;
         if (typeof(page.label) == 'string' && page.label.length > 0) {
             pageDiv += '<h2>' + page.label + '</h2>';
@@ -280,13 +315,13 @@ var fc = new function ($) {
 
         // Submit button
         if (hasNextPage()) {
-            pageDiv += '<div class="submit">';
-            pageDiv += '<input type="submit" value="Submit">';
+            pageDiv += '<div class="fc-submit">';
+            pageDiv += '<input type="submit" value="Submit" class="fc-btn">';
             pageDiv += '</div>';
         }
 
         // Close page div
-        pageDiv += '</div>';
+        pageDiv += '</form></div>';
 
         return pageDiv;
     }
@@ -332,7 +367,7 @@ var fc = new function ($) {
         var html = '';
         for (var y = 0; y < fields.length; y++) {
             var field = fields[y],
-                fieldHtml = '<div class="field">';
+                fieldHtml = '<div class="fc-field">';
 
             if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
@@ -341,6 +376,9 @@ var fc = new function ($) {
             switch (field.type) {
                 case 'text':
                     fieldHtml += renderTextfield(field);
+                    break;
+                case 'dropdown':
+                    fieldHtml += renderDropdown(field);
                     break;
             }
 
@@ -375,5 +413,51 @@ var fc = new function ($) {
         var currentStage = typeof(fc.currentStage) != 'undefined' ? fc.currentStage : 1;
         return typeof(fc.schema.stage[currentStage]) == 'object';
     }
+
+    /**
+     * Render a text field.
+     * @param field
+     * @returns {string}
+     */
+    var renderTextfield = function (field) {
+        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
+            html = '<input type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+        return html;
+    }
+
+    /**
+     * Render a dropdown field.
+     * @param field
+     * @returns {string}
+     */
+    var renderDropdown = function (field) {
+        var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
+            html = '<select formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">',
+            options = getConfig(field, 'options', '');
+
+        if (getConfig(field, 'placeholder', '').length > 0) {
+            html += '<option value="" disabled selected>' + htmlEncode(getConfig(field, 'placeholder')) + '</option>';
+        }
+
+        if (options.length > 0) {
+            options = options.split("\n");
+            for (var x = 0; x < options.length; x++) {
+                html += '<option value="' + htmlEncode(options[x]) + '">' + htmlEncode(options[x]) + '</option>';
+            }
+        }
+
+        html += '</select>';
+        return html;
+    }
+
+    /**
+     * HTML encode a string.
+     * @param html
+     * @returns {*}
+     */
+    function htmlEncode(html) {
+        return document.createElement('a').appendChild(
+            document.createTextNode(html)).parentNode.innerHTML;
+    };
 
 }(jQuery);
