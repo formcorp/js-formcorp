@@ -248,7 +248,7 @@ var fc = new function ($) {
                     return '';
                 }
                 var values = [];
-                selector.each(function() {
+                selector.each(function () {
                     values.push($(this).val());
                 });
                 return JSON.stringify(values);
@@ -318,7 +318,7 @@ var fc = new function ($) {
      */
     var renderPage = function (page) {
         // Page details
-        var pageDiv = '<div class="page"><form class="fc-form">';
+        var pageDiv = '<div class="fc-page"><form class="fc-form">';
         fc.pageId = page._id.$id;
         if (typeof(page.label) == 'string' && page.label.length > 0) {
             pageDiv += '<h2>' + page.label + '</h2>';
@@ -355,7 +355,7 @@ var fc = new function ($) {
 
         for (var x = 0; x < sections.length; x++) {
             var section = sections[x],
-                sectionHtml = '<div class="section">';
+                sectionHtml = '<div class="fc-section">';
 
             if (typeof(section.label) == 'string' && section.label.length > 0) {
                 sectionHtml += '<h4>' + section.label + '</h4>';
@@ -413,6 +413,11 @@ var fc = new function ($) {
                 case 'hidden':
                     fieldHtml += renderHiddenField(field);
                     break;
+            }
+
+            // Help text
+            if (getConfig(field, 'help').length > 0) {
+                fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
 
             fieldHtml += '</div></div>';
