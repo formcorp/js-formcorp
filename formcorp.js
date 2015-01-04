@@ -55,6 +55,8 @@ var fc = new function ($) {
         this.container = container;
         this.jQueryContainer = '#' + container;
         this.currentStage = 1;
+        this.fields = {};
+        this.fieldSchema = {};
 
         // Check to make sure container exists
         $(document).ready(function () {
@@ -200,6 +202,47 @@ var fc = new function ($) {
 
             return false;
         });
+
+        registerValueChangedListeners();
+    }
+
+    /**
+     * Register event listeners that fire when a form input field's value changes
+     */
+    var registerValueChangedListeners = function () {
+        // Input types text changed
+        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput', function () {
+            valueChanged($(this).attr('formcorp-data-id'), $(this).val());
+        });
+    }
+
+    /**
+     * Function that is fired when a data value changes.
+     * @param dataId
+     * @param value
+     */
+    var valueChanged = function (dataId, value) {
+        fc.fields[dataId] = value;
+
+        // Flush the field visibility options
+        flushFieldVisibility();
+    }
+
+    /**
+     * Flushes the field visibility options. Should be triggered when the page is first rendered, and when a value
+     * changes. A change in value represents a change in form state. When the form's state changes, the visibility of
+     * certain fields may need to be altered.
+     */
+    var flushFieldVisibility = function () {
+        console.log(fc.fields);
+        $(fc.jQueryContainer).find('.fc-fieldinput').each(function () {
+            var dataId = $(this).attr('formcorp-data-id');
+            if (typeof(dataId) != 'string' || dataId.length == 0) {
+                return;
+            }
+
+            console.log(dataId);
+        });
     }
 
     /**
@@ -304,11 +347,51 @@ var fc = new function ($) {
             return;
         }
 
+        // Store field schema locally
+        updateFieldSchema(stage);
+
         // @todo: page selection based on criteria
         var html = '<h1>' + stage.label + '</h1>';
         html += renderPage(stage.page[0]);
 
         $(fc.jQueryContainer).html(html);
+    }
+
+    /**
+     * Update field schema (object stores the configuration of each field for easy access)
+     * @param stage
+     */
+    var updateFieldSchema = function (stage) {
+        console.log('update field schema');
+        console.log(stage);
+        if (typeof(stage.page) != 'undefined') {
+            // Iterate through each page
+            for (var x = 0; x < stage.page.length; x++) {
+                var page = stage.page[x];
+                if (typeof(page.section) == 'undefined') {
+                    continue;
+                }
+
+                // Iterate through each section
+                for (var y = 0; y < page.section.length; y++) {
+                    var section = page.section[y];
+                    if (typeof(section.field) == 'undefined' || section.field.length == 0) {
+                        continue;
+                    }
+
+                    // Iterate through each field
+                    for (var z = 0; z < section.field.length; z++) {
+                        var field = section.field[z],
+                            id = field._id.$id;
+
+                        // Add t field schema if doesn't already exist
+                        if (typeof(fc.fieldSchema[id]) == 'undefined') {
+                            fc.fieldSchema[id] = field;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -459,7 +542,7 @@ var fc = new function ($) {
      */
     var renderTextfield = function (field) {
         var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
-            html = '<input type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
         return html;
     }
 
@@ -470,7 +553,7 @@ var fc = new function ($) {
      */
     var renderDropdown = function (field) {
         var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
-            html = '<select formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">',
+            html = '<select class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">',
             options = getConfig(field, 'options', '');
 
         if (getConfig(field, 'placeholder', '').length > 0) {
@@ -496,7 +579,7 @@ var fc = new function ($) {
      */
     var renderTextarea = function (field) {
         var required = typeof(field.config.required) == 'boolean' ? field.config.required : false,
-            html = '<textarea formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
+            html = '<textarea class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
         return html;
     }
 
@@ -519,7 +602,7 @@ var fc = new function ($) {
                     checked = getConfig(field, 'default') == option ? ' checked' : '';
 
                 html += '<div class="' + cssClass + '">';
-                html += '<input type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
+                html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
                 html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
                 html += '</div>';
             }
@@ -546,7 +629,7 @@ var fc = new function ($) {
                     id = field._id.$id + '_' + x;
 
                 html += '<div class="' + cssClass + '">';
-                html += '<input type="checkbox" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
+                html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
                 html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
                 html += '</div>';
             }
@@ -561,7 +644,7 @@ var fc = new function ($) {
      * @returns {string}
      */
     var renderHiddenField = function (field) {
-        var html = '<input type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
+        var html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
         return html;
     }
 
