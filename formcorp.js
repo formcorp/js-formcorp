@@ -234,15 +234,22 @@ var fc = new function ($) {
      * certain fields may need to be altered.
      */
     var flushFieldVisibility = function () {
-        console.log(fc.fields);
-        console.log(fc.fieldSchema);
         $(fc.jQueryContainer).find('.fc-fieldinput').each(function () {
             var dataId = $(this).attr('formcorp-data-id');
-            if (typeof(dataId) != 'string' || dataId.length == 0) {
+            if (typeof(dataId) != 'string' || dataId.length == 0 || typeof(fc.fieldSchema[dataId]) != 'object') {
                 return;
             }
 
-            console.log(dataId);
+            // If field has a visibility configurative set, act on it
+            var field = fc.fieldSchema[dataId];
+            if (typeof(field.config.visibility) == 'string' && field.config.visibility.length > 0) {
+                var visible = eval(field.config.visibility);
+                if (visible) {
+                    $('div[fc-data-group=' + dataId + ']').removeClass('fc-hide');
+                } else {
+                    $('div[fc-data-group=' + dataId + ']').addClass('fc-hide');
+                }
+            }
         });
     }
 
@@ -356,6 +363,7 @@ var fc = new function ($) {
         html += renderPage(stage.page[0]);
 
         $(fc.jQueryContainer).html(html);
+        flushFieldVisibility();
     }
 
     /**
@@ -534,7 +542,7 @@ var fc = new function ($) {
         var html = '';
         for (var y = 0; y < fields.length; y++) {
             var field = fields[y],
-                fieldHtml = '<div class="fc-field fc-field-' + field.type + '">';
+                fieldHtml = '<div class="fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
 
             if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';

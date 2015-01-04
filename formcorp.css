@@ -81,3 +81,7 @@ div.fc-submit {
 .fc-field-hidden {
     display: none;
 }
+
+.fc-hide {
+    display: none;
+}
