@@ -211,7 +211,7 @@ var fc = new function ($) {
      */
     var registerValueChangedListeners = function () {
         // Input types text changed
-        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput', function () {
+        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
             valueChanged($(this).attr('formcorp-data-id'), $(this).val());
         });
     }
@@ -403,7 +403,7 @@ var fc = new function ($) {
 
                                     // Whether or not the object needs to be converted to boolean logic
                                     if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                                        //console.log(field.config[jsonDecode[a]]);
+                                        console.log(field.config[jsonDecode[a]]);
                                         field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
                                         console.log(field.config[jsonDecode[a]]);
                                     }
@@ -446,14 +446,21 @@ var fc = new function ($) {
                 }
 
                 // If have a comparison, add it to our condition string
-                if (typeof(rule.field) == 'string' && typeof(rule.value) == 'string') {
+                if (typeof(rule.field) == 'string' && typeof(rule.value) != 'undefined') {
                     // Comparison function to call
                     var comparison = 'fc.comparison';
                     if (typeof(rule.operator) == 'string' && rule.operator.length > 0) {
                         comparison += rule.operator.charAt(0).toUpperCase() + rule.operator.slice(1);
                     }
 
-                    condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], "' + rule.value + '")';
+                    // If object, cast to JSON string
+                    if (typeof(rule.value) == 'object') {
+                        rule.value = JSON.stringify(rule.value);
+                    } else if (typeof(rule.value) == 'string') {
+                        rule.value = '"' + rule.value + '"';
+                    }
+
+                    condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ')';
                 }
 
                 // If have nested rules, call recursively
@@ -734,6 +741,37 @@ var fc = new function ($) {
         }
 
         return field == comparisonValue;
+    }
+
+    /**
+     * Returns whether a string exists within an array.
+     * @param field
+     * @param comparisonValue
+     * @returns {boolean}
+     */
+    this.comparisonIn = function (field, comparisonValue) {
+        if (typeof(field) == 'undefined') {
+            return false;
+        }
+
+        // Field can be object (i.e. checkbox list)
+        if (typeof(field) == 'object') {
+            // @todo maybe?
+        }
+
+        // Field can be string
+        if (typeof(field) == 'string') {
+            if (typeof(comparisonValue) == 'object') {
+                for (var x = 0; x < comparisonValue.length; x++) {
+                    var value = comparisonValue[x];
+                    if (field == value) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
