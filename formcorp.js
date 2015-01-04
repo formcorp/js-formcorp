@@ -235,6 +235,7 @@ var fc = new function ($) {
      */
     var flushFieldVisibility = function () {
         console.log(fc.fields);
+        console.log(fc.fieldSchema);
         $(fc.jQueryContainer).find('.fc-fieldinput').each(function () {
             var dataId = $(this).attr('formcorp-data-id');
             if (typeof(dataId) != 'string' || dataId.length == 0) {
@@ -363,6 +364,7 @@ var fc = new function ($) {
      */
     var updateFieldSchema = function (stage) {
         var jsonDecode = ['visibility'];
+        var toBoolean = ['visibility'];
 
         if (typeof(stage.page) != 'undefined') {
             // Iterate through each page
@@ -390,6 +392,13 @@ var fc = new function ($) {
                             for (var a = 0; a < jsonDecode.length; a++) {
                                 if (typeof(field.config[jsonDecode[a]]) != 'undefined' && field.config[jsonDecode[a]].length > 0) {
                                     field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
+
+                                    // Whether or not the object needs to be converted to boolean logic
+                                    if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
+                                        //console.log(field.config[jsonDecode[a]]);
+                                        field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
+                                        console.log(field.config[jsonDecode[a]]);
+                                    }
                                 }
                             }
 
@@ -398,7 +407,56 @@ var fc = new function ($) {
                     }
                 }
             }
-        }s
+        }
+    }
+
+    /**
+     * Converts an object to a literal boolean object string.
+     * @param obj
+     * @returns {*}
+     */
+    var toBooleanLogic = function (obj) {
+        var condition = '';
+        if (typeof(obj.rules) == 'object') {
+            condition += '(';
+            for (var x = 0; x < obj.rules.length; x++) {
+                var rule = obj.rules[x];
+
+                if (typeof(rule.condition) != 'undefined') {
+                    rule.condition = rule.condition.toLowerCase() == 'and' ? ' && ' : ' || ';
+                } else {
+                    rule.condition = "";
+                }
+
+                // Optimise the AND/OR clause
+                if (rule.condition.length == 0) {
+                    // Default to AND condition
+                    rule.condition = ' && ';
+                }
+                if (x == 0) {
+                    rule.condition = '';
+                }
+
+                // If have a comparison, add it to our condition string
+                if (typeof(rule.field) == 'string' && typeof(rule.value) == 'string') {
+                    // Comparison function to call
+                    var comparison = 'fc.comparison';
+                    if (typeof(rule.operator) == 'string' && rule.operator.length > 0) {
+                        comparison += rule.operator.charAt(0).toUpperCase() + rule.operator.slice(1);
+                    }
+
+                    condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], "' + rule.value + '")';
+                }
+
+                // If have nested rules, call recursively
+                if (typeof(rule.rules) == 'object' && rule.rules.length > 0) {
+                    condition += rule.condition + toBooleanLogic(rule);
+                }
+            }
+            condition += ')';
+        }
+
+        return condition;
     }
 
     /**
@@ -653,6 +711,21 @@ var fc = new function ($) {
     var renderHiddenField = function (field) {
         var html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
         return html;
+    }
+
+    /**
+     * Returns whether two values are equal.
+     *
+     * @param field
+     * @param comparisonValue
+     * @returns {boolean}
+     */
+    this.comparisonEqual = function (field, comparisonValue) {
+        if (typeof(field) == 'undefined') {
+            return false;
+        }
+
+        return field == comparisonValue;
     }
 
     /**
