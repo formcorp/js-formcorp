@@ -362,8 +362,8 @@ var fc = new function ($) {
      * @param stage
      */
     var updateFieldSchema = function (stage) {
-        console.log('update field schema');
-        console.log(stage);
+        var jsonDecode = ['visibility'];
+
         if (typeof(stage.page) != 'undefined') {
             // Iterate through each page
             for (var x = 0; x < stage.page.length; x++) {
@@ -386,12 +386,19 @@ var fc = new function ($) {
 
                         // Add t field schema if doesn't already exist
                         if (typeof(fc.fieldSchema[id]) == 'undefined') {
+                            // Decode configuration strings to json objects as required
+                            for (var a = 0; a < jsonDecode.length; a++) {
+                                if (typeof(field.config[jsonDecode[a]]) != 'undefined' && field.config[jsonDecode[a]].length > 0) {
+                                    field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
+                                }
+                            }
+
                             fc.fieldSchema[id] = field;
                         }
                     }
                 }
             }
-        }
+        }s
     }
 
     /**
