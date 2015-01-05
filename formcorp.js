@@ -57,6 +57,7 @@ var fc = new function ($) {
         this.currentStage = 1;
         this.fields = {};
         this.fieldSchema = {};
+        this.sections = {};
 
         // Check to make sure container exists
         $(document).ready(function () {
@@ -231,6 +232,14 @@ var fc = new function ($) {
         fc.fields[dataId] = value;
 
         // Flush the field visibility options
+        flushVisibility();
+    }
+
+    /**
+     * Flushes the visibility of various components throughout the form.
+     */
+    var flushVisibility = function () {
+        flushSectionVisibility();
         flushFieldVisibility();
     }
 
@@ -254,6 +263,28 @@ var fc = new function ($) {
                     $('div[fc-data-group=' + dataId + ']').removeClass('fc-hide');
                 } else {
                     $('div[fc-data-group=' + dataId + ']').addClass('fc-hide');
+                }
+            }
+        });
+    }
+
+    /**
+     * Flushses the visibility component of each section when the form state changes.
+     */
+    var flushSectionVisibility = function () {
+        $(fc.jQueryContainer).find('.fc-section').each(function () {
+            var dataId = $(this).attr('formcorp-data-id');
+            if (typeof(dataId) != 'string' || dataId.length == 0 || typeof(fc.sections[dataId]) != 'object') {
+                return;
+            }
+
+            var section = fc.sections[dataId];
+            if (typeof(section.visibility) == 'string' && section.visibility.length > 0) {
+                var visible = eval(section.visibility);
+                if (visible) {
+                    $('div.fc-section[formcorp-data-id=' + dataId + ']').removeClass('fc-hide');
+                } else {
+                    $('div.fc-section[formcorp-data-id=' + dataId + ']').addClass('fc-hide');
                 }
             }
         });
@@ -370,7 +401,7 @@ var fc = new function ($) {
         html += renderPage(stage.page[0]);
 
         $(fc.jQueryContainer).html(html);
-        flushFieldVisibility();
+        flushVisibility();
     }
 
     /**
@@ -396,6 +427,25 @@ var fc = new function ($) {
                         continue;
                     }
 
+                    // Are any object keys required to be decoded to a json object?
+                    for (var a = 0; a < jsonDecode.length; a++) {
+                        if (typeof(section[jsonDecode[a]]) == 'string') {
+                            section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
+                        }
+                    }
+
+                    // Are any object keys required to be converted to boolean logic?
+                    for (var a = 0; a < toBoolean.length; a++) {
+                        if (typeof(section[toBoolean[a]]) == 'object') {
+                            section[toBoolean[a]] = toBooleanLogic(section[toBoolean[a]]);
+                        }
+                    }
+
+                    // Append to object sections dictionary
+                    if (typeof(fc.sections[section._id.$id]) == 'undefined') {
+                        fc.sections[section._id.$id] = section;
+                    }
+
                     // Iterate through each field
                     for (var z = 0; z < section.field.length; z++) {
                         var field = section.field[z],
@@ -410,9 +460,7 @@ var fc = new function ($) {
 
                                     // Whether or not the object needs to be converted to boolean logic
                                     if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                                        console.log(field.config[jsonDecode[a]]);
                                         field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
-                                        console.log(field.config[jsonDecode[a]]);
                                     }
                                 }
                             }
@@ -525,7 +573,7 @@ var fc = new function ($) {
 
         for (var x = 0; x < sections.length; x++) {
             var section = sections[x],
-                sectionHtml = '<div class="fc-section">';
+                sectionHtml = '<div class="fc-section" formcorp-data-id="' + section._id.$id + '">';
 
             if (typeof(section.label) == 'string' && section.label.length > 0) {
                 sectionHtml += '<h4>' + section.label + '</h4>';
