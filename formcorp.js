@@ -6,8 +6,8 @@
  * Ability to embed a JS client side form on to an external webpage.
  */
 var fc = new function ($) {
-    var apiUrl = '//192.168.0.106:9001/',
-        cdnUrl = '//192.168.0.106:9004/';
+    var apiUrl = '//192.168.247.129:9001/',
+        cdnUrl = '//192.168.247.129:9004/';
 
     /**
      * Send off an API call.
@@ -214,6 +214,11 @@ var fc = new function ($) {
         $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
             valueChanged($(this).attr('formcorp-data-id'), $(this).val());
         });
+
+        // Dropdown box change
+        $(fc.jQueryContainer).on('change', 'select.fc-fieldinput', function () {
+            valueChanged($(this).attr('formcorp-data-id'), $(this).find('option:selected').val());
+        });
     }
 
     /**
@@ -222,6 +227,7 @@ var fc = new function ($) {
      * @param value
      */
     var valueChanged = function (dataId, value) {
+        console.log(dataId + ": Value changed: '" + value + "'");
         fc.fields[dataId] = value;
 
         // Flush the field visibility options
@@ -258,15 +264,16 @@ var fc = new function ($) {
      * @returns {boolean}
      */
     var validForm = function () {
+        return true;
         var errors = {};
 
         // Test if required fields have a value
         $('[data-required="true"]').each(function () {
             if (fieldIsEmpty($(this))) {
                 errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
-                $(this).parent().parent().addClass('fc-error');
+                $(fc.jQueryContainer).find('div[fc-data-group=' + $(this).attr('formcorp-data-id') + ']').addClass('fc-error');
             } else {
-                $(this).parent().parent().removeClass('fc-error');
+                $(fc.jQueryContainer).find('div[fc-data-group=' + $(this).attr('formcorp-data-id') + ']').removeClass('fc-error');
             }
         });
 
@@ -551,6 +558,13 @@ var fc = new function ($) {
             var field = fields[y],
                 fieldHtml = '<div class="fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
 
+            // Description text
+            if (getConfig(field, 'description').replace(/(<([^>]+)>)/ig,"").length > 0) {
+                fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
+            }
+
+            fieldHtml += '<div class="fc-fieldcontainer">';
+
             if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
             }
@@ -579,10 +593,11 @@ var fc = new function ($) {
             }
 
             // Help text
-            if (getConfig(field, 'help').length > 0) {
+            if (getConfig(field, 'help').replace(/(<([^>]+)>)/ig,"").length > 0) {
                 fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
 
+            fieldHtml += '</div>';
             fieldHtml += '</div></div>';
             html += fieldHtml;
         }

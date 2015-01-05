@@ -31,7 +31,7 @@
     box-shadow: none;
 }
 
-.fc-form .fc-error label {
+.fc-form .fc-error > label {
     color: #a94442;
 }
 
@@ -84,4 +84,21 @@ div.fc-submit {
 
 .fc-hide {
     display: none;
+}
+
+.fc-clear {
+    display: block;
+    clear: both;
+}
+
+.fc-table-row {
+    display: table-row;
+}
+
+.fc-table-col {
+    display: table-cell;
+}
+
+.fc-table {
+    display: table;
 }
