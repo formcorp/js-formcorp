@@ -468,9 +468,9 @@ var fc = new function ($) {
                 var fieldGroup = $(this).find('.fc-fieldgroup'),
                     value = fc.fields[fieldId];
 
-                if (fieldGroup.find('input[type=text]').length > 0) {
+                if (fieldGroup.find('input[type=text],textarea').length > 0) {
                     // Input type text
-                    fieldGroup.find('input[type=text]').val(value);
+                    fieldGroup.find('input[type=text],textarea').val(value);
                 } else if (fieldGroup.find('select').length > 0) {
                     // Select box
                     fieldGroup.find('select').val(value);
