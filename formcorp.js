@@ -55,9 +55,12 @@ var fc = new function ($) {
         this.container = container;
         this.jQueryContainer = '#' + container;
         this.currentStage = 1;
+
+        // Temporary placeholders for objects to be populated
         this.fields = {};
         this.fieldSchema = {};
         this.sections = {};
+        this.pages = {};
 
         // Check to make sure container exists
         $(document).ready(function () {
@@ -88,7 +91,6 @@ var fc = new function ($) {
             cssUri = 'formcorp.css';
 
         if ($('#' + cssId).length == 0) {
-            console.log('register css');
             var head = document.getElementsByTagName('head')[0];
             var link = document.createElement('link');
             link.id = cssId;
@@ -111,10 +113,14 @@ var fc = new function ($) {
                 return;
             }
 
+            // Render the opening page for the form
             if (typeof(data.stage) != 'undefined') {
                 fc.schema = orderSchema(data);
-                console.log(fc.schema);
-                render();
+                if (typeof(fc.schema.stage) == 'object' && fc.schema.stage.length > 0 && typeof(fc.schema.stage[0].page) == 'object' && fc.schema.stage[0].page.length > 0) {
+                    console.log(fc.schema);
+                    var firstPageId = fc.schema.stage[0].page[0]._id.$id;
+                    render(firstPageId);
+                }
             }
         });
     }
@@ -382,26 +388,57 @@ var fc = new function ($) {
 
     /**
      * Render a form stage.
+     * @param pageId
      */
-    var render = function () {
-        var currentStage = typeof(fc.currentStage) != 'undefined' ? fc.currentStage : 1,
-            currentStageIndex = currentStage - 1,
-            stage = fc.schema.stage[currentStageIndex];
+    var render = function (pageId) {
+        fc.currentPage = pageId;
 
-        console.log(stage);
-        if (typeof(stage) != 'object') {
+        var page = getPageById(pageId);
+        if (typeof(page) == 'undefined') {
+            console.log('FC Error: Page not found');
+        }
+
+        if (typeof(page.stage) != 'object') {
             return;
         }
 
         // Store field schema locally
-        updateFieldSchema(stage);
+        updateFieldSchema(page.stage);
 
         // @todo: page selection based on criteria
-        var html = '<h1>' + stage.label + '</h1>';
-        html += renderPage(stage.page[0]);
+        var html = '<h1>' + page.stage.label + '</h1>';
+        html += renderPage(page.page);
 
         $(fc.jQueryContainer).html(html);
         flushVisibility();
+    }
+
+    /**
+     * Finds and returns a page by its id.
+     * @param pageId
+     * @returns {*}
+     */
+    var getPageById = function (pageId) {
+        if (typeof(fc.pages[pageId]) == 'object') {
+            return fc.pages[pageId];
+        }
+
+        for (var x = 0; x < fc.schema.stage.length; x++) {
+            var stage = fc.schema.stage[x];
+            if (typeof(stage.page) == 'object' && stage.page.length > 0) {
+                for (var y = 0; y < stage.page.length; y++) {
+                    var page = stage.page[y];
+                    if (typeof(fc.pages[page._id.$id]) == 'undefined') {
+                        fc.pages[page._id.$id] = {
+                            stage: stage,
+                            page: page
+                        };
+                    }
+                }
+            }
+        }
+
+        return getPageById(pageId);
     }
 
     /**
@@ -418,6 +455,13 @@ var fc = new function ($) {
                 var page = stage.page[x];
                 if (typeof(page.section) == 'undefined') {
                     continue;
+                }
+
+                // Convert page to conditions to JS boolean logic
+                if (typeof(page.toCondition) == 'object' && Object.keys(page.toCondition).length > 0) {
+                    for (var key in page.toCondition) {
+                        page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
+                    }
                 }
 
                 // Iterate through each section
@@ -607,7 +651,7 @@ var fc = new function ($) {
                 fieldHtml = '<div class="fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
 
             // Description text
-            if (getConfig(field, 'description').replace(/(<([^>]+)>)/ig,"").length > 0) {
+            if (getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
                 fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
             }
 
@@ -638,10 +682,15 @@ var fc = new function ($) {
                 case 'hidden':
                     fieldHtml += renderHiddenField(field);
                     break;
+                case 'richTextArea':
+                    fieldHtml += renderRichText(field);
+                    break;
+                default:
+                    console.log('Unknown field type: ' + field.type);
             }
 
             // Help text
-            if (getConfig(field, 'help').replace(/(<([^>]+)>)/ig,"").length > 0) {
+            if (getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
                 fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
 
@@ -655,18 +704,52 @@ var fc = new function ($) {
 
     /**
      * Render the next page
+     * @param render
      */
-    var nextPage = function () {
-        var currentStage = typeof(fc.currentStage) != 'undefined' ? fc.currentStage : 1,
-            nextStage = currentStage + 1,
-            nextStageIndex = nextStage - 1;
+    var nextPage = function (shouldRender) {
+        if (typeof(shouldRender) != 'boolean') {
+            shouldRender = true;
+        }
 
-        // Render the next stage
-        if (typeof(fc.schema.stage[nextStageIndex]) == 'object') {
-            fc.currentStage++;
-            render();
+        var currentPage = getPageById(fc.currentPage);
+        if (typeof(currentPage.page) != 'object') {
             return;
         }
+
+        // If have custom rules determining the page to navigate to, attempt to process them
+        if (typeof(currentPage.page.toCondition) == 'object' && Object.keys(currentPage.page.toCondition).length > 0) {
+            for (var id in currentPage.page.toCondition) {
+                var condition = currentPage.page.toCondition[id];
+                if (eval(condition)) {
+                    if (shouldRender) {
+                        render(id);
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // Render the next page by default (first page in next stage)
+        var foundStage = false;
+        for (var x = 0; x < fc.schema.stage.length; x++) {
+            var stage = fc.schema.stage[x];
+
+            // If the stage that is to be rendered has been found, do so
+            if (foundStage && typeof(stage.page) == 'object' && stage.page.length > 0) {
+                if (shouldRender) {
+                    render(stage.page[0]._id.$id);
+                }
+                return true;
+            }
+
+            // If the current iterative stage is the stage of the currently rendered page, mark the next stage to be renderewd
+            if (stage._id.$id == currentPage.stage._id.$id) {
+                foundStage = true;
+            }
+        }
+
+        console.log('Page not found!');
+        return false;
     }
 
     /**
@@ -674,8 +757,7 @@ var fc = new function ($) {
      * @returns {boolean}
      */
     var hasNextPage = function () {
-        var currentStage = typeof(fc.currentStage) != 'undefined' ? fc.currentStage : 1;
-        return typeof(fc.schema.stage[currentStage]) == 'object';
+        return nextPage(false);
     }
 
     /**
@@ -789,6 +871,19 @@ var fc = new function ($) {
     var renderHiddenField = function (field) {
         var html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
         return html;
+    }
+
+    /**
+     * Render a rich text area.
+     * @param field
+     * @returns {*}
+     */
+    var renderRichText = function (field) {
+        if (typeof(field.config.rich) != 'string') {
+            return '';
+        }
+
+        return '<div class="fc-richtext">' + field.config.rich + '</div>';
     }
 
     /**
