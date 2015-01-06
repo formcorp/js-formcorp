@@ -748,7 +748,6 @@ var fc = new function ($) {
             }
         }
 
-        console.log('Page not found!');
         return false;
     }
 
@@ -787,9 +786,25 @@ var fc = new function ($) {
 
         if (options.length > 0) {
             options = options.split("\n");
+            var optGroupOpen = false;
             for (var x = 0; x < options.length; x++) {
-                options[x] = options[x].replace(/(\r\n|\n|\r)/gm, "");
-                html += '<option value="' + htmlEncode(options[x]) + '">' + htmlEncode(options[x]) + '</option>';
+                var option = options[x];
+                option = option.replace(/(\r\n|\n|\r)/gm, "");
+                if (option.match(/^\[\[(.*?)\]\]$/g)) {
+                    // Opt group tag
+                    if (optGroupOpen) {
+                        html += "</optgroup>";
+                    }
+                    var label =  option.substring(2, option.length - 2);
+                    html += '<optgroup label="' + label + '">';
+                } else {
+                    // Normal option tag
+                    html += '<option value="' + htmlEncode(option) + '">' + htmlEncode(option) + '</option>';
+                }
+            }
+
+            if (optGroupOpen) {
+                html += '</optgroup>';
             }
         }
 
