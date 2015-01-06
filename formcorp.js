@@ -211,6 +211,17 @@ var fc = new function ($) {
         });
 
         registerValueChangedListeners();
+
+        // When the hash changes - navigate forward/backwards
+        $(window).on('hashchange', function() {
+            var pageId = window.location.hash.substr(1);
+            if (fc.ignoreHashChangeEvent === false && fc.oldHash != pageId && typeof(fc.pages[pageId]) == 'object') {
+                render(pageId);
+            }
+
+            fc.oldHash = pageId;
+            fc.ignoreHashChangeEvent = false;
+        });
     }
 
     /**
@@ -411,6 +422,10 @@ var fc = new function ($) {
 
         $(fc.jQueryContainer).html(html);
         flushVisibility();
+
+        // Update the hash, and ignore the hash change event
+        fc.ignoreHashChangeEvent = true;
+        window.location.hash = pageId;
     }
 
     /**
@@ -460,7 +475,9 @@ var fc = new function ($) {
                 // Convert page to conditions to JS boolean logic
                 if (typeof(page.toCondition) == 'object' && Object.keys(page.toCondition).length > 0) {
                     for (var key in page.toCondition) {
-                        page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
+                        try {
+                            page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
+                        } catch (error) {}
                     }
                 }
 
@@ -474,7 +491,9 @@ var fc = new function ($) {
                     // Are any object keys required to be decoded to a json object?
                     for (var a = 0; a < jsonDecode.length; a++) {
                         if (typeof(section[jsonDecode[a]]) == 'string') {
-                            section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
+                            try {
+                                section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
+                            } catch (error) {}
                         }
                     }
 
