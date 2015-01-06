@@ -421,6 +421,11 @@ var fc = new function ($) {
         html += renderPage(page.page);
 
         $(fc.jQueryContainer).html(html);
+
+        // Set values from data array
+        setFieldValues();
+
+        // Flush the field/section visibility
         flushVisibility();
 
         // Update the hash, and ignore the hash change event
@@ -454,6 +459,27 @@ var fc = new function ($) {
         }
 
         return getPageById(pageId);
+    }
+
+    var setFieldValues = function () {
+        $('div[fc-data-group]').each(function() {
+            var fieldId = $(this).attr('fc-data-group');
+            if (typeof(fc.fields[fieldId]) != 'undefined') {
+                var fieldGroup = $(this).find('.fc-fieldgroup'),
+                    value = fc.fields[fieldId];
+
+                if (fieldGroup.find('input[type=text]').length > 0) {
+                    // Input type text
+                    fieldGroup.find('input[type=text]').val(value);
+                } else if (fieldGroup.find('select').length > 0) {
+                    // Select box
+                    fieldGroup.find('select').val(value);
+                } else if (fieldGroup.find('input[type=radio]').length > 0) {
+                    // Radio options
+                    fieldGroup.find('input[value=' + value + ']').prop('checked', true);
+                }
+            }
+        });
     }
 
     /**
