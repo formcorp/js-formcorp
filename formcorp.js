@@ -316,6 +316,11 @@ var fc = new function ($) {
 
         // Test if required fields have a value
         $('.fc-field[fc-data-group]').each(function () {
+            // If the field is hidden, not required to validate
+            if ($(this).hasClass('fc-hide')) {
+                return;
+            }
+
             var dataId = $(this).attr('fc-data-group'),
                 section = $(this).parent(),
                 field = fc.fieldSchema[dataId],
@@ -364,7 +369,6 @@ var fc = new function ($) {
 
         // Terminate when errors exist
         if (Object.keys(errors).length > 0) {
-            console.log('errors:');
             console.log(errors);
             return false;
         }
@@ -1054,8 +1058,9 @@ var fc = new function ($) {
             return false;
         }
 
-        var min = params[0],
-            max = params[1];
+        var min = parseFloat(params[0]),
+            max = parseFloat(params[1]),
+            value = parseFloat(value);
 
         return value >= min && value <= max;
     }
@@ -1086,6 +1091,17 @@ var fc = new function ($) {
         }
 
         return parseFloat(value) <= parseFloat(params[0]);
+    }
+
+    /**
+     * Test a string against a regular expression.
+     * @param params
+     * @param value
+     * @returns {boolean|*}
+     */
+    this.validatorRegularExpression = function (params, value) {
+        var re = new RegExp(params[0]);
+        return re.test(value);
     }
 
     /**
