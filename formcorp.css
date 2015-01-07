@@ -102,3 +102,14 @@ div.fc-submit {
 .fc-table {
     display: table;
 }
+
+.fc-error-text {
+    display: none;
+}
+
+.fc-error .fc-error-text {
+    display: block;
+    padding-top: 4px;
+    font-size: 12px;
+    color: #d05128;
+}

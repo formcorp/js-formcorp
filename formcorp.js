@@ -94,7 +94,9 @@ var fc = new function ($) {
     this.setConfig = function (data) {
         // Default values
         this.config = {
-            realTimeValidation: true
+            realTimeValidation: true,
+            inlineValidation: true,
+            emptyFieldError: 'This field cannot be empty',
         };
 
         // Update with client options
@@ -267,11 +269,22 @@ var fc = new function ($) {
      * @param value
      */
     var valueChanged = function (dataId, value) {
-        console.log(dataId + ": Value changed: '" + value + "'");
         fc.fields[dataId] = value;
+        console.log(dataId + ': ' + value);
 
         // Flush the field visibility options
         flushVisibility();
+
+        // Check real time validation
+        if (fc.config.realTimeValidation === true) {
+            var errors = fieldErrors(dataId);
+            console.log(errors);
+            if (errors.length > 0) {
+                showFieldError(dataId, errors);
+            } else {
+                removeFieldError(dataId);
+            }
+        }
     }
 
     /**
@@ -353,39 +366,13 @@ var fc = new function ($) {
                 return;
             }
 
-            // Test required data
-            $(this).find('[data-required="true"]').each(function () {
-                if (fieldIsEmpty($(this))) {
-                    errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
-                    $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').addClass('fc-error');
-                    return;
-                } else {
-                    $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
-                }
-            });
-
-            // Custom validators
-            if (typeof(field.config.validators) == 'object' && field.config.validators.length > 0) {
-                for (var x = 0; x < field.config.validators.length; x++) {
-                    var validator = field.config.validators[x],
-                        type = fc.toCamelCase(validator.type),
-                        callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
-
-                    // Convert string to function call
-                    var callback = window;
-                    var callbackSplit = callbackFunction.split('.');
-                    for (i = 0; i < callbackSplit.length; i++) {
-                        callback = callback[callbackSplit[i]];
-                    }
-
-                    // Call the callback function
-                    if (!callback(validator.params, value)) {
-                        errors[$(this).attr('formcorp-data-id')] = 'Failed custom validation';
-                        $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').addClass('fc-error');
-                    } else {
-                        $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
-                    }
-                }
+            // Show/hide the field errors
+            var localErrors = fieldErrors(dataId);
+            if (localErrors.length > 0) {
+                errors[dataId] = localErrors;
+                showFieldError(dataId, localErrors);
+            } else {
+                removeFieldError(dataId);
             }
         });
 
@@ -395,6 +382,94 @@ var fc = new function ($) {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Show the errors on the DOM for a given field.
+     * @param dataId
+     * @param errors
+     */
+    var showFieldError = function (dataId, errors) {
+        var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']');
+        dataGroup.addClass('fc-error');
+
+        // If inline validation enabled, output error message(s)
+        if (fc.config.inlineValidation === true) {
+            var msg = '';
+            for (var x = 0; x < errors.length; x++) {
+                msg += errors[x] + '<br>';
+            }
+            dataGroup.find('.fc-error-text').html(msg);
+        }
+    }
+
+    /**
+     * Remove the error on the DOM for a given field.
+     * @param dataId
+     */
+    var removeFieldError = function (dataId) {
+        $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
+    }
+
+    /**
+     * Returns a list of errors on a particular field.
+     * @param id
+     * @returns {Array}
+     */
+    var fieldErrors = function (id) {
+        var fieldSelector = $('.fc-field[fc-data-group="' + id + '"]');
+        if (fieldSelector.length = 0) {
+            console.log('a');
+            return [];
+        }
+
+        // If the field is hidden, not required to validate
+        if (fieldSelector.hasClass('fc-hide')) {
+            console.log('b');
+            return [];
+        }
+
+        var dataId = id,
+            section = fieldSelector.parent(),
+            field = fc.fieldSchema[dataId],
+            value = typeof(fc.fields[dataId]) == 'undefined' ? '' : fc.fields[dataId],
+            errors = [];
+
+        // If section is hidden, return
+        if (section.hasClass('fc-hide')) {
+            console.log('c');
+            return [];
+        }
+
+        // Test required data
+        var dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
+        if (fieldIsEmpty(dataField)) {
+            errors.push(fc.config.emptyFieldError);
+            return errors;
+        }
+
+        // Custom validators
+        if (typeof(field.config.validators) == 'object' && field.config.validators.length > 0) {
+            for (var x = 0; x < field.config.validators.length; x++) {
+                var validator = field.config.validators[x],
+                    type = fc.toCamelCase(validator.type),
+                    callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
+
+                // Convert string to function call
+                var callback = window;
+                var callbackSplit = callbackFunction.split('.');
+                for (i = 0; i < callbackSplit.length; i++) {
+                    callback = callback[callbackSplit[i]];
+                }
+
+                // Call the callback function
+                if (!callback(validator.params, value)) {
+                    errors.push('Failed custom validation');
+                }
+            }
+        }
+
+        return errors;
     }
 
     /**
@@ -524,6 +599,9 @@ var fc = new function ($) {
         return getPageById(pageId);
     }
 
+    /**
+     * Set values on DOM from fields in JS
+     */
     var setFieldValues = function () {
         $('div[fc-data-group]').each(function () {
             var fieldId = $(this).attr('fc-data-group');
@@ -798,6 +876,8 @@ var fc = new function ($) {
                 default:
                     console.log('Unknown field type: ' + field.type);
             }
+
+            fieldHtml += '<div class="fc-error-text"></div>';
 
             // Help text
             if (getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
