@@ -97,6 +97,7 @@ var fc = new function ($) {
             realTimeValidation: true,
             inlineValidation: true,
             emptyFieldError: 'This field cannot be empty',
+            defaultCustomValidationError: 'This field failed custom validation'
         };
 
         // Update with client options
@@ -278,7 +279,6 @@ var fc = new function ($) {
         // Check real time validation
         if (fc.config.realTimeValidation === true) {
             var errors = fieldErrors(dataId);
-            console.log(errors);
             if (errors.length > 0) {
                 showFieldError(dataId, errors);
             } else {
@@ -378,7 +378,6 @@ var fc = new function ($) {
 
         // Terminate when errors exist
         if (Object.keys(errors).length > 0) {
-            console.log(errors);
             return false;
         }
         return true;
@@ -419,13 +418,11 @@ var fc = new function ($) {
     var fieldErrors = function (id) {
         var fieldSelector = $('.fc-field[fc-data-group="' + id + '"]');
         if (fieldSelector.length = 0) {
-            console.log('a');
             return [];
         }
 
         // If the field is hidden, not required to validate
         if (fieldSelector.hasClass('fc-hide')) {
-            console.log('b');
             return [];
         }
 
@@ -437,7 +434,6 @@ var fc = new function ($) {
 
         // If section is hidden, return
         if (section.hasClass('fc-hide')) {
-            console.log('c');
             return [];
         }
 
@@ -464,7 +460,8 @@ var fc = new function ($) {
 
                 // Call the callback function
                 if (!callback(validator.params, value)) {
-                    errors.push('Failed custom validation');
+                    var error = typeof(validator.error) == 'string' && validator.error.length > 0 ? validator.error : fc.config.defaultCustomValidationError;
+                    errors.push(error);
                 }
             }
         }
