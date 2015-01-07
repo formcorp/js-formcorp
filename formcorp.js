@@ -213,7 +213,7 @@ var fc = new function ($) {
         registerValueChangedListeners();
 
         // When the hash changes - navigate forward/backwards
-        $(window).on('hashchange', function() {
+        $(window).on('hashchange', function () {
             var pageId = window.location.hash.substr(1);
             if (fc.ignoreHashChangeEvent === false && fc.oldHash != pageId && typeof(fc.pages[pageId]) == 'object') {
                 render(pageId);
@@ -312,16 +312,53 @@ var fc = new function ($) {
      * @returns {boolean}
      */
     var validForm = function () {
-        return true;
         var errors = {};
 
         // Test if required fields have a value
-        $('[data-required="true"]').each(function () {
-            if (fieldIsEmpty($(this))) {
-                errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
-                $(fc.jQueryContainer).find('div[fc-data-group=' + $(this).attr('formcorp-data-id') + ']').addClass('fc-error');
-            } else {
-                $(fc.jQueryContainer).find('div[fc-data-group=' + $(this).attr('formcorp-data-id') + ']').removeClass('fc-error');
+        $('.fc-field[fc-data-group]').each(function () {
+            var dataId = $(this).attr('fc-data-group'),
+                section = $(this).parent(),
+                field = fc.fieldSchema[dataId],
+                value = typeof(fc.fields[dataId]) == 'undefined' ? '' : fc.fields[dataId];
+
+            // If section is hidden, return
+            if (section.hasClass('fc-hide')) {
+                return;
+            }
+
+            // Test required data
+            $(this).find('[data-required="true"]').each(function () {
+                if (fieldIsEmpty($(this))) {
+                    errors[$(this).attr('formcorp-data-id')] = 'This field requires a value';
+                    $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').addClass('fc-error');
+                    return;
+                } else {
+                    $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
+                }
+            });
+
+            // Custom validators
+            if (typeof(field.config.validators) == 'object' && field.config.validators.length > 0) {
+                for (var x = 0; x < field.config.validators.length; x++) {
+                    var validator = field.config.validators[x],
+                        type = fc.toCamelCase(validator.type),
+                        callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
+
+                    // Convert string to function call
+                    var callback = window;
+                    var callbackSplit = callbackFunction.split('.');
+                    for (i = 0; i < callbackSplit.length; i++) {
+                        callback = callback[callbackSplit[i]];
+                    }
+
+                    // Call the callback function
+                    if (!callback(validator.params, value)) {
+                        errors[$(this).attr('formcorp-data-id')] = 'Failed custom validation';
+                        $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').addClass('fc-error');
+                    } else {
+                        $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
+                    }
+                }
             }
         });
 
@@ -462,7 +499,7 @@ var fc = new function ($) {
     }
 
     var setFieldValues = function () {
-        $('div[fc-data-group]').each(function() {
+        $('div[fc-data-group]').each(function () {
             var fieldId = $(this).attr('fc-data-group');
             if (typeof(fc.fields[fieldId]) != 'undefined') {
                 var fieldGroup = $(this).find('.fc-fieldgroup'),
@@ -487,7 +524,7 @@ var fc = new function ($) {
      * @param stage
      */
     var updateFieldSchema = function (stage) {
-        var jsonDecode = ['visibility'];
+        var jsonDecode = ['visibility', 'validators'];
         var toBoolean = ['visibility'];
 
         if (typeof(stage.page) != 'undefined') {
@@ -503,7 +540,8 @@ var fc = new function ($) {
                     for (var key in page.toCondition) {
                         try {
                             page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
-                        } catch (error) {}
+                        } catch (error) {
+                        }
                     }
                 }
 
@@ -519,7 +557,8 @@ var fc = new function ($) {
                         if (typeof(section[jsonDecode[a]]) == 'string') {
                             try {
                                 section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
-                            } catch (error) {}
+                            } catch (error) {
+                            }
                         }
                     }
 
@@ -840,7 +879,7 @@ var fc = new function ($) {
                     if (optGroupOpen) {
                         html += "</optgroup>";
                     }
-                    var label =  option.substring(2, option.length - 2);
+                    var label = option.substring(2, option.length - 2);
                     html += '<optgroup label="' + label + '">';
                 } else {
                     // Normal option tag
@@ -990,6 +1029,63 @@ var fc = new function ($) {
         }
 
         return false;
+    }
+
+    /**
+     * Converts a string to camel case.
+     * @param str
+     * @returns {*}
+     */
+    this.toCamelCase = function (str) {
+        return str.replace(/^([A-Z])|\s(\w)/g, function (match, p1, p2, offset) {
+            if (p2) return p2.toUpperCase();
+            return p1.toLowerCase();
+        });
+    };
+
+    /**
+     * Tests if a value is within a particular range.
+     * @param params
+     * @param value
+     * @returns {boolean}
+     */
+    this.validatorRange = function (params, value) {
+        if (!$.isNumeric(value)) {
+            return false;
+        }
+
+        var min = params[0],
+            max = params[1];
+
+        return value >= min && value <= max;
+    }
+
+    /**
+     * Tests if above a minimum value.
+     * @param params
+     * @param value
+     * @returns {boolean}
+     */
+    this.validatorMin = function (params, value) {
+        if (!$.isNumeric(value)) {
+            return false;
+        }
+
+        return parseFloat(value) >= parseFloat(params[0]);
+    }
+
+    /**
+     * Test if below minimum value.
+     * @param params
+     * @param value
+     * @returns {boolean}
+     */
+    this.validatorMax = function (params, value) {
+        if (!$.isNumeric(value)) {
+            return false;
+        }
+
+        return parseFloat(value) <= parseFloat(params[0]);
     }
 
     /**
