@@ -54,13 +54,17 @@ var fc = new function ($) {
         this.publicKey = publicKey;
         this.container = container;
         this.jQueryContainer = '#' + container;
-        this.currentStage = 1;
 
         // Temporary placeholders for objects to be populated
         this.fields = {};
         this.fieldSchema = {};
         this.sections = {};
         this.pages = {};
+
+        // Set config if not already done so
+        if (typeof(fc.config) == 'undefined') {
+            this.setConfig();
+        }
 
         // Check to make sure container exists
         $(document).ready(function () {
@@ -81,6 +85,24 @@ var fc = new function ($) {
             registerEventListeners();
             loadSchema();
         });
+    }
+
+    /**
+     * Set class config values.
+     * @param data
+     */
+    this.setConfig = function (data) {
+        // Default values
+        this.config = {
+            realTimeValidation: true
+        };
+
+        // Update with client options
+        if (typeof(data) == 'object' && Object.keys(data).length > 0) {
+            for (var key in data) {
+                fc.config[key] = data[key];
+            }
+        }
     }
 
     /**
