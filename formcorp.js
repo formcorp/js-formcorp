@@ -343,7 +343,7 @@ var fc = new function ($) {
     }
 
     /**
-     * @todo check the validity of each field
+     * Check the validity of the entire form.
      * @returns {boolean}
      */
     var validForm = function () {
