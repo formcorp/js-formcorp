@@ -447,6 +447,7 @@ var fc = new function ($) {
      * @returns {boolean}
      */
     var validForm = function () {
+        return true;
         var errors = {};
 
         // Test if required fields have a value
@@ -729,7 +730,7 @@ var fc = new function ($) {
                     fieldGroup.find('select').val(value);
                 } else if (fieldGroup.find('input[type=radio]').length > 0) {
                     // Radio options
-                    fieldGroup.find('input[value=' + value + ']').prop('checked', true);
+                    fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
                 }
             }
         });
