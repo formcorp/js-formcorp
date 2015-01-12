@@ -447,7 +447,6 @@ var fc = new function ($) {
      * @returns {boolean}
      */
     var validForm = function () {
-        return true;
         var errors = {};
 
         // Test if required fields have a value
@@ -460,15 +459,25 @@ var fc = new function ($) {
             var dataId = $(this).attr('fc-data-group'),
                 section = $(this).parent(),
                 field = fc.fieldSchema[dataId],
-                value = typeof(fc.fields[dataId]) == 'undefined' ? '' : fc.fields[dataId];
+                value = typeof(fc.fields[dataId]) == 'undefined' ? '' : fc.fields[dataId],
+                localErrors = [];
 
             // If section is hidden, return
             if (section.hasClass('fc-hide')) {
                 return;
             }
 
-            // Show/hide the field errors
-            var localErrors = fieldErrors(dataId);
+            // If repeatable and required, check the amount of values
+            if (typeof(field.config.repeatable) == 'boolean' && field.config.repeatable) {
+                var required = $(this).attr('data-required');
+                if (required == 'true' && (typeof(value) != 'object' || value.length == 0)) {
+                    localErrors.push(fc.config.emptyFieldError);
+                }
+            } else {
+                localErrors = fieldErrors(dataId);
+            }
+
+            // If have errors, output
             if (localErrors.length > 0) {
                 errors[dataId] = localErrors;
                 showFieldError(dataId, localErrors);
@@ -479,6 +488,7 @@ var fc = new function ($) {
 
         // Terminate when errors exist
         if (Object.keys(errors).length > 0) {
+            console.log(errors);
             return false;
         }
         return true;
@@ -966,7 +976,8 @@ var fc = new function ($) {
         var html = '';
         for (var y = 0; y < fields.length; y++) {
             var field = fields[y],
-                fieldHtml = '<div class="' + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + ' fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
+                required = getConfig(field, 'required', false),
+                fieldHtml = '<div class="' + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + ' fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '" data-required="' + required + '">';
 
             // Add to field class variable if doesnt exist
             var dataId = field._id.$id;
