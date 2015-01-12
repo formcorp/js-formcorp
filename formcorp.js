@@ -288,7 +288,7 @@ var fc = new function ($) {
         // Add value for a repeatable group
         $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click', function () {
             var dataId = $(this).attr('data-id'),
-                html = $("<div />").append($('[fc-data-group="' + dataId + '"] .fc-fieldcontainer').clone()).html();
+                html = $("<div />").append($('[fc-data-group="' + dataId + '"] > .fc-fieldcontainer').clone()).html();
 
             // Set current active modal
             fc.activeModalField = dataId;
@@ -720,9 +720,26 @@ var fc = new function ($) {
             var fieldId = $(this).attr('fc-data-group');
             if (typeof(fc.fields[fieldId]) != 'undefined') {
                 var fieldGroup = $(this).find('.fc-fieldgroup'),
-                    value = fc.fields[fieldId];
+                    value = fc.fields[fieldId],
+                    schema = fc.fieldSchema[fieldId];
 
-                if (fieldGroup.find('input[type=text],textarea').length > 0) {
+                if (typeof(schema.config.repeatable) == 'boolean' && schema.config.repeatable) {
+                    // Restore a repeatable value
+                    if (typeof(value) == 'object') {
+                        // Build a list to output
+                        for (var x = 0; x< value.length; x++) {
+                            var obj = value[x];
+
+                            var list = $('<ul></ul>');
+                            for (var key in obj) {
+                                var li = $('<li></li>');
+                                li.html(obj[key]);
+                                list.append(li);
+                            }
+                            $('[fc-data-group="' + fieldId + '"] .fc-summary').append(list);
+                        }
+                    }
+                } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
                     // Input type text
                     fieldGroup.find('input[type=text],textarea').val(value);
                 } else if (fieldGroup.find('select').length > 0) {
@@ -1271,8 +1288,6 @@ var fc = new function ($) {
         if (typeof(field.config.grouplet) == 'object') {
             var fields = field.config.grouplet.field,
                 html = renderFields(fields);
-
-            console.log(html);
         }
 
         return html;
