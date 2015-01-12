@@ -328,6 +328,15 @@ var fc = new function ($) {
             }
             fc.fields[fc.activeModalField].push(values);
 
+            // Build a list to output
+            var list = $('<ul></ul>');
+            for (key in values) {
+                var li = $('<li></li>');
+                li.html(values[key]);
+                list.append(li);
+            }
+            $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').append(list);
+
             // Hide the modal
             $('.fc-modal.fc-show').removeClass('fc-show');
             return false;
@@ -962,6 +971,7 @@ var fc = new function ($) {
             // Output a repeatable field
             if (getConfig(field, 'repeatable', false) === true) {
                 fieldHtml += '<div class="fc-repeatable">';
+                fieldHtml += '<div class="fc-summary"></div>';
                 fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.config.addFieldTextValue + '</a></div>';
             }
 

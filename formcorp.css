@@ -222,3 +222,7 @@ div.fc-submit {
 #close {
     display: none;
 }
+
+#fc-modal .fc-summary {
+    display: none;
+}
