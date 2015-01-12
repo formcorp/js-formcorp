@@ -81,6 +81,7 @@ var fc = new function ($) {
             fc.formId = $(fc.jQueryContainer).attr('data-id');
 
             // Register event listeners and load the form schema
+            $(fc.jQueryContainer).html('<div class="render"></div>');
             loadCssFiles();
             registerEventListeners();
             loadSchema();
@@ -97,7 +98,11 @@ var fc = new function ($) {
             realTimeValidation: true,
             inlineValidation: true,
             emptyFieldError: 'This field cannot be empty',
-            defaultCustomValidationError: 'This field failed custom validation'
+            defaultCustomValidationError: 'This field failed custom validation',
+            addFieldTextValue: 'Add value',
+            closeModalText: 'Close',
+            addModalText: 'Add',
+            addModalHeader: 'Add value'
         };
 
         // Update with client options
@@ -124,6 +129,38 @@ var fc = new function ($) {
             link.media = 'all';
             head.appendChild(link);
         }
+
+        $(fc.jQueryContainer).addClass('fc-container');
+        addModalWindow();
+    }
+
+    /**
+     * Add a modal window to the page
+     */
+    var addModalWindow = function () {
+
+        if ($('#fc-modal').length > 0) {
+            return;
+        }
+
+        var modal = '<div class="fc-modal" id="fc-modal" aria-hidden="true">' +
+            '<div class="modal-dialog">' +
+            '<div class="modal-header">' +
+            '<h2>' + fc.config.addModalHeader + '</h2>' +
+            '</div>' +
+            '<div class="modal-body">' +
+            '<p>One modal example here! :D</p>' +
+            '</div>' +
+            '<div class="modal-footer">' +
+            '<a href="#" class="btn btn-danger fc-btn-close">' + fc.config.closeModalText + '</a> ' +
+            '<a href="#" class="btn btn-success fc-btn-add">' + fc.config.addModalText + '</a> ' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+
+
+        $(fc.jQueryContainer).prepend($(modal));
     }
 
     /**
@@ -247,6 +284,23 @@ var fc = new function ($) {
             fc.oldHash = pageId;
             fc.ignoreHashChangeEvent = false;
         });
+
+        // Add value for a repeatable group
+        $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click', function () {
+            var dataId = $(this).attr('data-id'),
+                html = $('[fc-data-group="' + dataId + '"] .fc-fieldcontainer').html();
+
+            $('.fc-modal .modal-body').html(html);
+            $('.fc-modal').addClass('fc-show');
+
+            return false;
+        });
+
+        // Hide fc model
+        $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-close', function () {
+            $('.fc-modal.fc-show').removeClass('fc-show');
+            return false;
+        })
     }
 
     /**
@@ -557,7 +611,7 @@ var fc = new function ($) {
         var html = '<h1>' + page.stage.label + '</h1>';
         html += renderPage(page.page);
 
-        $(fc.jQueryContainer).html(html);
+        $(fc.jQueryContainer + ' .render').html(html);
 
         // Set values from data array
         setFieldValues();
@@ -835,7 +889,7 @@ var fc = new function ($) {
         var html = '';
         for (var y = 0; y < fields.length; y++) {
             var field = fields[y],
-                fieldHtml = '<div class="fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
+                fieldHtml = '<div class="' + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + ' fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
 
             // Add to field class variable if doesnt exist
             var dataId = field._id.$id;
@@ -852,6 +906,12 @@ var fc = new function ($) {
 
             if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
+            }
+
+            // Output a repeatable field
+            if (getConfig(field, 'repeatable', false) === true) {
+                fieldHtml += '<div class="fc-repeatable">';
+                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.config.addFieldTextValue + '</a></div>';
             }
 
             fieldHtml += '<div class="fc-fieldgroup">';
@@ -891,6 +951,11 @@ var fc = new function ($) {
             if (getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
                 fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
+
+            if (getConfig(field, 'repeatable', false) === true) {
+                fieldHtml += '</div>';
+            }
+
 
             fieldHtml += '</div>';
             fieldHtml += '</div></div>';

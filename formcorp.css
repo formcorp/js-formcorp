@@ -2,7 +2,7 @@
     display: block;
 }
 
-.fc-form input[type=text], .fc-form select, .fc-form textarea {
+.fc-container input[type=text], .fc-container select, .fc-container textarea {
     padding-right: 33px;
     padding-left: 12px;
     font-size: 14px;
@@ -21,17 +21,17 @@
     border-radius: 4px;
 }
 
-.fc-form textarea {
+.fc-container textarea {
     height: auto;
 }
 
-.fc-form .fc-error input, .fc-form .fc-error textarea {
+.fc-container .fc-error input, .fc-container .fc-error textarea {
     border: 1px solid #ebccd1;
     -webkit-box-shadow: none;
     box-shadow: none;
 }
 
-.fc-form .fc-error > label {
+.fc-container .fc-error > label {
     color: #a94442;
 }
 
@@ -112,4 +112,113 @@ div.fc-submit {
     padding-top: 4px;
     font-size: 12px;
     color: #d05128;
+}
+
+.fc-field .fc-repeatable .fc-fieldgroup {
+    display: none;
+}
+
+.fc-modal .fc-repeatable .fc-link {
+    display: none;
+}
+
+.fc-field .fc-repeatable-container .fc-fieldcontainer > label {
+    padding-bottom: 0;
+}
+
+.fc-repeatable a {
+    font-size: 12px;
+}
+
+.fc-modal:before {
+    content: "";
+    display: none;
+    background: rgba(0, 0, 0, 0.6);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+}
+
+.fc-modal.fc-show:before {
+    display: block;
+}
+
+.fc-modal:target:before {
+    display: block;
+}
+
+.fc-modal:target .modal-dialog {
+    -webkit-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    transform: translate(0, 0);
+    top: 20%;
+}
+
+.fc-modal .modal-dialog {
+    background: #fefefe;
+    border: #333333 solid 1px;
+    border-radius: 5px;
+    margin-left: -200px;
+    position: fixed;
+    left: 50%;
+    top: -100%;
+    z-index: 11;
+    width: 360px;
+    -webkit-transform: translate(0, -500%);
+    -ms-transform: translate(0, -500%);
+    transform: translate(0, -500%);
+    -webkit-transition: -webkit-transform 0.3s ease-out;
+    -moz-transition: -moz-transform 0.3s ease-out;
+    -o-transition: -o-transform 0.3s ease-out;
+    transition: transform 0.3s ease-out;
+}
+
+.fc-modal h2 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.fc-modal.fc-show .modal-dialog {
+    -webkit-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    transform: translate(0, 0);
+    top: 20%;
+}
+
+.fc-modal .modal-body {
+    padding: 20px;
+}
+
+.fc-modal .modal-header,
+.fc-modal .modal-footer {
+    padding: 10px 20px;
+}
+
+.fc-modal .modal-header {
+    border-bottom: #eeeeee solid 1px;
+}
+
+.fc-modal .modal-header h2 {
+    font-size: 20px;
+}
+
+.fc-modal .modal-footer {
+    border-top: #eeeeee solid 1px;
+    text-align: right;
+}
+
+.fc-modal label {
+    font-weight: normal;
+}
+
+#fc-modal .modal-footer a {
+    color: #fff;
+}
+
+/*ADDED TO STOP SCROLLING TO TOP*/
+#close {
+    display: none;
 }
