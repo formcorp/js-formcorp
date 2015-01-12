@@ -288,7 +288,10 @@ var fc = new function ($) {
         // Add value for a repeatable group
         $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click', function () {
             var dataId = $(this).attr('data-id'),
-                html = $('[fc-data-group="' + dataId + '"] .fc-fieldcontainer').html();
+                html = $("<div />").append($('[fc-data-group="' + dataId + '"] .fc-fieldcontainer').clone()).html();
+
+            // Set current active modal
+            fc.activeModalField = dataId;
 
             $('.fc-modal .modal-body').html(html);
             $('.fc-modal').addClass('fc-show');
@@ -300,7 +303,35 @@ var fc = new function ($) {
         $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-close', function () {
             $('.fc-modal.fc-show').removeClass('fc-show');
             return false;
-        })
+        });
+
+        // Add the value for the fc modal
+        $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-add', function () {
+            var validModal = validateModal();
+            if (!validModal) {
+                $('.fc-modal .modal-body > div').addClass('fc-error');
+                return false;
+            }
+
+            $('.fc-modal .modal-body > div').removeClass('fc-error');
+
+            // Build array of values
+            var values = {};
+            $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
+                var dataId = $(this).attr('formcorp-data-id');
+                values[dataId] = getFieldValue($(this));
+            });
+
+            // Add the values to the array
+            if (typeof(fc.fields[fc.activeModalField]) != 'object') {
+                fc.fields[fc.activeModalField] = [];
+            }
+            fc.fields[fc.activeModalField].push(values);
+
+            // Hide the modal
+            $('.fc-modal.fc-show').removeClass('fc-show');
+            return false;
+        });
     }
 
     /**
@@ -324,19 +355,23 @@ var fc = new function ($) {
      * @param value
      */
     var valueChanged = function (dataId, value) {
-        fc.fields[dataId] = value;
-        console.log(dataId + ': ' + value);
+        var fieldSchema = fc.fieldSchema[dataId];
 
-        // Flush the field visibility options
-        flushVisibility();
+        // Don't perform operations on repeatable fields
+        if (typeof(fieldSchema.config.repeatable) !== 'boolean' || ! fieldSchema.config.repeatable) {
+            fc.fields[dataId] = value;
 
-        // Check real time validation
-        if (fc.config.realTimeValidation === true) {
-            var errors = fieldErrors(dataId);
-            if (errors.length > 0) {
-                showFieldError(dataId, errors);
-            } else {
-                removeFieldError(dataId);
+            // Flush the field visibility options
+            flushVisibility();
+
+            // Check real time validation
+            if (fc.config.realTimeValidation === true) {
+                var errors = fieldErrors(dataId);
+                if (errors.length > 0) {
+                    showFieldError(dataId, errors);
+                } else {
+                    removeFieldError(dataId);
+                }
             }
         }
     }
@@ -501,6 +536,21 @@ var fc = new function ($) {
         }
 
         // Custom validators
+        var customErrors = getCustomErrors(field, value);
+        errors = errors.concat(customErrors);
+
+        return errors;
+    }
+
+    /**
+     * Retrieve custom error validations from field.
+     * @param field
+     * @param value
+     * @returns {Array}
+     */
+    var getCustomErrors = function (field, value) {
+        var errors = [];
+
         if (typeof(field.config.validators) == 'object' && field.config.validators.length > 0) {
             for (var x = 0; x < field.config.validators.length; x++) {
                 var validator = field.config.validators[x],
@@ -904,6 +954,7 @@ var fc = new function ($) {
 
             fieldHtml += '<div class="fc-fieldcontainer">';
 
+            // Field label
             if (typeof(field.config) == 'object' && typeof(field.config.label) == 'string' && field.config.label.length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
             }
@@ -1012,6 +1063,41 @@ var fc = new function ($) {
         }
 
         return false;
+    }
+
+    /**
+     * Attempts to validate the modal used for adding multi-value attributes.
+     * @returns {boolean}
+     */
+    var validateModal = function () {
+        var valid = true;
+
+        $('.fc-modal [formcorp-data-id]').each(function () {
+            // If field is not required, no need to run any validations on it
+            console.log($(this).attr('data-required'));
+            if ($(this).attr('data-required') !== 'true') {
+                return;
+            }
+
+            // If empty and required, return false
+            if (fieldIsEmpty($(this))) {
+                valid = false;
+                return;
+            }
+
+            var fieldId = $(this).attr('formcorp-data-id'),
+                value = getFieldValue($(this)),
+                field = fc.fieldSchema[fieldId];
+
+            // If custom errors exist, return false
+            var customErrors = getCustomErrors(field, value);
+            if (customErrors.length > 0) {
+                valid = false;
+                return;
+            }
+        });
+
+        return valid;
     }
 
     /**
