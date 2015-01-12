@@ -311,10 +311,12 @@ var fc = new function ($) {
             var field = fc.fieldSchema[dataId];
             if (typeof(field.config.visibility) == 'string' && field.config.visibility.length > 0) {
                 var visible = eval(field.config.visibility);
-                if (visible) {
-                    $('div[fc-data-group=' + dataId + ']').removeClass('fc-hide');
-                } else {
-                    $('div[fc-data-group=' + dataId + ']').addClass('fc-hide');
+                if (typeof(visible) == 'boolean') {
+                    if (visible) {
+                        $('div[fc-data-group=' + dataId + ']').removeClass('fc-hide');
+                    } else {
+                        $('div[fc-data-group=' + dataId + ']').addClass('fc-hide');
+                    }
                 }
             }
         });
@@ -835,6 +837,12 @@ var fc = new function ($) {
             var field = fields[y],
                 fieldHtml = '<div class="fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '">';
 
+            // Add to field class variable if doesnt exist
+            var dataId = field._id.$id;
+            if (typeof(fc.fieldSchema[dataId]) == 'undefined') {
+                fc.fieldSchema[dataId] = field;
+            }
+
             // Description text
             if (getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
                 fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
@@ -869,6 +877,9 @@ var fc = new function ($) {
                     break;
                 case 'richTextArea':
                     fieldHtml += renderRichText(field);
+                    break;
+                case 'grouplet':
+                    fieldHtml += renderGrouplet(field);
                     break;
                 default:
                     console.log('Unknown field type: ' + field.type);
@@ -1086,6 +1097,23 @@ var fc = new function ($) {
         }
 
         return '<div class="fc-richtext">' + field.config.rich + '</div>';
+    }
+
+    /**
+     * Render a grouplet.
+     * @param field
+     * @returns {string}
+     */
+    var renderGrouplet = function (field) {
+        var html = '';
+        if (typeof(field.config.grouplet) == 'object') {
+            var fields = field.config.grouplet.field,
+                html = renderFields(fields);
+
+            console.log(html);
+        }
+
+        return html;
     }
 
     /**
