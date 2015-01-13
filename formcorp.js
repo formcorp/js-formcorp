@@ -89,6 +89,14 @@ var fc = new function ($) {
     }
 
     /**
+     * Set the form branch to use.
+     * @param branch
+     */
+    this.setBranch = function (branch) {
+        this.branch = branch;
+    }
+
+    /**
      * Set class config values.
      * @param data
      */
@@ -167,9 +175,17 @@ var fc = new function ($) {
      * Load the form schema/definition
      */
     var loadSchema = function () {
-        api('form/schema', {
+        var data = {
             form_id: fc.formId
-        }, 'post', function (data) {
+        };
+
+        // Set the branch to use if defined
+        if (typeof(fc.branch) == 'string') {
+            data.branch = fc.branch;
+        }
+
+        // Send off the API call
+        api('form/schema', data, 'post', function (data) {
             if (typeof(data.error) == 'boolean' && data.error) {
                 console.log('FC Error: ' + data.message);
                 return;
@@ -367,7 +383,7 @@ var fc = new function ($) {
         var fieldSchema = fc.fieldSchema[dataId];
 
         // Don't perform operations on repeatable fields
-        if (typeof(fieldSchema.config.repeatable) !== 'boolean' || ! fieldSchema.config.repeatable) {
+        if (typeof(fieldSchema.config.repeatable) !== 'boolean' || !fieldSchema.config.repeatable) {
             fc.fields[dataId] = value;
 
             // Flush the field visibility options
@@ -737,7 +753,7 @@ var fc = new function ($) {
                     // Restore a repeatable value
                     if (typeof(value) == 'object') {
                         // Build a list to output
-                        for (var x = 0; x< value.length; x++) {
+                        for (var x = 0; x < value.length; x++) {
                             var obj = value[x];
 
                             var list = $('<ul></ul>');
