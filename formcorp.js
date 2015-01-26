@@ -5,9 +5,153 @@
  *
  * Ability to embed a JS client side form on to an external webpage.
  */
+
+/**
+ * Set up
+ */
+(function (factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(['jquery'], factory);
+    } else if (typeof exports === 'object') {
+        factory(require('jquery'));
+    } else {
+        factory(jQuery);
+    }
+}(function ($) {
+    var pluses = /\+/g;
+
+    /**
+     * Encode a string
+     * @param s
+     * @returns {*}
+     */
+    function encode(s) {
+        return config.raw ? s : encodeURIComponent(s);
+    }
+
+    /**
+     * Decode a string
+     * @param s
+     * @returns {*}
+     */
+    function decode(s) {
+        return config.raw ? s : decodeURIComponent(s);
+    }
+
+    /**
+     * Properly encode a cookie value
+     * @param value
+     * @returns {*}
+     */
+    function stringifyCookieValue(value) {
+        return encode(config.json ? JSON.stringify(value) : String(value));
+    }
+
+    /**
+     * Parse a cookie value
+     * @param s
+     * @returns {*}
+     */
+    function parseCookieValue(s) {
+        if (s.indexOf('"') === 0) {
+            // This is a quoted cookie as according to RFC2068, unescape...
+            s = s.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+        }
+
+        try {
+            // Replace server-side written pluses with spaces.
+            // If we can't decode the cookie, ignore it, it's unusable.
+            // If we can't parse the cookie, ignore it, it's unusable.
+            s = decodeURIComponent(s.replace(pluses, ' '));
+            return config.json ? JSON.parse(s) : s;
+        } catch (e) {
+        }
+    }
+
+    /**
+     * Read a cookie value.
+     * @param s
+     * @param converter
+     * @returns {*}
+     */
+    function read(s, converter) {
+        var value = config.raw ? s : parseCookieValue(s);
+        return $.isFunction(converter) ? converter(value) : value;
+    }
+
+    /**
+     * Set/get cookies
+     * @type {Function}
+     */
+    var config = $.cookie = function (key, value, options) {
+        // Write
+        if (arguments.length > 1 && !$.isFunction(value)) {
+            options = $.extend({}, config.defaults, options);
+
+            if (typeof options.expires === 'number') {
+                var days = options.expires, t = options.expires = new Date();
+                t.setTime(+t + days * 864e+5);
+            }
+
+            return (document.cookie = [
+                encode(key), '=', stringifyCookieValue(value),
+                options.expires ? '; expires=' + options.expires.toUTCString() : '', // use expires attribute, max-age is not supported by IE
+                options.path ? '; path=' + options.path : '',
+                options.domain ? '; domain=' + options.domain : '',
+                options.secure ? '; secure' : ''
+            ].join(''));
+        }
+
+        // Read
+        var result = key ? undefined : {};
+        var cookies = document.cookie ? document.cookie.split('; ') : [];
+
+        for (var i = 0, l = cookies.length; i < l; i++) {
+            var parts = cookies[i].split('=');
+            var name = decode(parts.shift());
+            var cookie = parts.join('=');
+
+            if (key && key === name) {
+                // If second argument (value) is a function it's a converter...
+                result = read(cookie, value);
+                break;
+            }
+
+            // Prevent storing a cookie that we couldn't decode.
+            if (!key && (cookie = read(cookie)) !== undefined) {
+                result[name] = cookie;
+            }
+        }
+
+        return result;
+    };
+
+    config.defaults = {};
+
+    /**
+     * Remove a cookie
+     * @param key
+     * @param options
+     * @returns {boolean}
+     */
+    $.removeCookie = function (key, options) {
+        if ($.cookie(key) === undefined) {
+            return false;
+        }
+
+        // Must not alter options, thus extending a fresh object...
+        $.cookie(key, '', $.extend({}, options, {expires: -1}));
+        return !$.cookie(key);
+    };
+
+}));
+
+/**
+ * Main FC function
+ */
 var fc = new function ($) {
-    var apiUrl = '//192.168.247.129:9001/',
-        cdnUrl = '//192.168.247.129:9004/';
+    var apiUrl = '//192.168.110.128:9001/',
+        cdnUrl = '//192.168.110.128:9004/';
 
     /**
      * Send off an API call.
@@ -66,6 +210,9 @@ var fc = new function ($) {
             this.setConfig();
         }
 
+        // Set the session id
+        this.initSession();
+
         // Check to make sure container exists
         $(document).ready(function () {
             if ($(fc.jQueryContainer).length == 0) {
@@ -110,7 +257,9 @@ var fc = new function ($) {
             addFieldTextValue: 'Add value',
             closeModalText: 'Close',
             addModalText: 'Add',
-            addModalHeader: 'Add value'
+            addModalHeader: 'Add value',
+            sessionKeyLength: 40,
+            sessionIdName: 'fcSessionId'
         };
 
         // Update with client options
@@ -119,6 +268,36 @@ var fc = new function ($) {
                 fc.config[key] = data[key];
             }
         }
+    }
+
+    /**
+     * Initialise the existing session, or instantiate a new one.
+     */
+    this.initSession = function () {
+        // Initialise a new session
+        if (typeof(this.sessionId) == 'undefined' && typeof($.cookie(this.config.sessionIdName)) == 'undefined') {
+            this.sessionId = generateRandomString(thisas.config.sessionKeyLength);
+            $.cookie(this.config.sessionIdName, this.sessionId);
+        } else {
+            this.sessionId = $.cookie(this.config.sessionIdName);
+        }
+    }
+
+    /**
+     * Generates a random string of length $length
+     *
+     * @param length
+     * @returns {string}
+     */
+    var generateRandomString = function (length) {
+        var str = '',
+            chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+        for (var x = 0; x < length; x++) {
+            str += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        return str;
     }
 
     /**
