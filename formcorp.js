@@ -170,6 +170,8 @@ var fc = new function ($) {
             data = {};
         }
 
+        data.sessionId = fc.sessionId;
+
         $.ajax({
             type: type,
             url: apiUrl + uri,
@@ -368,6 +370,13 @@ var fc = new function ($) {
             if (typeof(data.error) == 'boolean' && data.error) {
                 console.log('FC Error: ' + data.message);
                 return;
+            }
+
+            // If data returned by the API server, set locally
+            if (typeof(data.data) == 'object' && Object.keys(data.data).length > 0) {
+                for (var key in data.data) {
+                    fc.fields[key] = data.data[key];
+                }
             }
 
             // Render the opening page for the form
