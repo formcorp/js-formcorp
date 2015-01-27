@@ -150,8 +150,8 @@
  * Main FC function
  */
 var fc = new function ($) {
-    var apiUrl = '//192.168.110.128:9001/',
-        cdnUrl = '//192.168.110.128:9004/';
+    var apiUrl = '//192.168.247.129:9001/',
+        cdnUrl = '//192.168.247.129:9004/';
 
     /**
      * Send off an API call.
@@ -278,7 +278,7 @@ var fc = new function ($) {
     this.initSession = function () {
         // Initialise a new session
         if (typeof(this.sessionId) == 'undefined' && typeof($.cookie(this.config.sessionIdName)) == 'undefined') {
-            this.sessionId = generateRandomString(thisas.config.sessionKeyLength);
+            this.sessionId = generateRandomString(this.config.sessionKeyLength);
             $.cookie(this.config.sessionIdName, this.sessionId);
         } else {
             this.sessionId = $.cookie(this.config.sessionIdName);
