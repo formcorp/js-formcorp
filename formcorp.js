@@ -206,6 +206,21 @@ var fc = new function ($) {
         this.fieldSchema = {};
         this.sections = {};
         this.pages = {};
+        this.events = [];
+
+        // Type of events
+        this.eventTypes = {
+            onFocus: 'onFocus',
+            onBlur: 'onBlur',
+            onValueChange: 'onValueChange',
+            onNextStage: 'onNextStage',
+            onFormInit: 'onFormInit',
+            onMouseDown: 'onMouseDown',
+            onFieldError: 'onFieldError',
+            onNextPageClick: 'onNextPageClick',
+            onNextPageSuccess: 'onNextPageSuccess',
+            onNextPageError: 'onNextPageError'
+        }
 
         // Set config if not already done so
         if (typeof(fc.config) == 'undefined') {
@@ -234,6 +249,10 @@ var fc = new function ($) {
             loadCssFiles();
             registerEventListeners();
             loadSchema();
+
+            // Form has been successfully initialised
+            fc.formPosition = $(fc.jQueryContainer).position();
+            logEvent(fc.eventTypes.onFormInit);
         });
     }
 
@@ -451,7 +470,10 @@ var fc = new function ($) {
     var registerEventListeners = function () {
         // Submit a form page
         $(fc.jQueryContainer).on('click', 'div.fc-submit input[type=submit]', function () {
+            logEvent(fc.eventTypes.onNextPageClick);
+
             if (!validForm()) {
+                logEvent(fc.eventTypes.onNextPageError);
                 console.log('FC Error: Form is not valid');
                 return false;
             }
@@ -469,7 +491,10 @@ var fc = new function ($) {
                 form_values: data
             }, 'put', function (data) {
                 if (typeof(data.success) == 'boolean' && data.success) {
+                    logEvent(fc.eventTypes.onNextPageSuccess);
                     nextPage();
+                } else {
+                    logEvent(fc.eventTypes.onNextPageError);
                 }
             });
 
@@ -545,6 +570,8 @@ var fc = new function ($) {
             $('.fc-modal.fc-show').removeClass('fc-show');
             return false;
         });
+
+        registerAnalyticsEventListeners();
     }
 
     /**
@@ -572,6 +599,7 @@ var fc = new function ($) {
 
         // Don't perform operations on repeatable fields
         if (typeof(fieldSchema.config.repeatable) !== 'boolean' || !fieldSchema.config.repeatable) {
+            var oldValue = typeof(fc.fields[dataId]) != 'undefined' ? fc.fields[dataId] : "";
             fc.fields[dataId] = value;
 
             // Flush the field visibility options
@@ -581,11 +609,25 @@ var fc = new function ($) {
             if (fc.config.realTimeValidation === true) {
                 var errors = fieldErrors(dataId);
                 if (errors.length > 0) {
+                    // Log the error event
+                    logEvent(fc.eventTypes.onFieldError, {
+                        fieldId: dataId,
+                        errors: errors
+                    });
+
                     showFieldError(dataId, errors);
                 } else {
                     removeFieldError(dataId);
                 }
             }
+
+            // Register the value changed event
+            var params = {
+                fieldId: dataId,
+                oldValue: oldValue,
+                newValue: value
+            };
+            logEvent(fc.eventTypes.onValueChange, params);
         }
     }
 
@@ -683,6 +725,12 @@ var fc = new function ($) {
 
             // If have errors, output
             if (localErrors.length > 0) {
+                // Log error event
+                logEvent(fc.eventTypes.onFieldError, {
+                    fieldId: dataId,
+                    errors: localErrors
+                });
+
                 errors[dataId] = localErrors;
                 showFieldError(dataId, localErrors);
             } else {
@@ -797,6 +845,66 @@ var fc = new function ($) {
         }
 
         return errors;
+    }
+
+    /**
+     * Register the listeners to handle analytic events
+     */
+    var registerAnalyticsEventListeners = function () {
+        // Text value focused
+        $(fc.jQueryContainer).on('focus', '.fc-fieldinput', function () {
+            var dataId = $(this).attr('formcorp-data-id');
+            var params = {
+                dataId: dataId,
+                value: getFieldValue($(this))
+            };
+            logEvent(fc.eventTypes.onFocus, params)
+        });
+
+        // Text value focused
+        $(fc.jQueryContainer).on('blur', '.fc-fieldinput', function () {
+            var dataId = $(this).attr('formcorp-data-id');
+            var params = {
+                dataId: dataId,
+                value: getFieldValue($(this))
+            };
+            logEvent(fc.eventTypes.onBlur, params)
+        });
+
+        // Mouse down event
+        $(fc.jQueryContainer).on('mousedown', function (e) {
+            var x = parseInt(e.pageX - fc.formPosition.left),
+                y = parseInt(e.pageY - fc.formPosition.top);
+
+            logEvent(fc.eventTypes.onMouseDown, {
+                x: x,
+                y: y
+            });
+        });
+    }
+
+    /**
+     * Store an event locally to be logged
+     * @param event
+     * @param params
+     */
+    var logEvent = function (event, params) {
+        if (typeof(event) == 'undefined') {
+            return;
+        }
+
+        // Default params
+        if (typeof(params) == 'undefined') {
+            params = {};
+        }
+
+        var event = {
+            'event': event,
+            'params': params,
+            'time': (new Date()).getTime()
+        };
+
+        fc.events.push(event);
     }
 
     /**
