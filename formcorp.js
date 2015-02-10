@@ -1108,7 +1108,10 @@ var fc = (function ($) {
      */
     renderPage = function (page) {
         // Page details
-        var pageDiv = '<div class="fc-page"><form class="fc-form">';
+        var pageDiv = '<div class="fc-page"><form class="fc-form">',
+            submitText = fc.config.submitText,
+            nextPageObj;
+
         /*jslint nomen: true*/
         fc.pageId = page._id.$id;
         /*jslint nomen: false*/
@@ -1126,8 +1129,18 @@ var fc = (function ($) {
 
         // Submit button
         if (hasNextPage()) {
+            nextPageObj = nextPage(false, true);
+
+            // If the next stage is a completion page, alter the submission text
+            if (typeof nextPageObj.page === 'object' && nextPageObj.page.completion !== undefined) {
+                if (nextPageObj.page.completion === true || (typeof nextPageObj.page.completion === 'string' && ["1", "true"].indexOf(nextPageObj.page.completion.toLowerCase()) !== -1)) {
+                    submitText = fc.config.submitFormText;
+                }
+            }
+
+            // Output the submit button
             pageDiv += '<div class="fc-submit">';
-            pageDiv += '<input type="submit" value="Submit" class="fc-btn">';
+            pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
             pageDiv += '</div>';
         }
 
@@ -1239,11 +1252,18 @@ var fc = (function ($) {
 
     /**
      * Render the next page
-     * @param render
+     * @param shouldRender
+     * @param returnPage
+     * @returns {boolean}
      */
-    nextPage = function (shouldRender) {
+    nextPage = function (shouldRender, returnPage) {
         if (typeof shouldRender !== 'boolean') {
             shouldRender = true;
+        }
+
+        // By default, should return boolean value
+        if (typeof returnPage !== 'boolean') {
+            returnPage = false;
         }
 
         var currentPage = getPageById(fc.currentPage),
@@ -1266,7 +1286,7 @@ var fc = (function ($) {
                         if (shouldRender) {
                             render(id);
                         }
-                        return true;
+                        return returnPage ? getPageById(id) : true;
                     }
                 }
             }
@@ -1277,14 +1297,14 @@ var fc = (function ($) {
             stage = fc.schema.stage[x];
 
             // If the stage that is to be rendered has been found, do so
+            /*jslint nomen: true*/
             if (foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
                 if (shouldRender) {
-                    /*jslint nomen: true*/
                     render(stage.page[0]._id.$id);
-                    /*jslint nomen: false*/
                 }
-                return true;
+                return returnPage ? getPageById(stage.page[0]._id.$id) : true;
             }
+            /*jslint nomen: false*/
 
             // If the current iterative stage is the stage of the currently rendered page, mark the next stage to be rendered
             /*jslint nomen: true*/
@@ -1706,6 +1726,7 @@ var fc = (function ($) {
                     firstPageId = fc.schema.stage[0].page[0]._id.$id;
                     /*jslint nomen: false*/
                     render(firstPageId);
+                    console.log(fc.schema);
                 }
             }
         });
@@ -1856,7 +1877,9 @@ var fc = (function ($) {
                 addModalHeader: 'Add value',
                 sessionKeyLength: 40,
                 sessionIdName: 'fcSessionId',
-                eventQueueInterval: eventQueueDefault
+                eventQueueInterval: eventQueueDefault,
+                submitText: "Next Stage",
+                submitFormText: "Submit application"
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
