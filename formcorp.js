@@ -920,6 +920,19 @@ var fc = (function ($) {
             return '<div class="fc-richtext">' + field.config.rich + '</div>';
         },
 
+        /**
+         * Returns true if a page is deemed to be a submission page
+         * @param page
+         * @returns {boolean}
+         */
+        isSubmitPage = function (page) {
+            if (typeof page !== "object" || page.completion === undefined) {
+                return false;
+            }
+
+            return page.completion === true || (typeof page.completion === 'string' && ["1", "true"].indexOf(page.completion.toLowerCase()) !== -1);
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -1127,15 +1140,13 @@ var fc = (function ($) {
             pageDiv += renderPageSections(page.section);
         }
 
-        // Submit button
-        if (hasNextPage()) {
-            nextPageObj = nextPage(false, true);
+        nextPageObj = nextPage(false, true);
 
+        // Submit button when a next page exists, or no next page exists
+        if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
             // If the next stage is a completion page, alter the submission text
-            if (typeof nextPageObj.page === 'object' && nextPageObj.page.completion !== undefined) {
-                if (nextPageObj.page.completion === true || (typeof nextPageObj.page.completion === 'string' && ["1", "true"].indexOf(nextPageObj.page.completion.toLowerCase()) !== -1)) {
-                    submitText = fc.config.submitFormText;
-                }
+            if ((isSubmitPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && isSubmitPage(nextPageObj.page))) {
+                submitText = fc.config.submitFormText;
             }
 
             // Output the submit button
