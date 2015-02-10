@@ -167,7 +167,7 @@
 /**
  * Main FC function
  */
-var fc = new function ($) {
+var fc = (function ($) {
     'use strict';
 
     var apiUrl = '//192.168.247.129:9001/',
@@ -1753,248 +1753,251 @@ var fc = new function ($) {
         });
     };
 
-    /**
-     * Initialise the formcorp object.
-     * @param publicKey
-     * @param container
-     */
-    this.init = function (publicKey, container) {
-        this.publicKey = publicKey;
-        this.container = container;
-        this.jQueryContainer = '#' + container;
+    return {
 
-        // Temporary placeholders for objects to be populated
-        this.fields = {};
-        this.fieldSchema = {};
-        this.sections = {};
-        this.pages = {};
-        this.events = [];
+        /**
+         * Initialise the formcorp object.
+         * @param publicKey
+         * @param container
+         */
+        init: function (publicKey, container) {
+            this.publicKey = publicKey;
+            this.container = container;
+            this.jQueryContainer = '#' + container;
 
-        // Type of events
-        this.eventTypes = {
-            onFocus: 'onFocus',
-            onBlur: 'onBlur',
-            onValueChange: 'onValueChange',
-            onNextStage: 'onNextStage',
-            onFormInit: 'onFormInit',
-            onMouseDown: 'onMouseDown',
-            onFieldError: 'onFieldError',
-            onNextPageClick: 'onNextPageClick',
-            onNextPageSuccess: 'onNextPageSuccess',
-            onNextPageError: 'onNextPageError'
-        };
+            // Temporary placeholders for objects to be populated
+            this.fields = {};
+            this.fieldSchema = {};
+            this.sections = {};
+            this.pages = {};
+            this.events = [];
 
-        // Set config if not already done so
-        if (fc.config === undefined) {
-            this.setConfig();
-        }
+            // Type of events
+            this.eventTypes = {
+                onFocus: 'onFocus',
+                onBlur: 'onBlur',
+                onValueChange: 'onValueChange',
+                onNextStage: 'onNextStage',
+                onFormInit: 'onFormInit',
+                onMouseDown: 'onMouseDown',
+                onFieldError: 'onFieldError',
+                onNextPageClick: 'onNextPageClick',
+                onNextPageSuccess: 'onNextPageSuccess',
+                onNextPageError: 'onNextPageError'
+            };
 
-        // Set the session id
-        this.initSession();
-
-        // Check to make sure container exists
-        $(document).ready(function () {
-            if ($(fc.jQueryContainer).length === 0) {
-                console.log('FC Error: Container not found.');
-                return false;
+            // Set config if not already done so
+            if (fc.config === undefined) {
+                this.setConfig();
             }
 
-            // Fetch the form id
-            if ($(fc.jQueryContainer).attr('data-id') === '') {
-                console.log('FC Error: Form id not found.');
-                return false;
-            }
-            fc.formId = $(fc.jQueryContainer).attr('data-id');
+            // Set the session id
+            this.initSession();
 
-            // Register event listeners and load the form schema
-            $(fc.jQueryContainer).html('<div class="render"></div>');
-            loadCssFiles();
-            registerEventListeners();
-            loadSchema();
-
-            // Form has been successfully initialised
-            fc.formPosition = $(fc.jQueryContainer).position();
-            logEvent(fc.eventTypes.onFormInit);
-
-            // Send events off to the server
-            setInterval(function () {
-                processEventQueue();
-            }, fc.config.eventQueueInterval);
-        });
-    };
-
-    /**
-     * Set the form branch to use.
-     * @param branch
-     */
-    this.setBranch = function (branch) {
-        this.branch = branch;
-    };
-
-    /**
-     * Set class config values.
-     * @param data
-     */
-    this.setConfig = function (data) {
-        var eventQueueDefault = 8000,
-            key;
-
-        // Default values
-        this.config = {
-            realTimeValidation: true,
-            inlineValidation: true,
-            emptyFieldError: 'This field cannot be empty',
-            defaultCustomValidationError: 'This field failed custom validation',
-            addFieldTextValue: 'Add value',
-            closeModalText: 'Close',
-            addModalText: 'Add',
-            addModalHeader: 'Add value',
-            sessionKeyLength: 40,
-            sessionIdName: 'fcSessionId',
-            eventQueueInterval: eventQueueDefault
-        };
-
-        // Minimum event queue interval (to prevent server from getting slammed)
-        if (this.config.eventQueueInterval < eventQueueDefault) {
-            this.config.eventQueueInterval = eventQueueDefault;
-        }
-
-        // Update with client options
-        if (typeof data === 'object' && Object.keys(data).length > 0) {
-            for (key in data) {
-                if (data.hasOwnProperty(key)) {
-                    fc.config[key] = data[key];
+            // Check to make sure container exists
+            $(document).ready(function () {
+                if ($(fc.jQueryContainer).length === 0) {
+                    console.log('FC Error: Container not found.');
+                    return false;
                 }
+
+                // Fetch the form id
+                if ($(fc.jQueryContainer).attr('data-id') === '') {
+                    console.log('FC Error: Form id not found.');
+                    return false;
+                }
+                fc.formId = $(fc.jQueryContainer).attr('data-id');
+
+                // Register event listeners and load the form schema
+                $(fc.jQueryContainer).html('<div class="render"></div>');
+                loadCssFiles();
+                registerEventListeners();
+                loadSchema();
+
+                // Form has been successfully initialised
+                fc.formPosition = $(fc.jQueryContainer).position();
+                logEvent(fc.eventTypes.onFormInit);
+
+                // Send events off to the server
+                setInterval(function () {
+                    processEventQueue();
+                }, fc.config.eventQueueInterval);
+            });
+        },
+
+        /**
+         * Set the form branch to use.
+         * @param branch
+         */
+        setBranch: function (branch) {
+            this.branch = branch;
+        },
+
+        /**
+         * Set class config values.
+         * @param data
+         */
+        setConfig: function (data) {
+            var eventQueueDefault = 8000,
+                key;
+
+            // Default values
+            this.config = {
+                realTimeValidation: true,
+                inlineValidation: true,
+                emptyFieldError: 'This field cannot be empty',
+                defaultCustomValidationError: 'This field failed custom validation',
+                addFieldTextValue: 'Add value',
+                closeModalText: 'Close',
+                addModalText: 'Add',
+                addModalHeader: 'Add value',
+                sessionKeyLength: 40,
+                sessionIdName: 'fcSessionId',
+                eventQueueInterval: eventQueueDefault
+            };
+
+            // Minimum event queue interval (to prevent server from getting slammed)
+            if (this.config.eventQueueInterval < eventQueueDefault) {
+                this.config.eventQueueInterval = eventQueueDefault;
             }
-        }
-    };
 
-    /**
-     * Initialise the existing session, or instantiate a new one.
-     */
-    this.initSession = function () {
-        // Initialise a new session
-        if (this.sessionId === undefined && $.cookie(this.config.sessionIdName) === undefined) {
-            this.sessionId = generateRandomString(this.config.sessionKeyLength);
-            $.cookie(this.config.sessionIdName, this.sessionId);
-        } else {
-            this.sessionId = $.cookie(this.config.sessionIdName);
-        }
-    };
-
-    /**
-     * Returns whether two values are equal.
-     *
-     * @param field
-     * @param comparisonValue
-     * @returns {boolean}
-     */
-    this.comparisonEqual = function (field, comparisonValue) {
-        if (field === undefined) {
-            return false;
-        }
-
-        return field === comparisonValue;
-    };
-
-    /**
-     * Returns whether a string exists within an array.
-     * @param field
-     * @param comparisonValue
-     * @returns {boolean}
-     */
-    this.comparisonIn = function (field, comparisonValue) {
-        if (field === undefined) {
-            return false;
-        }
-
-        var x,
-            value;
-
-        // Field can be string
-        if (typeof field === 'string') {
-            if (typeof comparisonValue === 'object') {
-                for (x = 0; x < comparisonValue.length; x += 1) {
-                    value = comparisonValue[x];
-                    if (field === value) {
-                        return true;
+            // Update with client options
+            if (typeof data === 'object' && Object.keys(data).length > 0) {
+                for (key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        fc.config[key] = data[key];
                     }
                 }
             }
-        }
+        },
 
-        return false;
-    };
-
-    /**
-     * Converts a string to camel case.
-     * @param str
-     * @returns {*}
-     */
-    this.toCamelCase = function (str) {
-        return str.replace(/^([A-Z])|\s(\w)/g, function (match, p1, p2) {
-            if (p2) {
-                return p2.toUpperCase();
+        /**
+         * Initialise the existing session, or instantiate a new one.
+         */
+        initSession: function () {
+            // Initialise a new session
+            if (this.sessionId === undefined && $.cookie(this.config.sessionIdName) === undefined) {
+                this.sessionId = generateRandomString(this.config.sessionKeyLength);
+                $.cookie(this.config.sessionIdName, this.sessionId);
+            } else {
+                this.sessionId = $.cookie(this.config.sessionIdName);
             }
-            return p1.toLowerCase();
-        });
-    };
+        },
 
-    /**
-     * Tests if a value is within a particular range.
-     * @param params
-     * @param value
-     * @returns {boolean}
-     */
-    this.validatorRange = function (params, value) {
-        if (!$.isNumeric(value)) {
+        /**
+         * Returns whether two values are equal.
+         *
+         * @param field
+         * @param comparisonValue
+         * @returns {boolean}
+         */
+        comparisonEqual: function (field, comparisonValue) {
+            if (field === undefined) {
+                return false;
+            }
+
+            return field === comparisonValue;
+        },
+
+        /**
+         * Returns whether a string exists within an array.
+         * @param field
+         * @param comparisonValue
+         * @returns {boolean}
+         */
+        comparisonIn: function (field, comparisonValue) {
+            if (field === undefined) {
+                return false;
+            }
+
+            var x,
+                value;
+
+            // Field can be string
+            if (typeof field === 'string') {
+                if (typeof comparisonValue === 'object') {
+                    for (x = 0; x < comparisonValue.length; x += 1) {
+                        value = comparisonValue[x];
+                        if (field === value) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
             return false;
+        },
+
+        /**
+         * Converts a string to camel case.
+         * @param str
+         * @returns {*}
+         */
+        toCamelCase: function (str) {
+            return str.replace(/^([A-Z])|\s(\w)/g, function (match, p1, p2) {
+                if (p2) {
+                    return p2.toUpperCase();
+                }
+                return p1.toLowerCase();
+            });
+        },
+
+        /**
+         * Tests if a value is within a particular range.
+         * @param params
+         * @param value
+         * @returns {boolean}
+         */
+        validatorRange: function (params, value) {
+            if (!$.isNumeric(value)) {
+                return false;
+            }
+
+            var min = parseFloat(params[0]),
+                max = parseFloat(params[1]),
+                val = parseFloat(value);
+
+            return val >= min && val <= max;
+        },
+
+        /**
+         * Tests if above a minimum value.
+         * @param params
+         * @param value
+         * @returns {boolean}
+         */
+        validatorMin: function (params, value) {
+            if (!$.isNumeric(value)) {
+                return false;
+            }
+
+            return parseFloat(value) >= parseFloat(params[0]);
+        },
+
+        /**
+         * Test if below minimum value.
+         * @param params
+         * @param value
+         * @returns {boolean}
+         */
+        validatorMax: function (params, value) {
+            if (!$.isNumeric(value)) {
+                return false;
+            }
+
+            return parseFloat(value) <= parseFloat(params[0]);
+        },
+
+        /**
+         * Test a string against a regular expression.
+         * @param params
+         * @param value
+         * @returns {boolean|*}
+         */
+        validatorRegularExpression: function (params, value) {
+            var re = new RegExp(params[0]);
+            return re.test(value);
         }
-
-        var min = parseFloat(params[0]),
-            max = parseFloat(params[1]),
-            val = parseFloat(value);
-
-        return val >= min && val <= max;
     };
 
-    /**
-     * Tests if above a minimum value.
-     * @param params
-     * @param value
-     * @returns {boolean}
-     */
-    this.validatorMin = function (params, value) {
-        if (!$.isNumeric(value)) {
-            return false;
-        }
-
-        return parseFloat(value) >= parseFloat(params[0]);
-    };
-
-    /**
-     * Test if below minimum value.
-     * @param params
-     * @param value
-     * @returns {boolean}
-     */
-    this.validatorMax = function (params, value) {
-        if (!$.isNumeric(value)) {
-            return false;
-        }
-
-        return parseFloat(value) <= parseFloat(params[0]);
-    };
-
-    /**
-     * Test a string against a regular expression.
-     * @param params
-     * @param value
-     * @returns {boolean|*}
-     */
-    this.validatorRegularExpression = function (params, value) {
-        var re = new RegExp(params[0]);
-        return re.test(value);
-    };
-
-}(jQuery);
+}(jQuery));
