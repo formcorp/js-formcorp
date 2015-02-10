@@ -172,40 +172,763 @@ var fc = (function ($) {
 
     var apiUrl = '//192.168.247.129:9001/',
         cdnUrl = '//192.168.247.129:9004/',
-        api,
+
+        /**
+         * HTML encode a string.
+         * @param html
+         * @returns {*}
+         */
+        htmlEncode = function (html) {
+            return document.createElement('a').appendChild(document.createTextNode(html)).parentNode.innerHTML;
+        },
+
+        /**
+         * Send off an API call.
+         * @param uri
+         * @param data
+         * @param type
+         * @param callback
+         */
+        api = function (uri, data, type, callback) {
+            if (type === undefined || typeof type !== 'string' || ['GET', 'POST', 'PUT'].indexOf(type.toUpperCase()) === -1) {
+                type = 'GET';
+            }
+            type = type.toUpperCase();
+
+            if (data === undefined) {
+                data = {};
+            }
+
+            // Default session id
+            if (data.sessionId === undefined) {
+                data.sessionId = fc.sessionId;
+            }
+
+            // Default form id
+            if (data.form_id === undefined) {
+                data.form_id = fc.formId;
+            }
+
+            // Set the branch to use if defined
+            if (data.branch === undefined && typeof fc.branch === 'string') {
+                data.branch = fc.branch;
+            }
+
+            $.ajax({
+                type: type,
+                url: apiUrl + uri,
+                data: data,
+                beforeSend: function (request) {
+                    request.setRequestHeader('Authorization', 'Bearer ' + fc.publicKey);
+                },
+                success: function (data) {
+                    if (typeof data === 'string') {
+                        data = JSON.parse(data);
+                    }
+                    callback(data);
+                },
+                error: function (data) {
+                    callback(data);
+                }
+            });
+        },
+
+        /**
+         * Return the value of a field element.
+         * @param field
+         * @returns {*}
+         */
+        getFieldValue = function (field) {
+            var selector,
+                values = [];
+
+            if (field.is('input') || field.is('textarea')) {
+                if (field.attr('type') === 'radio') {
+                    // Radio lists
+                    if ($('input[name=' + $(field).attr('name') + ']:checked').length > 0) {
+                        return $('input[name=' + $(field).attr('name') + ']:checked').val();
+                    }
+                    return '';
+                }
+
+                if (field.attr('type') === 'checkbox') {
+                    // Checkbox lists
+                    selector = $('input[formcorp-data-id=' + $(field).attr('formcorp-data-id') + ']:checked');
+                    if (selector.length === 0) {
+                        return '';
+                    }
+                    values = [];
+                    selector.each(function () {
+                        values.push($(this).val());
+                    });
+                    return JSON.stringify(values);
+                }
+
+                return field.val();
+
+            }
+
+            if (field.is('select')) {
+                return $(field).find('option:selected').text();
+            }
+
+            return '';
+        },
+
+        /**
+         * Returns true if a field is empty, false if not.
+         * @param field
+         * @returns {boolean}
+         */
+        fieldIsEmpty = function (field) {
+            var value = getFieldValue(field);
+            return !value || value.length === 0;
+        },
+
+        /**
+         * Retrieve custom error validations from field.
+         * @param field
+         * @param value
+         * @returns {Array}
+         */
+        getCustomErrors = function (field, value) {
+            var errors = [],
+                x,
+                i,
+                validator,
+                callback,
+                callbackSplit,
+                error,
+                type,
+                callbackFunction;
+
+            if (typeof field.config.validators === 'object' && field.config.validators.length > 0) {
+                for (x = 0; x < field.config.validators.length; x += 1) {
+                    validator = field.config.validators[x];
+                    type = fc.toCamelCase(validator.type);
+                    callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
+
+                    // Convert string to function call
+                    callback = window;
+                    callbackSplit = callbackFunction.split('.');
+                    for (i = 0; i < callbackSplit.length; i += 1) {
+                        callback = callback[callbackSplit[i]];
+                    }
+
+                    // Call the callback function
+                    if (!callback(validator.params, value)) {
+                        error = typeof validator.error === 'string' && validator.error.length > 0 ? validator.error : fc.config.defaultCustomValidationError;
+                        errors.push(error);
+                    }
+                }
+            }
+
+            return errors;
+        },
+
+        /**
+         * Returns a list of errors on a particular field.
+         * @param id
+         * @returns {Array}
+         */
+        fieldErrors = function (id) {
+            var fieldSelector = $('.fc-field[fc-data-group="' + id + '"]'),
+                dataId = id,
+                section,
+                field,
+                value,
+                errors = [],
+                dataField;
+
+            if (fieldSelector.length === 0) {
+                return [];
+            }
+
+            // If the field is hidden, not required to validate
+            if (fieldSelector.hasClass('fc-hide')) {
+                return [];
+            }
+
+            section = fieldSelector.parent();
+            field = fc.fieldSchema[dataId];
+            value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId];
+
+            // If section is hidden, return
+            if (section.hasClass('fc-hide')) {
+                return [];
+            }
+
+            // Test required data
+            dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
+            if (fieldIsEmpty(dataField)) {
+                errors.push(fc.config.emptyFieldError);
+                return errors;
+            }
+
+            // Custom validators
+            errors = errors.concat(getCustomErrors(field, value));
+
+            return errors;
+        },
+
+        /**
+         * Store an event locally to be logged
+         * @param event
+         * @param params
+         */
+        logEvent = function (event, params) {
+            if (event === undefined) {
+                return;
+            }
+
+            // Default params
+            if (params === undefined) {
+                params = {};
+            }
+
+            var eventObject = {
+                'event': event,
+                'params': params,
+                'time': (new Date()).getTime()
+            };
+
+            fc.events.push(eventObject);
+        },
+
+        /**
+         * Show the errors on the DOM for a given field.
+         * @param dataId
+         * @param errors
+         */
+        showFieldError = function (dataId, errors) {
+            var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']'),
+                x,
+                msg = '';
+
+            dataGroup.addClass('fc-error');
+
+            // If inline validation enabled, output error message(s)
+            if (fc.config.inlineValidation === true) {
+                for (x = 0; x < errors.length; x += 1) {
+                    msg += errors[x] + '<br>';
+                }
+                dataGroup.find('.fc-error-text').html(msg);
+            }
+        },
+
+        /**
+         * Remove the error on the DOM for a given field.
+         * @param dataId
+         */
+        removeFieldError = function (dataId) {
+            $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
+        },
+
+        /**
+         * Check the validity of the entire form.
+         * @returns {boolean}
+         */
+        validForm = function () {
+            var errors = {},
+                required;
+
+            // Test if required fields have a value
+            $('.fc-field[fc-data-group]').each(function () {
+                // If the field is hidden, not required to validate
+                if ($(this).hasClass('fc-hide')) {
+                    return;
+                }
+
+                var dataId = $(this).attr('fc-data-group'),
+                    section = $(this).parent(),
+                    field = fc.fieldSchema[dataId],
+                    value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
+                    localErrors = [];
+
+                // If section is hidden, return
+                if (section.hasClass('fc-hide')) {
+                    return;
+                }
+
+                // If repeatable and required, check the amount of values
+                if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
+                    required = $(this).attr('data-required');
+                    if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
+                        localErrors.push(fc.config.emptyFieldError);
+                    }
+                } else {
+                    localErrors = fieldErrors(dataId);
+                }
+
+                // If have errors, output
+                if (localErrors.length > 0) {
+                    // Log error event
+                    logEvent(fc.eventTypes.onFieldError, {
+                        fieldId: dataId,
+                        errors: localErrors
+                    });
+
+                    errors[dataId] = localErrors;
+                    showFieldError(dataId, localErrors);
+                } else {
+                    removeFieldError(dataId);
+                }
+            });
+
+            // Terminate when errors exist
+            if (Object.keys(errors).length > 0) {
+                console.log(errors);
+                return false;
+            }
+            return true;
+        },
+
+        /**
+         * Finds and returns a page by its id.
+         * @param pageId
+         * @returns {*}
+         */
+        getPageById = function (pageId) {
+            if (typeof fc.pages[pageId] === 'object') {
+                return fc.pages[pageId];
+            }
+
+            var x,
+                y,
+                stage,
+                page;
+
+            for (x = 0; x < fc.schema.stage.length; x += 1) {
+                stage = fc.schema.stage[x];
+                if (typeof stage.page === 'object' && stage.page.length > 0) {
+                    for (y = 0; y < stage.page.length; y += 1) {
+                        page = stage.page[y];
+                        /*jslint nomen: true*/
+                        if (fc.pages[page._id.$id] === undefined) {
+                            fc.pages[page._id.$id] = {
+                                stage: stage,
+                                page: page
+                            };
+                        }
+                        /*jslint nomen: false*/
+                    }
+                }
+            }
+
+            return getPageById(pageId);
+        },
+
+        /**
+         * Converts an object to a literal boolean object string.
+         * @param obj
+         * @returns {*}
+         */
+        toBooleanLogic = function (obj) {
+            var condition = '',
+                x,
+                rule,
+                comparison;
+
+            if (typeof obj.rules === 'object') {
+                condition += '(';
+                for (x = 0; x < obj.rules.length; x += 1) {
+                    rule = obj.rules[x];
+
+                    if (rule.condition !== undefined) {
+                        rule.condition = rule.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
+                    } else {
+                        rule.condition = "";
+                    }
+
+                    // Optimise the AND/OR clause
+                    if (rule.condition.length === 0) {
+                        // Default to AND condition
+                        rule.condition = ' && ';
+                    }
+                    if (x === 0) {
+                        rule.condition = '';
+                    }
+
+                    // If have a comparison, add it to our condition string
+                    if (typeof rule.field === 'string' && rule.value !== undefined) {
+                        // Comparison function to call
+                        comparison = 'fc.comparison';
+                        if (typeof rule.operator === 'string' && rule.operator.length > 0) {
+                            comparison += rule.operator.charAt(0).toUpperCase() + rule.operator.slice(1);
+                        }
+
+                        // If object, cast to JSON string
+                        if (typeof rule.value === 'object') {
+                            rule.value = JSON.stringify(rule.value);
+                        } else if (typeof rule.value === 'string') {
+                            rule.value = '"' + rule.value + '"';
+                        }
+
+                        condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ')';
+                    }
+
+                    // If have nested rules, call recursively
+                    if (typeof rule.rules === 'object' && rule.rules.length > 0) {
+                        condition += rule.condition + toBooleanLogic(rule);
+                    }
+                }
+                condition += ')';
+            }
+
+            return condition;
+        },
+
+        /**
+         * Update field schema (object stores the configuration of each field for easy access)
+         * @param stage
+         */
+        updateFieldSchema = function (stage) {
+            var jsonDecode = ['visibility', 'validators'],
+                toBoolean = ['visibility'],
+                x,
+                y,
+                key,
+                page,
+                section,
+                a,
+                z,
+                field,
+                id;
+
+            if (stage.page !== undefined) {
+                // Iterate through each page
+                for (x = 0; x < stage.page.length; x += 1) {
+                    page = stage.page[x];
+                    if (page.section === undefined) {
+                        continue;
+                    }
+
+                    // Convert page to conditions to JS boolean logic
+                    if (typeof page.toCondition === 'object' && Object.keys(page.toCondition).length > 0) {
+                        for (key in page.toCondition) {
+                            if (page.toCondition.hasOwnProperty(key)) {
+                                try {
+                                    page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
+                                } catch (ignore) {
+                                }
+                            }
+                        }
+                    }
+
+                    // Iterate through each section
+                    for (y = 0; y < page.section.length; y += 1) {
+                        section = page.section[y];
+                        if (section.field === undefined || section.field.length === 0) {
+                            continue;
+                        }
+
+                        // Are any object keys required to be decoded to a json object?
+                        for (a = 0; a < jsonDecode.length; a += 1) {
+                            if (typeof section[jsonDecode[a]] === 'string') {
+                                try {
+                                    section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
+                                } catch (ignore) {
+                                }
+                            }
+                        }
+
+                        // Are any object keys required to be converted to boolean logic?
+                        for (a = 0; a < toBoolean.length; a += 1) {
+                            if (typeof section[toBoolean[a]] === 'object') {
+                                section[toBoolean[a]] = toBooleanLogic(section[toBoolean[a]]);
+                            }
+                        }
+
+                        // Append to object sections dictionary
+                        /*jslint nomen: true*/
+                        if (fc.sections[section._id.$id] === undefined) {
+                            fc.sections[section._id.$id] = section;
+                        }
+                        /*jslint nomen: false*/
+
+                        // Iterate through each field
+                        for (z = 0; z < section.field.length; z += 1) {
+                            field = section.field[z];
+                            /*jslint nomen: true*/
+                            id = field._id.$id;
+                            /*jslint nomen: false*/
+
+                            // Add t field schema if doesn't already exist
+                            if (fc.fieldSchema[id] === undefined) {
+                                // Decode configuration strings to json objects as required
+                                for (a = 0; a < jsonDecode.length; a += 1) {
+                                    if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
+                                        field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
+
+                                        // Whether or not the object needs to be converted to boolean logic
+                                        if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
+                                            field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
+                                        }
+                                    }
+                                }
+
+                                fc.fieldSchema[id] = field;
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        /**
+         * Set values on DOM from fields in JS
+         */
+        setFieldValues = function () {
+            $('div[fc-data-group]').each(function () {
+                var fieldId = $(this).attr('fc-data-group'),
+                    fieldGroup,
+                    value,
+                    schema,
+                    x,
+                    list,
+                    key,
+                    li,
+                    obj;
+
+                if (fc.fields[fieldId] !== undefined) {
+                    fieldGroup = $(this).find('.fc-fieldgroup');
+                    value = fc.fields[fieldId];
+                    schema = fc.fieldSchema[fieldId];
+
+                    if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
+                        // Restore a repeatable value
+                        if (typeof value === 'object') {
+                            // Build a list to output
+                            for (x = 0; x < value.length; x += 1) {
+                                obj = value[x];
+
+                                list = $('<ul></ul>');
+                                for (key in obj) {
+                                    if (obj.hasOwnProperty(key)) {
+                                        li = $('<li></li>');
+                                        li.html(obj[key]);
+                                        list.append(li);
+                                    }
+                                }
+                                $('[fc-data-group="' + fieldId + '"] .fc-summary').append(list);
+                            }
+                        }
+                    } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
+                        // Input type text
+                        fieldGroup.find('input[type=text],textarea').val(value);
+                    } else if (fieldGroup.find('select').length > 0) {
+                        // Select box
+                        fieldGroup.find('select').val(value);
+                    } else if (fieldGroup.find('input[type=radio]').length > 0) {
+                        // Radio options
+                        fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
+                    }
+                }
+            });
+        },
+
+        /**
+         * Return a value from the field's configuration options.
+         * @param field
+         * @param key
+         * @param defaultVal
+         * @returns {*}
+         */
+        getConfig = function (field, key, defaultVal) {
+            if (defaultVal === undefined) {
+                defaultVal = '';
+            }
+
+            if (typeof field.config === 'object' && field.config[key] !== undefined) {
+                return field.config[key];
+            }
+
+            return defaultVal;
+        },
+
+        /**
+         * Render a text field.
+         * @param field
+         * @returns {string}
+         */
+        renderTextfield = function (field) {
+            /*jslint nomen: true*/
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            /*jslint nomen: false*/
+            return html;
+        },
+
+        /**
+         * Render a dropdown field.
+         * @param field
+         * @returns {string}
+         */
+        renderDropdown = function (field) {
+            /*jslint nomen: true*/
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                html = '<select class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">',
+                options = getConfig(field, 'options', ''),
+                optGroupOpen = false,
+                x,
+                option,
+                label;
+            /*jslint nomen: false*/
+
+            if (getConfig(field, 'placeholder', '').length > 0) {
+                html += '<option value="" disabled selected>' + htmlEncode(getConfig(field, 'placeholder')) + '</option>';
+            }
+
+            if (options.length > 0) {
+                options = options.split("\n");
+                for (x = 0; x < options.length; x += 1) {
+                    option = options[x];
+                    option = option.replace(/(\r\n|\n|\r)/gm, "");
+                    if (option.match(/^\[\[(.*?)\]\]$/g)) {
+                        // Opt group tag
+                        if (optGroupOpen) {
+                            html += "</optgroup>";
+                        }
+                        label = option.substring(2, option.length - 2);
+                        html += '<optgroup label="' + label + '">';
+                    } else {
+                        // Normal option tag
+                        html += '<option value="' + htmlEncode(option) + '">' + htmlEncode(option) + '</option>';
+                    }
+                }
+
+                if (optGroupOpen) {
+                    html += '</optgroup>';
+                }
+            }
+
+            html += '</select>';
+            return html;
+        },
+
+        /**
+         * Render a text area field.
+         * @param field
+         * @returns {string}
+         */
+        renderTextarea = function (field) {
+            /*jslint nomen: true*/
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                html = '<textarea class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
+            /*jslint nomen: false*/
+
+            return html;
+        },
+
+        /**
+         * Render a radio list.
+         * @param field
+         * @returns {string}
+         */
+        renderRadioList = function (field) {
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                options = getConfig(field, 'options', ''),
+                html = '',
+                x,
+                cssClass,
+                option,
+                id,
+                checked;
+
+            if (options.length > 0) {
+                options = options.split("\n");
+                cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
+                for (x = 0; x < options.length; x += 1) {
+                    option = options[x].replace(/(\r\n|\n|\r)/gm, "");
+                    /*jslint nomen: true*/
+                    id = field._id.$id + '_' + x;
+                    /*jslint nomen: false*/
+                    checked = getConfig(field, 'default') === option ? ' checked' : '';
+
+                    html += '<div class="' + cssClass + '">';
+                    /*jslint nomen: true*/
+                    html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
+                    /*jslint nomen: false*/
+                    html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                    html += '</div>';
+                }
+            }
+
+            return html;
+        },
+
+        /**
+         * Render a checkbox list.
+         * @param field
+         * @returns {string}
+         */
+        renderCheckboxList = function (field) {
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                options = getConfig(field, 'options', ''),
+                html = '',
+                cssClass,
+                x,
+                option,
+                id;
+
+            if (options.length > 0) {
+                options = options.split("\n");
+                cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
+                for (x = 0; x < options.length; x += 1) {
+                    option = options[x].replace(/(\r\n|\n|\r)/gm, "");
+                    /*jslint nomen: true*/
+                    id = field._id.$id + '_' + x;
+                    /*jslint nomen: false*/
+
+                    html += '<div class="' + cssClass + '">';
+                    /*jslint nomen: true*/
+                    html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
+                    /*jslint nomen: false*/
+                    html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                    html += '</div>';
+                }
+            }
+
+            return html;
+        },
+
+        /**
+         * Render a hidden field.
+         * @param field
+         * @returns {string}
+         */
+        renderHiddenField = function (field) {
+            /*jslint nomen: true*/
+            var html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
+            /*jslint nomen: false*/
+            return html;
+        },
+
+        /**
+         * Render a rich text area.
+         * @param field
+         * @returns {*}
+         */
+        renderRichText = function (field) {
+            if (typeof field.config.rich !== 'string') {
+                return '';
+            }
+
+            return '<div class="fc-richtext">' + field.config.rich + '</div>';
+        },
+
+        renderGrouplet,
+        renderFields,
+        renderPageSections,
         generateRandomString,
         loadCssFiles,
         addModalWindow,
         loadSchema,
         processEventQueue,
         registerEventListeners,
-        logEvent,
-        validForm,
-        fieldErrors,
-        fieldIsEmpty,
-        getFieldValue,
-        getCustomErrors,
-        showFieldError,
-        removeFieldError,
         nextPage,
         render,
-        getPageById,
-        updateFieldSchema,
-        toBooleanLogic,
-        setFieldValues,
         renderPage,
-        renderPageSections,
-        renderFields,
-        getConfig,
-        renderTextfield,
-        renderDropdown,
-        renderTextarea,
-        renderRadioList,
-        renderCheckboxList,
-        renderHiddenField,
-        renderRichText,
-        renderGrouplet,
-        htmlEncode,
         hasNextPage,
         flushVisibility,
         flushSectionVisibility,
@@ -216,750 +939,6 @@ var fc = (function ($) {
         validateModal,
         orderSchema,
         orderObject;
-
-    /**
-     * HTML encode a string.
-     * @param html
-     * @returns {*}
-     */
-    htmlEncode = function (html) {
-        return document.createElement('a').appendChild(document.createTextNode(html)).parentNode.innerHTML;
-    };
-
-    /**
-     * Send off an API call.
-     * @param uri
-     * @param data
-     * @param type
-     * @param callback
-     */
-    api = function (uri, data, type, callback) {
-        if (type === undefined || typeof type !== 'string' || ['GET', 'POST', 'PUT'].indexOf(type.toUpperCase()) === -1) {
-            type = 'GET';
-        }
-        type = type.toUpperCase();
-
-        if (data === undefined) {
-            data = {};
-        }
-
-        // Default session id
-        if (data.sessionId === undefined) {
-            data.sessionId = fc.sessionId;
-        }
-
-        // Default form id
-        if (data.form_id === undefined) {
-            data.form_id = fc.formId;
-        }
-
-        // Set the branch to use if defined
-        if (data.branch === undefined && typeof fc.branch === 'string') {
-            data.branch = fc.branch;
-        }
-
-        $.ajax({
-            type: type,
-            url: apiUrl + uri,
-            data: data,
-            beforeSend: function (request) {
-                request.setRequestHeader('Authorization', 'Bearer ' + fc.publicKey);
-            },
-            success: function (data) {
-                if (typeof data === 'string') {
-                    data = JSON.parse(data);
-                }
-                callback(data);
-            },
-            error: function (data) {
-                callback(data);
-            }
-        });
-    };
-
-    /**
-     * Return the value of a field element.
-     * @param field
-     * @returns {*}
-     */
-    getFieldValue = function (field) {
-        var selector,
-            values = [];
-
-        if (field.is('input') || field.is('textarea')) {
-            if (field.attr('type') === 'radio') {
-                // Radio lists
-                if ($('input[name=' + $(field).attr('name') + ']:checked').length > 0) {
-                    return $('input[name=' + $(field).attr('name') + ']:checked').val();
-                }
-                return '';
-            }
-
-            if (field.attr('type') === 'checkbox') {
-                // Checkbox lists
-                selector = $('input[formcorp-data-id=' + $(field).attr('formcorp-data-id') + ']:checked');
-                if (selector.length === 0) {
-                    return '';
-                }
-                values = [];
-                selector.each(function () {
-                    values.push($(this).val());
-                });
-                return JSON.stringify(values);
-            }
-
-            return field.val();
-
-        }
-
-        if (field.is('select')) {
-            return $(field).find('option:selected').text();
-        }
-
-        return '';
-    };
-
-    /**
-     * Returns true if a field is empty, false if not.
-     * @param field
-     * @returns {boolean}
-     */
-    fieldIsEmpty = function (field) {
-        var value = getFieldValue(field);
-        return !value || value.length === 0;
-    };
-
-    /**
-     * Retrieve custom error validations from field.
-     * @param field
-     * @param value
-     * @returns {Array}
-     */
-    getCustomErrors = function (field, value) {
-        var errors = [],
-            x,
-            i,
-            validator,
-            callback,
-            callbackSplit,
-            error,
-            type,
-            callbackFunction;
-
-        if (typeof field.config.validators === 'object' && field.config.validators.length > 0) {
-            for (x = 0; x < field.config.validators.length; x += 1) {
-                validator = field.config.validators[x];
-                type = fc.toCamelCase(validator.type);
-                callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
-
-                // Convert string to function call
-                callback = window;
-                callbackSplit = callbackFunction.split('.');
-                for (i = 0; i < callbackSplit.length; i += 1) {
-                    callback = callback[callbackSplit[i]];
-                }
-
-                // Call the callback function
-                if (!callback(validator.params, value)) {
-                    error = typeof validator.error === 'string' && validator.error.length > 0 ? validator.error : fc.config.defaultCustomValidationError;
-                    errors.push(error);
-                }
-            }
-        }
-
-        return errors;
-    };
-
-    /**
-     * Returns a list of errors on a particular field.
-     * @param id
-     * @returns {Array}
-     */
-    fieldErrors = function (id) {
-        var fieldSelector = $('.fc-field[fc-data-group="' + id + '"]'),
-            dataId = id,
-            section,
-            field,
-            value,
-            errors = [],
-            dataField;
-
-        if (fieldSelector.length === 0) {
-            return [];
-        }
-
-        // If the field is hidden, not required to validate
-        if (fieldSelector.hasClass('fc-hide')) {
-            return [];
-        }
-
-        section = fieldSelector.parent();
-        field = fc.fieldSchema[dataId];
-        value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId];
-
-        // If section is hidden, return
-        if (section.hasClass('fc-hide')) {
-            return [];
-        }
-
-        // Test required data
-        dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
-        if (fieldIsEmpty(dataField)) {
-            errors.push(fc.config.emptyFieldError);
-            return errors;
-        }
-
-        // Custom validators
-        errors = errors.concat(getCustomErrors(field, value));
-
-        return errors;
-    };
-
-    /**
-     * Store an event locally to be logged
-     * @param event
-     * @param params
-     */
-    logEvent = function (event, params) {
-        if (event === undefined) {
-            return;
-        }
-
-        // Default params
-        if (params === undefined) {
-            params = {};
-        }
-
-        var eventObject = {
-            'event': event,
-            'params': params,
-            'time': (new Date()).getTime()
-        };
-
-        fc.events.push(eventObject);
-    };
-
-    /**
-     * Show the errors on the DOM for a given field.
-     * @param dataId
-     * @param errors
-     */
-    showFieldError = function (dataId, errors) {
-        var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']'),
-            x,
-            msg = '';
-
-        dataGroup.addClass('fc-error');
-
-        // If inline validation enabled, output error message(s)
-        if (fc.config.inlineValidation === true) {
-            for (x = 0; x < errors.length; x += 1) {
-                msg += errors[x] + '<br>';
-            }
-            dataGroup.find('.fc-error-text').html(msg);
-        }
-    };
-
-    /**
-     * Remove the error on the DOM for a given field.
-     * @param dataId
-     */
-    removeFieldError = function (dataId) {
-        $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
-    };
-
-    /**
-     * Check the validity of the entire form.
-     * @returns {boolean}
-     */
-    validForm = function () {
-        var errors = {},
-            required;
-
-        // Test if required fields have a value
-        $('.fc-field[fc-data-group]').each(function () {
-            // If the field is hidden, not required to validate
-            if ($(this).hasClass('fc-hide')) {
-                return;
-            }
-
-            var dataId = $(this).attr('fc-data-group'),
-                section = $(this).parent(),
-                field = fc.fieldSchema[dataId],
-                value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
-                localErrors = [];
-
-            // If section is hidden, return
-            if (section.hasClass('fc-hide')) {
-                return;
-            }
-
-            // If repeatable and required, check the amount of values
-            if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
-                required = $(this).attr('data-required');
-                if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
-                    localErrors.push(fc.config.emptyFieldError);
-                }
-            } else {
-                localErrors = fieldErrors(dataId);
-            }
-
-            // If have errors, output
-            if (localErrors.length > 0) {
-                // Log error event
-                logEvent(fc.eventTypes.onFieldError, {
-                    fieldId: dataId,
-                    errors: localErrors
-                });
-
-                errors[dataId] = localErrors;
-                showFieldError(dataId, localErrors);
-            } else {
-                removeFieldError(dataId);
-            }
-        });
-
-        // Terminate when errors exist
-        if (Object.keys(errors).length > 0) {
-            console.log(errors);
-            return false;
-        }
-        return true;
-    };
-
-    /**
-     * Finds and returns a page by its id.
-     * @param pageId
-     * @returns {*}
-     */
-    getPageById = function (pageId) {
-        if (typeof fc.pages[pageId] === 'object') {
-            return fc.pages[pageId];
-        }
-
-        var x,
-            y,
-            stage,
-            page;
-
-        for (x = 0; x < fc.schema.stage.length; x += 1) {
-            stage = fc.schema.stage[x];
-            if (typeof stage.page === 'object' && stage.page.length > 0) {
-                for (y = 0; y < stage.page.length; y += 1) {
-                    page = stage.page[y];
-                    /*jslint nomen: true*/
-                    if (fc.pages[page._id.$id] === undefined) {
-                        fc.pages[page._id.$id] = {
-                            stage: stage,
-                            page: page
-                        };
-                    }
-                    /*jslint nomen: false*/
-                }
-            }
-        }
-
-        return getPageById(pageId);
-    };
-
-    /**
-     * Converts an object to a literal boolean object string.
-     * @param obj
-     * @returns {*}
-     */
-    toBooleanLogic = function (obj) {
-        var condition = '',
-            x,
-            rule,
-            comparison;
-
-        if (typeof obj.rules === 'object') {
-            condition += '(';
-            for (x = 0; x < obj.rules.length; x += 1) {
-                rule = obj.rules[x];
-
-                if (rule.condition !== undefined) {
-                    rule.condition = rule.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
-                } else {
-                    rule.condition = "";
-                }
-
-                // Optimise the AND/OR clause
-                if (rule.condition.length === 0) {
-                    // Default to AND condition
-                    rule.condition = ' && ';
-                }
-                if (x === 0) {
-                    rule.condition = '';
-                }
-
-                // If have a comparison, add it to our condition string
-                if (typeof rule.field === 'string' && rule.value !== undefined) {
-                    // Comparison function to call
-                    comparison = 'fc.comparison';
-                    if (typeof rule.operator === 'string' && rule.operator.length > 0) {
-                        comparison += rule.operator.charAt(0).toUpperCase() + rule.operator.slice(1);
-                    }
-
-                    // If object, cast to JSON string
-                    if (typeof rule.value === 'object') {
-                        rule.value = JSON.stringify(rule.value);
-                    } else if (typeof rule.value === 'string') {
-                        rule.value = '"' + rule.value + '"';
-                    }
-
-                    condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ')';
-                }
-
-                // If have nested rules, call recursively
-                if (typeof rule.rules === 'object' && rule.rules.length > 0) {
-                    condition += rule.condition + toBooleanLogic(rule);
-                }
-            }
-            condition += ')';
-        }
-
-        return condition;
-    };
-
-    /**
-     * Update field schema (object stores the configuration of each field for easy access)
-     * @param stage
-     */
-    updateFieldSchema = function (stage) {
-        var jsonDecode = ['visibility', 'validators'],
-            toBoolean = ['visibility'],
-            x,
-            y,
-            key,
-            page,
-            section,
-            a,
-            z,
-            field,
-            id;
-
-        if (stage.page !== undefined) {
-            // Iterate through each page
-            for (x = 0; x < stage.page.length; x += 1) {
-                page = stage.page[x];
-                if (page.section === undefined) {
-                    continue;
-                }
-
-                // Convert page to conditions to JS boolean logic
-                if (typeof page.toCondition === 'object' && Object.keys(page.toCondition).length > 0) {
-                    for (key in page.toCondition) {
-                        if (page.toCondition.hasOwnProperty(key)) {
-                            try {
-                                page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
-                            } catch (ignore) {
-                            }
-                        }
-                    }
-                }
-
-                // Iterate through each section
-                for (y = 0; y < page.section.length; y += 1) {
-                    section = page.section[y];
-                    if (section.field === undefined || section.field.length === 0) {
-                        continue;
-                    }
-
-                    // Are any object keys required to be decoded to a json object?
-                    for (a = 0; a < jsonDecode.length; a += 1) {
-                        if (typeof section[jsonDecode[a]] === 'string') {
-                            try {
-                                section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
-                            } catch (ignore) {
-                            }
-                        }
-                    }
-
-                    // Are any object keys required to be converted to boolean logic?
-                    for (a = 0; a < toBoolean.length; a += 1) {
-                        if (typeof section[toBoolean[a]] === 'object') {
-                            section[toBoolean[a]] = toBooleanLogic(section[toBoolean[a]]);
-                        }
-                    }
-
-                    // Append to object sections dictionary
-                    /*jslint nomen: true*/
-                    if (fc.sections[section._id.$id] === undefined) {
-                        fc.sections[section._id.$id] = section;
-                    }
-                    /*jslint nomen: false*/
-
-                    // Iterate through each field
-                    for (z = 0; z < section.field.length; z += 1) {
-                        field = section.field[z];
-                        /*jslint nomen: true*/
-                        id = field._id.$id;
-                        /*jslint nomen: false*/
-
-                        // Add t field schema if doesn't already exist
-                        if (fc.fieldSchema[id] === undefined) {
-                            // Decode configuration strings to json objects as required
-                            for (a = 0; a < jsonDecode.length; a += 1) {
-                                if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
-                                    field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
-
-                                    // Whether or not the object needs to be converted to boolean logic
-                                    if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                                        field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
-                                    }
-                                }
-                            }
-
-                            fc.fieldSchema[id] = field;
-                        }
-                    }
-                }
-            }
-        }
-    };
-
-    /**
-     * Set values on DOM from fields in JS
-     */
-    setFieldValues = function () {
-        $('div[fc-data-group]').each(function () {
-            var fieldId = $(this).attr('fc-data-group'),
-                fieldGroup,
-                value,
-                schema,
-                x,
-                list,
-                key,
-                li,
-                obj;
-
-            if (fc.fields[fieldId] !== undefined) {
-                fieldGroup = $(this).find('.fc-fieldgroup');
-                value = fc.fields[fieldId];
-                schema = fc.fieldSchema[fieldId];
-
-                if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
-                    // Restore a repeatable value
-                    if (typeof value === 'object') {
-                        // Build a list to output
-                        for (x = 0; x < value.length; x += 1) {
-                            obj = value[x];
-
-                            list = $('<ul></ul>');
-                            for (key in obj) {
-                                if (obj.hasOwnProperty(key)) {
-                                    li = $('<li></li>');
-                                    li.html(obj[key]);
-                                    list.append(li);
-                                }
-                            }
-                            $('[fc-data-group="' + fieldId + '"] .fc-summary').append(list);
-                        }
-                    }
-                } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
-                    // Input type text
-                    fieldGroup.find('input[type=text],textarea').val(value);
-                } else if (fieldGroup.find('select').length > 0) {
-                    // Select box
-                    fieldGroup.find('select').val(value);
-                } else if (fieldGroup.find('input[type=radio]').length > 0) {
-                    // Radio options
-                    fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
-                }
-            }
-        });
-    };
-
-    /**
-     * Return a value from the field's configuration options.
-     * @param field
-     * @param key
-     * @param defaultVal
-     * @returns {*}
-     */
-    getConfig = function (field, key, defaultVal) {
-        if (defaultVal === undefined) {
-            defaultVal = '';
-        }
-
-        if (typeof field.config === 'object' && field.config[key] !== undefined) {
-            return field.config[key];
-        }
-
-        return defaultVal;
-    };
-
-    /**
-     * Render a text field.
-     * @param field
-     * @returns {string}
-     */
-    renderTextfield = function (field) {
-        /*jslint nomen: true*/
-        var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-            html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
-        /*jslint nomen: false*/
-        return html;
-    };
-
-    /**
-     * Render a dropdown field.
-     * @param field
-     * @returns {string}
-     */
-    renderDropdown = function (field) {
-        /*jslint nomen: true*/
-        var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-            html = '<select class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">',
-            options = getConfig(field, 'options', ''),
-            optGroupOpen = false,
-            x,
-            option,
-            label;
-        /*jslint nomen: false*/
-
-        if (getConfig(field, 'placeholder', '').length > 0) {
-            html += '<option value="" disabled selected>' + htmlEncode(getConfig(field, 'placeholder')) + '</option>';
-        }
-
-        if (options.length > 0) {
-            options = options.split("\n");
-            for (x = 0; x < options.length; x += 1) {
-                option = options[x];
-                option = option.replace(/(\r\n|\n|\r)/gm, "");
-                if (option.match(/^\[\[(.*?)\]\]$/g)) {
-                    // Opt group tag
-                    if (optGroupOpen) {
-                        html += "</optgroup>";
-                    }
-                    label = option.substring(2, option.length - 2);
-                    html += '<optgroup label="' + label + '">';
-                } else {
-                    // Normal option tag
-                    html += '<option value="' + htmlEncode(option) + '">' + htmlEncode(option) + '</option>';
-                }
-            }
-
-            if (optGroupOpen) {
-                html += '</optgroup>';
-            }
-        }
-
-        html += '</select>';
-        return html;
-    };
-
-    /**
-     * Render a text area field.
-     * @param field
-     * @returns {string}
-     */
-    renderTextarea = function (field) {
-        /*jslint nomen: true*/
-        var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-            html = '<textarea class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
-        /*jslint nomen: false*/
-
-        return html;
-    };
-
-    /**
-     * Render a radio list.
-     * @param field
-     * @returns {string}
-     */
-    renderRadioList = function (field) {
-        var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-            options = getConfig(field, 'options', ''),
-            html = '',
-            x,
-            cssClass,
-            option,
-            id,
-            checked;
-
-        if (options.length > 0) {
-            options = options.split("\n");
-            cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
-            for (x = 0; x < options.length; x += 1) {
-                option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-                /*jslint nomen: true*/
-                id = field._id.$id + '_' + x;
-                /*jslint nomen: false*/
-                checked = getConfig(field, 'default') === option ? ' checked' : '';
-
-                html += '<div class="' + cssClass + '">';
-                /*jslint nomen: true*/
-                html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
-                /*jslint nomen: false*/
-                html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
-                html += '</div>';
-            }
-        }
-
-        return html;
-    };
-
-    /**
-     * Render a checkbox list.
-     * @param field
-     * @returns {string}
-     */
-    renderCheckboxList = function (field) {
-        var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-            options = getConfig(field, 'options', ''),
-            html = '',
-            cssClass,
-            x,
-            option,
-            id;
-
-        if (options.length > 0) {
-            options = options.split("\n");
-            cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
-            for (x = 0; x < options.length; x += 1) {
-                option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-                /*jslint nomen: true*/
-                id = field._id.$id + '_' + x;
-                /*jslint nomen: false*/
-
-                html += '<div class="' + cssClass + '">';
-                /*jslint nomen: true*/
-                html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
-                /*jslint nomen: false*/
-                html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
-                html += '</div>';
-            }
-        }
-
-        return html;
-    };
-
-    /**
-     * Render a hidden field.
-     * @param field
-     * @returns {string}
-     */
-    renderHiddenField = function (field) {
-        /*jslint nomen: true*/
-        var html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
-        /*jslint nomen: false*/
-        return html;
-    };
-
-    /**
-     * Render a rich text area.
-     * @param field
-     * @returns {*}
-     */
-    renderRichText = function (field) {
-        if (typeof field.config.rich !== 'string') {
-            return '';
-        }
-
-        return '<div class="fc-richtext">' + field.config.rich + '</div>';
-    };
 
     /**
      * Render a grouplet.
