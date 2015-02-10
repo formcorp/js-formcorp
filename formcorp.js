@@ -6,7 +6,7 @@
  * Ability to embed a JS client side form on to an external webpage.
  */
 
-/*global define,exports,require,jQuery,document,console,window*/
+/*global define,exports,require,jQuery,document,console,window,setInterval*/
 
 
 /**
@@ -1304,13 +1304,11 @@ var fc = (function ($) {
      */
     valueChanged = function (dataId, value) {
         var fieldSchema = fc.fieldSchema[dataId],
-            oldValue,
             errors,
             params;
 
         // Don't perform operations on repeatable fields
         if (typeof fieldSchema.config.repeatable !== 'boolean' || !fieldSchema.config.repeatable) {
-            oldValue = fc.fields[dataId] !== undefined ? fc.fields[dataId] : "";
             fc.fields[dataId] = value;
 
             // Flush the field visibility options
