@@ -223,11 +223,15 @@ var fc = (function ($) {
                 },
                 success: function (data) {
                     if (typeof data === 'string') {
-                        data = JSON.parse(data);
+                        try {
+                            data = $.parseJSON(data);
+                        } catch (ignore) {
+                        }
                     }
                     callback(data);
                 },
                 error: function (data) {
+                    console.log('api error');
                     callback(data);
                 }
             });
