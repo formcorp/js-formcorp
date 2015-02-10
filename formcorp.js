@@ -231,7 +231,6 @@ var fc = (function ($) {
                     callback(data);
                 },
                 error: function (data) {
-                    console.log('api error');
                     callback(data);
                 }
             });
@@ -1335,9 +1334,7 @@ var fc = (function ($) {
 
             // Register the value changed event
             params = {
-                fieldId: dataId,
-                oldValue: oldValue,
-                newValue: value
+                fieldId: dataId
             };
             logEvent(fc.eventTypes.onValueChange, params);
         }
@@ -1366,8 +1363,7 @@ var fc = (function ($) {
         $(fc.jQueryContainer).on('focus', '.fc-fieldinput', function () {
             var dataId = $(this).attr('formcorp-data-id'),
                 params = {
-                    dataId: dataId,
-                    value: getFieldValue($(this))
+                    dataId: dataId
                 };
             logEvent(fc.eventTypes.onFocus, params);
         });
@@ -1376,8 +1372,7 @@ var fc = (function ($) {
         $(fc.jQueryContainer).on('blur', '.fc-fieldinput', function () {
             var dataId = $(this).attr('formcorp-data-id'),
                 params = {
-                    dataId: dataId,
-                    value: getFieldValue($(this))
+                    dataId: dataId
                 };
             logEvent(fc.eventTypes.onBlur, params);
         });
@@ -1442,7 +1437,6 @@ var fc = (function ($) {
 
             if (!validForm()) {
                 logEvent(fc.eventTypes.onNextPageError);
-                console.log('FC Error: Form is not valid');
                 return false;
             }
 
@@ -1723,16 +1717,44 @@ var fc = (function ($) {
      * Process the event queue
      */
     processEventQueue = function () {
-        // Move the events to an event queue
+        // If the event queue isn't running, default it to false
+        if (fc.eventQueueRunning === undefined) {
+            fc.eventQueueRunning = false;
+        }
+
+        // If already running, do nothing
+        if (fc.eventQueueRunning) {
+            console.log('[FC] The event queue is already running (slow server?)');
+            return;
+        }
+
+        // If no events, do nothing
+        if (fc.events.length === 0) {
+            return;
+        }
+
+        // Mark the event queue as running, move events to the queue
+        fc.eventQueueRunning = true;
         fc.queuedEvents = fc.events;
         fc.events = [];
 
+        // Format the data to send with the request
         var data = {
             events: fc.queuedEvents
         };
 
-        api('analytics/log', data, 'post', function () {
-            console.log('callback!');
+        // Fire off the API call
+        api('analytics/log', data, 'post', function (data) {
+            // There was an error processing the update, move the queued events back in to the queue
+            if (typeof data !== 'object' || typeof data.success !== 'boolean' || !data.success) {
+                console.log('[FC] Error processing the analytics queue');
+                var queue = fc.queuedEvents.concat(fc.events);
+                fc.events = queue;
+            }
+
+            // Reset the queue
+            fc.queuedEvents = [];
+            fc.eventQueueRunning = false;
         });
     };
 
