@@ -1028,9 +1028,10 @@ var fc = (function ($) {
     /**
      * Render a collection of fields.
      * @param fields
+     * @param section
      * @returns {string}
      */
-    renderFields = function (fields) {
+    renderFields = function (fields, section) {
         var html = '',
             y,
             field,
@@ -1042,7 +1043,14 @@ var fc = (function ($) {
             field = fields[y];
             required = getConfig(field, 'required', false);
             /*jslint nomen: true*/
-            fieldHtml = '<div class="' + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + ' fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '" data-required="' + required + '">';
+            fieldHtml = '<div class="' + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + ' fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '" data-required="' + required + '"';
+
+            // If a section was passed through, track which section the field belongs to
+            if (section !== undefined && typeof section === "object") {
+                fieldHtml += ' fc-belongs-to="' + section._id.$id + '"';
+            }
+
+            fieldHtml += '>';
 
             // Add to field class variable if doesnt exist
             dataId = field._id.$id;
@@ -1148,7 +1156,7 @@ var fc = (function ($) {
 
             // Render the fields
             if (section.field !== undefined && section.field.length > 0) {
-                sectionHtml += renderFields(section.field);
+                sectionHtml += renderFields(section.field, section);
             }
 
             sectionHtml += '</div>';
@@ -1571,15 +1579,42 @@ var fc = (function ($) {
             }
 
             // Submit the form fields
+            $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
             api('page/submit', data, 'put', function (data) {
                 if (typeof data.success === 'boolean' && data.success) {
                     // Update activity (server last active timestamp updated)
                     fc.lastActivity = (new Date()).getTime();
+                    $(fc.jQueryContainer).find('.fc-loading-screen').removeClass('show');
 
                     // If 'critical' errors were returned (validation errors on required fields), need to alert the user
-                    if (data.criticalErrors !== undefined && typeof data.criticalErrors === "number" && data.criticalErrors > 0) {
-                        console.log("[FC] Server side validation errors occurred, client should have caught this");
-                        return;
+                    console.log(typeof data.criticalErrors);
+                    if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
+                        var x, field, sectionId, section, valid = false;
+                        for (x = 0; x < data.criticalErrors.length; x += 1) {
+                            field = $('.fc-field[fc-data-group=' + data.criticalErrors[x] + ']');
+
+                            // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
+                            if (field.length > 0 && !field.hasClass('fc-hide')) {
+                                sectionId = field.attr("fc-belongs-to");
+                                section = $(fc.jQueryContainer).find('.fc-section[formcorp-data-id=' + sectionId + ']');
+
+                                // If the section exists and is visible, do not proceed to the next stage
+                                if (section.length > 0) {
+                                    if (!section.hasClass('fc-hide')) {
+                                        return;
+                                    }
+                                    valid = true;
+                                }
+
+                                if (valid === false) {
+                                    console.log("[FC](1) Server side validation errors occurred, client should have caught this");
+                                    return;
+                                }
+                            }
+
+                        }
+                        //console.log("[FC](2) Server side validation errors occurred, client should have caught this");
+                        //return;
                     }
 
                     logEvent(fc.eventTypes.onNextPageSuccess);
@@ -1738,6 +1773,7 @@ var fc = (function ($) {
 
         $(fc.jQueryContainer).addClass('fc-container');
         addModalWindow();
+        $(fc.jQueryContainer).prepend('<div class="fc-loading-screen"><div class="fc-loading-halo"></div></div>');
     };
 
     /**
