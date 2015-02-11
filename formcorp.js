@@ -1576,6 +1576,12 @@ var fc = (function ($) {
                     // Update activity (server last active timestamp updated)
                     fc.lastActivity = (new Date()).getTime();
 
+                    // If 'critical' errors were returned (validation errors on required fields), need to alert the user
+                    if (data.criticalErrors !== undefined && typeof data.criticalErrors === "number" && data.criticalErrors > 0) {
+                        console.log("[FC] Server side validation errors occurred, client should have caught this");
+                        return;
+                    }
+
                     logEvent(fc.eventTypes.onNextPageSuccess);
 
                     // Render the next page if available
@@ -2008,13 +2014,11 @@ var fc = (function ($) {
             // Check to make sure container exists
             $(document).ready(function () {
                 if ($(fc.jQueryContainer).length === 0) {
-                    console.log('FC Error: Container not found.');
                     return false;
                 }
 
                 // Fetch the form id
                 if ($(fc.jQueryContainer).attr('data-id') === '') {
-                    console.log('FC Error: Form id not found.');
                     return false;
                 }
                 fc.formId = $(fc.jQueryContainer).attr('data-id');
