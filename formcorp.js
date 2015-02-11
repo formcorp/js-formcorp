@@ -428,6 +428,12 @@ var fc = (function ($) {
         },
 
         /**
+         * 'god' fields do not require a value (i.e. rich text area)
+         * @type {string[]}
+         */
+        godFields = ["richTextArea"],
+
+        /**
          * Check the validity of the entire form.
          * @returns {boolean}
          */
@@ -448,6 +454,11 @@ var fc = (function ($) {
                     value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                     localErrors = [];
 
+                // Check if the field requires a value
+                if (typeof field.type === 'string' && godFields.indexOf(field.type) !== -1) {
+                    return;
+                }
+
                 // If section is hidden, return
                 if (section.hasClass('fc-hide')) {
                     return;
@@ -465,6 +476,7 @@ var fc = (function ($) {
 
                 // If have errors, output
                 if (localErrors.length > 0) {
+                    console.log(field);
                     // Log error event
                     logEvent(fc.eventTypes.onFieldError, {
                         fieldId: dataId,
@@ -940,12 +952,12 @@ var fc = (function ($) {
         loadCssFiles,
         addModalWindow,
         loadSchema,
+        hasNextPage,
         processEventQueue,
         registerEventListeners,
         nextPage,
         render,
         renderPage,
-        hasNextPage,
         flushVisibility,
         flushSectionVisibility,
         flushFieldVisibility,
@@ -1244,7 +1256,6 @@ var fc = (function ($) {
         // Store field schema locally
         updateFieldSchema(page.stage);
 
-        // @TODO: page selection based on criteria
         html = '<h1>' + page.stage.label + '</h1>';
         html += renderPage(page.page);
 
@@ -1469,21 +1480,48 @@ var fc = (function ($) {
                 return false;
             }
 
-            // Build the data array
-            var data = {};
+            var formData = {},
+                data,
+                page;
+
+            // Build the form data array
             $('[formcorp-data-id]').each(function () {
-                data[$(this).attr('formcorp-data-id')] = getFieldValue($(this));
+                formData[$(this).attr('formcorp-data-id')] = getFieldValue($(this));
             });
 
-            // Submit the form fields
-            api('page/submit', {
+            // Build the data object to send with the request
+            data = {
                 form_id: fc.formId,
                 page_id: fc.pageId,
-                form_values: data
-            }, 'put', function (data) {
+                form_values: formData
+            };
+
+            // Determine whether the application should be marked as complete
+            page = getPageById(fc.currentPage);
+            if ((typeof page.page === "object" && isSubmitPage(page.page)) || !hasNextPage()) {
+                data.complete = true;
+            }
+
+            // Submit the form fields
+            api('page/submit', data, 'put', function (data) {
                 if (typeof data.success === 'boolean' && data.success) {
                     logEvent(fc.eventTypes.onNextPageSuccess);
-                    nextPage();
+
+                    // Render the next page if available
+                    if (hasNextPage()) {
+                        nextPage();
+
+                        // If the application is complete, raise completion event
+                        page = getPageById(fc.currentPage);
+                        if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                            logEvent(fc.eventTypes.onFormComplete);
+                        }
+                        return;
+                    }
+
+                    // Form is deemed complete, output default completion message
+                    $(fc.jQueryContainer + ' .render').html(fc.config.formCompleteHtml);
+                    logEvent(fc.eventTypes.onFormComplete);
                 } else {
                     logEvent(fc.eventTypes.onNextPageError);
                 }
@@ -1818,7 +1856,8 @@ var fc = (function ($) {
                 onFieldError: 'onFieldError',
                 onNextPageClick: 'onNextPageClick',
                 onNextPageSuccess: 'onNextPageSuccess',
-                onNextPageError: 'onNextPageError'
+                onNextPageError: 'onNextPageError',
+                onFormComplete: 'onFormComplete'
             };
 
             // Set config if not already done so
@@ -1889,8 +1928,9 @@ var fc = (function ($) {
                 sessionKeyLength: 40,
                 sessionIdName: 'fcSessionId',
                 eventQueueInterval: eventQueueDefault,
-                submitText: "Next Stage",
-                submitFormText: "Submit application"
+                submitText: "Next",
+                submitFormText: "Submit application",
+                formCompleteHtml: '<h2>Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>'
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
