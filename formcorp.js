@@ -954,6 +954,7 @@ var fc = (function ($) {
         loadSchema,
         hasNextPage,
         processEventQueue,
+        processSaveQueue,
         registerEventListeners,
         nextPage,
         render,
@@ -1372,6 +1373,11 @@ var fc = (function ($) {
                 }
             }
 
+            // Store the changed value for intermittent saving
+            if (fc.config.saveInRealTime === true) {
+                fc.saveQueue[dataId] = value;
+            }
+
             // Register the value changed event
             params = {
                 fieldId: dataId
@@ -1495,10 +1501,9 @@ var fc = (function ($) {
                 page_id: fc.pageId,
                 form_values: formData
             };
-
             // Determine whether the application should be marked as complete
-            page = getPageById(fc.currentPage);
-            if ((typeof page.page === "object" && isSubmitPage(page.page)) || !hasNextPage()) {
+            page = nextPage(false, true);
+            if ((typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
                 data.complete = true;
             }
 
@@ -1512,7 +1517,6 @@ var fc = (function ($) {
                         nextPage();
 
                         // If the application is complete, raise completion event
-                        page = getPageById(fc.currentPage);
                         if (typeof page.page === "object" && isSubmitPage(page.page)) {
                             logEvent(fc.eventTypes.onFormComplete);
                         }
@@ -1826,6 +1830,52 @@ var fc = (function ($) {
         });
     };
 
+    /**
+     * Process the save queue
+     */
+    processSaveQueue = function () {
+        if (fc.config.saveInRealTime !== true) {
+            return;
+        }
+
+        // Terminate if already running
+        if (fc.saveQueueRunning === true) {
+            console.log('[FC] Save queue is already running (slow server?)');
+            return;
+        }
+
+        // Terminate if nothing to do
+        if (Object.keys(fc.saveQueue).length === 0) {
+            return;
+        }
+
+        // Store value locally, so we can remove later
+        fc.saveQueueRunning = true;
+        var temporaryQueue = fc.saveQueue,
+            data = {
+                form_id: fc.formId,
+                page_id: fc.pageId,
+                form_values: temporaryQueue
+            };
+
+        // Fire off the API call
+        api('page/submit', data, 'put', function (data) {
+            var key;
+            if (typeof data === "object" && data.success === true) {
+                // Delete values from the save queue
+                for (key in temporaryQueue) {
+                    if (temporaryQueue.hasOwnProperty(key)) {
+                        if (typeof fc.saveQueue[key] === "string" && fc.saveQueue[key] === temporaryQueue[key]) {
+                            delete fc.saveQueue[key];
+                        }
+                    }
+                }
+            }
+
+            fc.saveQueueRunning = false;
+        });
+    };
+
     return {
 
         /**
@@ -1844,6 +1894,8 @@ var fc = (function ($) {
             this.sections = {};
             this.pages = {};
             this.events = [];
+            this.saveQueueRunning = false;
+            this.saveQueue = {};
 
             // Type of events
             this.eventTypes = {
@@ -1896,6 +1948,13 @@ var fc = (function ($) {
                 setInterval(function () {
                     processEventQueue();
                 }, fc.config.eventQueueInterval);
+
+                // Save form fields intermittently
+                if (fc.config.saveInRealTime === true) {
+                    setInterval(function () {
+                        processSaveQueue();
+                    }, fc.config.saveInRealTimeInterval);
+                }
             });
         },
 
@@ -1913,6 +1972,7 @@ var fc = (function ($) {
          */
         setConfig: function (data) {
             var eventQueueDefault = 8000,
+                realTimeSaveDefault = 6000,
                 key;
 
             // Default values
@@ -1930,12 +1990,19 @@ var fc = (function ($) {
                 eventQueueInterval: eventQueueDefault,
                 submitText: "Next",
                 submitFormText: "Submit application",
-                formCompleteHtml: '<h2>Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>'
+                formCompleteHtml: '<h2>Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
+                saveInRealTime: true,
+                saveInRealTimeInterval: realTimeSaveDefault
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
             if (this.config.eventQueueInterval < eventQueueDefault) {
                 this.config.eventQueueInterval = eventQueueDefault;
+            }
+
+            // Minimum interval for real time saving (to prevent server from getting harrassed)
+            if (this.config.saveInRealTimeInterval < realTimeSaveDefault) {
+                this.config.saveInRealTimeInterval = realTimeSaveDefault;
             }
 
             // Update with client options
