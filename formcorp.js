@@ -945,6 +945,48 @@ var fc = (function ($) {
             return page.completion === true || (typeof page.completion === 'string' && ["1", "true"].indexOf(page.completion.toLowerCase()) !== -1);
         },
 
+        /**
+         * Deletes a session and forces the user to fill out a new application.
+         */
+        deleteSession = function () {
+            $.removeCookie(fc.config.sessionIdName);
+            $(fc.jQueryContainer + ' .render').html(fc.config.sessionExpiredHtml);
+            fc.expired = true;
+        },
+
+        /**
+         * Intermittently check to see if the user has timed out
+         */
+        timeout = function () {
+            if (fc.config.timeUserOut !== true) {
+                return;
+            }
+
+            var timeSinceLastActivity = (new Date()).getTime() - fc.lastActivity,
+                sessionExtension;
+
+            if (timeSinceLastActivity > (fc.config.timeOutAfter * 1000)) {
+                // The user's session has expired
+                deleteSession();
+            } else if (timeSinceLastActivity > (fc.config.timeOutWarning * 1000)) {
+                // Display a warning to the user to see if they want to extend their session
+                sessionExtension = confirm('Your session is about to expire. Do you want to extend your session?');
+                timeSinceLastActivity = (new Date()).getTime() - fc.lastActivity;
+
+                if (sessionExtension === true && timeSinceLastActivity < (fc.config.timeOutAfter * 1000)) {
+                    api('page/ping', {}, 'put', function (data) {
+                        if (typeof data === "object" && data.success === true) {
+                            fc.lastActivity = (new Date()).getTime();
+                        }
+                    });
+                } else {
+                    // The user waited too long before extending their session
+                    deleteSession();
+                }
+            }
+            console.log(timeSinceLastActivity);
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -1256,6 +1298,11 @@ var fc = (function ($) {
      * @param isNextPage
      */
     render = function (pageId, isNextPage) {
+        // If expired, do not render anything
+        if (fc.expired === true) {
+            return;
+        }
+
         var page = getPageById(pageId),
             html;
         if (page === undefined) {
@@ -1529,6 +1576,9 @@ var fc = (function ($) {
             // Submit the form fields
             api('page/submit', data, 'put', function (data) {
                 if (typeof data.success === 'boolean' && data.success) {
+                    // Update activity (server last active timestamp updated)
+                    fc.lastActivity = (new Date()).getTime();
+
                     logEvent(fc.eventTypes.onNextPageSuccess);
 
                     // Render the next page if available
@@ -1897,6 +1947,9 @@ var fc = (function ($) {
         api('page/submit', data, 'put', function (data) {
             var key;
             if (typeof data === "object" && data.success === true) {
+                // Update activity (server last active timestamp updated)
+                fc.lastActivity = (new Date()).getTime();
+
                 // Delete values from the save queue
                 for (key in temporaryQueue) {
                     if (temporaryQueue.hasOwnProperty(key)) {
@@ -1932,6 +1985,8 @@ var fc = (function ($) {
             this.saveQueueRunning = false;
             this.saveQueue = {};
             this.prevPages = {};
+            this.lastActivity = (new Date()).getTime();
+            this.expired = false;
 
             // Type of events
             this.eventTypes = {
@@ -1982,6 +2037,9 @@ var fc = (function ($) {
 
                 // Send events off to the server
                 setInterval(function () {
+                    if (fc.expired === true) {
+                        return;
+                    }
                     processEventQueue();
                 }, fc.config.eventQueueInterval);
 
@@ -1990,6 +2048,17 @@ var fc = (function ($) {
                     setInterval(function () {
                         processSaveQueue();
                     }, fc.config.saveInRealTimeInterval);
+                }
+
+                // Check if the user needs to be timed out
+                if (fc.config.timeUserOut) {
+                    setInterval(function () {
+                        if (fc.expired === true) {
+                            return;
+                        }
+
+                        timeout();
+                    }, 5000);
                 }
             });
         },
@@ -2026,11 +2095,15 @@ var fc = (function ($) {
                 eventQueueInterval: eventQueueDefault,
                 submitText: "Next",
                 submitFormText: "Submit application",
-                formCompleteHtml: '<h2>Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
+                formCompleteHtml: '<h2 class="fc-header">Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
                 saveInRealTime: true,
                 saveInRealTimeInterval: realTimeSaveDefault,
                 showPrevPageButton: true,
-                prevButtonText: 'Previous'
+                prevButtonText: 'Previous',
+                timeUserOut: false,
+                timeOutWarning: 870, // 14 minutes 30 seconds
+                timeOutAfter: 900, // 15 minutes
+                sessionExpiredHtml: '<h2 class="fc-header">Your session has expired</h2><p>Unfortunately, due to a period of extended inactivity, your session has expired. To fill out a new form submission, please refresh your page.</p>'
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
