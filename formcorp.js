@@ -1162,11 +1162,24 @@ var fc = (function ($) {
                 submitText = fc.config.submitFormText;
             }
 
+            pageDiv += '<div class="fc-pagination">';
+
+            // Show the prev stage button
+            if (fc.config.showPrevPageButton === true) {
+                if (typeof fc.prevPages[fc.pageId] === "object") {
+                    pageDiv += '<div class="fc-prev-page">';
+                    pageDiv += '<input type="submit" value="' + fc.config.prevButtonText + '" class="fc-btn">';
+                    pageDiv += '</div>';
+                }
+            }
+
             // Output the submit button
             pageDiv += '<div class="fc-submit">';
             pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
             pageDiv += '</div>';
         }
+
+        pageDiv += '<div class="fc-break"></div></div>';
 
         // Close page div
         pageDiv += '</form></div>';
@@ -1238,12 +1251,11 @@ var fc = (function ($) {
     };
 
     /**
-     * Render a form stage.
+     * Render a form stage
      * @param pageId
+     * @param isNextPage
      */
-    render = function (pageId) {
-        fc.currentPage = pageId;
-
+    render = function (pageId, isNextPage) {
         var page = getPageById(pageId),
             html;
         if (page === undefined) {
@@ -1253,6 +1265,13 @@ var fc = (function ($) {
         if (typeof page.stage !== 'object') {
             return;
         }
+
+        // Store the previous page
+        if (isNextPage === true && fc.currentPage !== undefined) {
+            fc.prevPages[pageId] = getPageById(fc.currentPage);
+        }
+
+        fc.currentPage = pageId;
 
         // Store field schema locally
         updateFieldSchema(page.stage);
@@ -1307,7 +1326,7 @@ var fc = (function ($) {
                     condition = currentPage.page.toCondition[id];
                     if (eval(condition)) {
                         if (shouldRender) {
-                            render(id);
+                            render(id, true);
                         }
                         return returnPage ? getPageById(id) : true;
                     }
@@ -1323,7 +1342,7 @@ var fc = (function ($) {
             /*jslint nomen: true*/
             if (foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
                 if (shouldRender) {
-                    render(stage.page[0]._id.$id);
+                    render(stage.page[0]._id.$id, true);
                 }
                 return returnPage ? getPageById(stage.page[0]._id.$id) : true;
             }
@@ -1531,6 +1550,22 @@ var fc = (function ($) {
                 }
             });
 
+            return false;
+        });
+
+        // Previous page click
+        $(fc.jQueryContainer).on('click', '.fc-prev-page', function () {
+            if (fc.config.showPrevPageButton !== true) {
+                return false;
+            }
+
+            console.log('have to go to the previous page');
+            if (typeof fc.prevPages[fc.pageId] === "object") {
+                console.log(fc.prevPages[fc.pageId]);
+                /*jslint nomen: true*/
+                render(fc.prevPages[fc.pageId].page._id.$id);
+                /*jslint nomen: false*/
+            }
             return false;
         });
 
@@ -1896,6 +1931,7 @@ var fc = (function ($) {
             this.events = [];
             this.saveQueueRunning = false;
             this.saveQueue = {};
+            this.prevPages = {};
 
             // Type of events
             this.eventTypes = {
@@ -1992,7 +2028,9 @@ var fc = (function ($) {
                 submitFormText: "Submit application",
                 formCompleteHtml: '<h2>Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
                 saveInRealTime: true,
-                saveInRealTimeInterval: realTimeSaveDefault
+                saveInRealTimeInterval: realTimeSaveDefault,
+                showPrevPageButton: true,
+                prevButtonText: 'Previous'
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)

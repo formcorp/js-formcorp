@@ -58,7 +58,7 @@
     border-radius: 4px;
 }
 
-div.fc-submit {
+div.fc-pagination {
     margin: 15px 0;
 }
 
@@ -230,4 +230,8 @@ div.fc-submit {
 
 #fc-modal .fc-summary {
     display: none;
+}
+
+.fc-break {
+    clear: both;
 }
