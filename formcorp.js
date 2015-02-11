@@ -476,7 +476,6 @@ var fc = (function ($) {
 
                 // If have errors, output
                 if (localErrors.length > 0) {
-                    console.log(field);
                     // Log error event
                     logEvent(fc.eventTypes.onFieldError, {
                         fieldId: dataId,
@@ -492,7 +491,6 @@ var fc = (function ($) {
 
             // Terminate when errors exist
             if (Object.keys(errors).length > 0) {
-                console.log(errors);
                 return false;
             }
             return true;
@@ -984,7 +982,6 @@ var fc = (function ($) {
                     deleteSession();
                 }
             }
-            console.log(timeSinceLastActivity);
         },
 
         renderGrouplet,
@@ -1609,9 +1606,7 @@ var fc = (function ($) {
                 return false;
             }
 
-            console.log('have to go to the previous page');
             if (typeof fc.prevPages[fc.pageId] === "object") {
-                console.log(fc.prevPages[fc.pageId]);
                 /*jslint nomen: true*/
                 render(fc.prevPages[fc.pageId].page._id.$id);
                 /*jslint nomen: false*/
@@ -1864,7 +1859,6 @@ var fc = (function ($) {
                     firstPageId = fc.schema.stage[0].page[0]._id.$id;
                     /*jslint nomen: false*/
                     render(firstPageId);
-                    console.log(fc.schema);
                 }
             }
         });
