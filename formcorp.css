@@ -269,3 +269,43 @@ div.fc-pagination {
 .fc-break {
     clear: both;
 }
+
+.fc-payment > div {
+    margin-bottom: 15px;
+    display: inline-block;
+    width: 49%;
+    margin-right: 2%;
+}
+.fc-payment > div:nth-child(even) {
+    margin-right: 0;
+}
+
+.fc-payment label {
+    display: block;
+    margin-bottom: 15px;
+}
+
+.fc-payment .fc-cc-expirydate-month, .fc-payment .fc-cc-expirydate-year {
+    display: inline-block;
+    width: 49%;
+    margin-right: 2%;
+}
+
+.fc-payment .fc-cc-expirydate-year {
+    margin-right: 0;
+}
+
+.fc-payment .fc-cc-ccv {
+    position: relative;
+}
+
+.fc-payment .fc-cc-ccv .fc-fieldinput {
+    width: 80%;
+}
+
+.fc-payment .fc-cc-ccv img {
+    max-height: 40px;
+    position: absolute;
+    right: 0;
+    top: 35px;
+}

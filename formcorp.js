@@ -320,7 +320,7 @@ var fc = (function ($) {
 
                     // Call the callback function
                     if (!callback(validator.params, value)) {
-                        error = typeof validator.error === 'string' && validator.error.length > 0 ? validator.error : fc.config.defaultCustomValidationError;
+                        error = typeof validator.error === 'string' && validator.error.length > 0 ? validator.error : fc.lang.defaultCustomValidationError;
                         errors.push(error);
                     }
                 }
@@ -364,7 +364,7 @@ var fc = (function ($) {
             // Test required data
             dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
             if (fieldIsEmpty(dataField)) {
-                errors.push(fc.config.emptyFieldError);
+                errors.push(fc.lang.emptyFieldError);
                 return errors;
             }
 
@@ -468,7 +468,7 @@ var fc = (function ($) {
                 if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
                     required = $(this).attr('data-required');
                     if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
-                        localErrors.push(fc.config.emptyFieldError);
+                        localErrors.push(fc.lang.emptyFieldError);
                     }
                 } else {
                     localErrors = fieldErrors(dataId);
@@ -930,6 +930,45 @@ var fc = (function ($) {
             return '<div class="fc-richtext">' + field.config.rich + '</div>';
         },
 
+        renderCreditCard = function (field) {
+            console.log(field);
+            var html = '',
+                month,
+                year,
+                currentYear = (new Date()).getFullYear();
+
+            // Initialise basic components
+            html += '<div class="fc-payment">';
+            html += '<div class="fc-cc-name"><label>' + fc.lang.creditCardNameText + '</label><input type="text" class="fc-fieldinput"></div>';
+            html += '<div class="fc-cc-number"><label>' + fc.lang.creditCardNumberText + '</label><input type="text" class="fc-fieldinput"></div>';
+
+            // Render the expiry dates
+            html += '<div class="fc-cc-expirydate"><label>' + fc.lang.creditCardExpiryDateText + '</label>';
+            html += '<select class="fc-cc-expirydate-month"><option value="" disabled selected>Please select...</option>';
+            for (month = 1; month <= 12; month += 1) {
+                html += '<option value="' + month + '">' + fc.lang.monthNames[month - 1] + '</option>';
+            }
+            html += '</select>';
+
+            html += '<select class="fc-cc-expirydate-year"><option value="" disabled selected>Please select...</option>';
+            for (year = currentYear; year <= currentYear + 20; year += 1) {
+                html += '<option value="' + year + '">' + year + '</option>';
+            }
+            html += '</select></div>';
+
+            // Render the security code
+            html += '<div class="fc-cc-ccv">';
+            html += '<label>' + fc.lang.creditCardSecurityCodeText + '</label><input type="text" class="fc-fieldinput">';
+            if (fc.config.cvvImage === null) {
+                html += '<img src="' + cdnUrl + '/img/cvv.gif" alt="cvv">';
+            }
+            html += '</div>';
+
+            html += '</div>';
+            /*!fc-payment*/
+            return html;
+        },
+
         /**
          * Returns true if a page is deemed to be a submission page
          * @param page
@@ -948,7 +987,7 @@ var fc = (function ($) {
          */
         deleteSession = function () {
             $.removeCookie(fc.config.sessionIdName);
-            $(fc.jQueryContainer + ' .render').html(fc.config.sessionExpiredHtml);
+            $(fc.jQueryContainer + ' .render').html(fc.lang.sessionExpiredHtml);
             fc.expired = true;
         },
 
@@ -1075,7 +1114,7 @@ var fc = (function ($) {
             if (getConfig(field, 'repeatable', false) === true) {
                 fieldHtml += '<div class="fc-repeatable">';
                 fieldHtml += '<div class="fc-summary"></div>';
-                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.config.addFieldTextValue + '</a></div>';
+                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.lang.addFieldTextValue + '</a></div>';
             }
 
             fieldHtml += '<div class="fc-fieldgroup">';
@@ -1104,6 +1143,9 @@ var fc = (function ($) {
                 break;
             case 'grouplet':
                 fieldHtml += renderGrouplet(field);
+                break;
+            case 'creditCard':
+                fieldHtml += renderCreditCard(field);
                 break;
             default:
                 console.log('Unknown field type: ' + field.type);
@@ -1182,7 +1224,7 @@ var fc = (function ($) {
     renderPage = function (page) {
         // Page details
         var pageDiv = '<div class="fc-page"><form class="fc-form">',
-            submitText = fc.config.submitText,
+            submitText = fc.lang.submitText,
             nextPageObj;
 
         /*jslint nomen: true*/
@@ -1206,7 +1248,7 @@ var fc = (function ($) {
         if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
             // If the next stage is a completion page, alter the submission text
             if ((isSubmitPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && isSubmitPage(nextPageObj.page))) {
-                submitText = fc.config.submitFormText;
+                submitText = fc.lang.submitFormText;
             }
 
             pageDiv += '<div class="fc-pagination">';
@@ -1215,7 +1257,7 @@ var fc = (function ($) {
             if (fc.config.showPrevPageButton === true) {
                 if (typeof fc.prevPages[fc.pageId] === "object") {
                     pageDiv += '<div class="fc-prev-page">';
-                    pageDiv += '<input type="submit" value="' + fc.config.prevButtonText + '" class="fc-btn">';
+                    pageDiv += '<input type="submit" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
                     pageDiv += '</div>';
                 }
             }
@@ -1631,7 +1673,7 @@ var fc = (function ($) {
                     }
 
                     // Form is deemed complete, output default completion message
-                    $(fc.jQueryContainer + ' .render').html(fc.config.formCompleteHtml);
+                    $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
                     logEvent(fc.eventTypes.onFormComplete);
                 } else {
                     logEvent(fc.eventTypes.onNextPageError);
@@ -1788,14 +1830,14 @@ var fc = (function ($) {
         var modal = '<div class="fc-modal" id="fc-modal" aria-hidden="true">' +
             '<div class="modal-dialog">' +
             '<div class="modal-header">' +
-            '<h2>' + fc.config.addModalHeader + '</h2>' +
+            '<h2>' + fc.lang.addModalHeader + '</h2>' +
             '</div>' +
             '<div class="modal-body">' +
             '<p>One modal example here! :D</p>' +
             '</div>' +
             '<div class="modal-footer">' +
-            '<a href="#" class="btn btn-danger fc-btn-close">' + fc.config.closeModalText + '</a> ' +
-            '<a href="#" class="btn btn-success fc-btn-add">' + fc.config.addModalText + '</a> ' +
+            '<a href="#" class="btn btn-danger fc-btn-close">' + fc.lang.closeModalText + '</a> ' +
+            '<a href="#" class="btn btn-success fc-btn-add">' + fc.lang.addModalText + '</a> ' +
             '</div>' +
             '</div>' +
             '</div>' +
@@ -2044,6 +2086,11 @@ var fc = (function ($) {
                 this.setConfig();
             }
 
+            // Set language if not already done so
+            if (fc.lang === undefined) {
+                this.setLanguage();
+            }
+
             // Set the session id
             this.initSession();
 
@@ -2118,26 +2165,16 @@ var fc = (function ($) {
             this.config = {
                 realTimeValidation: true,
                 inlineValidation: true,
-                emptyFieldError: 'This field cannot be empty',
-                defaultCustomValidationError: 'This field failed custom validation',
-                addFieldTextValue: 'Add value',
-                closeModalText: 'Close',
-                addModalText: 'Add',
-                addModalHeader: 'Add value',
                 sessionKeyLength: 40,
                 sessionIdName: 'fcSessionId',
                 eventQueueInterval: eventQueueDefault,
-                submitText: "Next",
-                submitFormText: "Submit application",
-                formCompleteHtml: '<h2 class="fc-header">Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
                 saveInRealTime: true,
                 saveInRealTimeInterval: realTimeSaveDefault,
                 showPrevPageButton: true,
-                prevButtonText: 'Previous',
                 timeUserOut: false,
                 timeOutWarning: 870, // 14 minutes 30 seconds
-                timeOutAfter: 900, // 15 minutes
-                sessionExpiredHtml: '<h2 class="fc-header">Your session has expired</h2><p>Unfortunately, due to a period of extended inactivity, your session has expired. To fill out a new form submission, please refresh your page.</p>'
+                timeOutAfter: 900, // 15 minutes,
+                cvvImage: null
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
@@ -2155,6 +2192,43 @@ var fc = (function ($) {
                 for (key in data) {
                     if (data.hasOwnProperty(key)) {
                         fc.config[key] = data[key];
+                    }
+                }
+            }
+        },
+
+        /**
+         * Set the language data values
+         * @param data
+         */
+        setLanguage: function (data) {
+            var key;
+
+            // Initialise the language
+            this.lang = {
+                prevButtonText: 'Previous',
+                submitText: "Next",
+                submitFormText: "Submit application",
+                formCompleteHtml: '<h2 class="fc-header">Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
+                addFieldTextValue: 'Add value',
+                closeModalText: 'Close',
+                addModalText: 'Add',
+                addModalHeader: 'Add value',
+                emptyFieldError: 'This field cannot be empty',
+                defaultCustomValidationError: 'This field failed custom validation',
+                sessionExpiredHtml: '<h2 class="fc-header">Your session has expired</h2><p>Unfortunately, due to a period of extended inactivity, your session has expired. To fill out a new form submission, please refresh your page.</p>',
+                creditCardNameText: 'Name (as it appears on your card)',
+                creditCardNumberText: 'Card number (no dashes or spaces)',
+                creditCardExpiryDateText: 'Expiration date',
+                creditCardSecurityCodeText: 'Security code (3 on back, Amex: 4 on front)',
+                monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+            };
+
+            // Update with client options
+            if (typeof data === 'object' && Object.keys(data).length > 0) {
+                for (key in data) {
+                    if (data.hasOwnProperty(key)) {
+                        fc.lang[key] = data[key];
                     }
                 }
             }
