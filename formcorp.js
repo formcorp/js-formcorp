@@ -1029,6 +1029,12 @@ var fc = (function ($) {
         generateRandomString,
         loadCssFiles,
         addModalWindow,
+        pruneNonPageFields,
+        removeInvisibleSectionFields,
+        pruneInvisibleFields,
+        fieldIsValid,
+        formFieldsValid,
+        getFirstPage,
         loadSchema,
         hasNextPage,
         processEventQueue,
@@ -1911,6 +1917,196 @@ var fc = (function ($) {
         return objects;
     };
 
+    /**
+     * Prune fields not on a current page
+     * @param page
+     * @param fields
+     * @returns {{}}
+     */
+    pruneNonPageFields = function (page, fields) {
+        var pageFields = [], section, x, y, field, obj = {};
+
+        if (typeof page.page === "object" && typeof page.page.section === "object") {
+            for (x = 0; x < page.page.section.length; x += 1) {
+                section = page.page.section[x];
+                if (typeof section.field === "object" && section.field.length > 0) {
+                    for (y = 0; y < section.field.length; y += 1) {
+                        field = section.field[y];
+                        /*jslint nomen: true*/
+                        pageFields.push(field._id.$id);
+                        if (fields[field._id.$id] !== undefined) {
+                            obj[field._id.$id] = fields[field._id.$id];
+                        } else {
+                            obj[field._id.$id] = "";
+                        }
+                        /*jslint nomen: false*/
+                    }
+                }
+            }
+        }
+
+        return obj;
+    };
+
+    /**
+     * Remove the fields from invisible sections from a data object (not DOM)
+     * @param page
+     * @param fields
+     * @returns {*}
+     */
+    removeInvisibleSectionFields = function (page, fields) {
+        var section, x, y, visible, field;
+
+        if (typeof page.page === "object" && typeof page.page.section === "object") {
+            for (x = 0; x < page.page.section.length; x += 1) {
+                section = page.page.section[x];
+
+                if (typeof section.visibility === 'string' && section.visibility.length > 0) {
+                    visible = eval(section.visibility);
+                    if (!visible) {
+                        if (typeof section.field === "object" && section.field.length > 0) {
+                            for (y = 0; y < section.field.length; y += 1) {
+                                field = section.field[y];
+                                /*jslint nomen: true*/
+                                delete fields[field._id.$id];
+                                /*jslint nomen: false*/
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return fields;
+    };
+
+    /**
+     * Remove invisible fields from an object
+     * @param fields
+     * @returns {*}
+     */
+    pruneInvisibleFields = function (fields) {
+        if (typeof fields === "object") {
+            var dataId, field, visible;
+            for (dataId in fields) {
+                if (fields.hasOwnProperty(dataId)) {
+                    field = fc.fieldSchema[dataId];
+                    if (field === undefined) {
+                        continue;
+                    }
+                    if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
+                        visible = eval(field.config.visibility);
+                        if (typeof visible === 'boolean') {
+                            if (!visible) {
+                                delete fields[dataId];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return fields;
+    };
+
+    /**
+     * Returns true if a field is valid.
+     * @param dataId
+     * @param value
+     * @returns {boolean}
+     */
+    fieldIsValid = function (dataId, value) {
+        var schema = fc.fieldSchema[dataId],
+            customErrors;
+
+        // Return false if required and empty
+        if (schema.config !== undefined && schema.config.required !== undefined) {
+            if (schema.config.required && value === "") {
+                return false;
+            }
+        }
+
+        // Check custom validators
+        customErrors = getCustomErrors(schema, value);
+        if (customErrors.length > 0) {
+            return false;
+        }
+
+        return true;
+    };
+
+    /**
+     * Iterates through an object of dataId=>value pairs to determine if fields are valid.
+     *
+     * @param fields
+     * @returns {boolean}
+     */
+    formFieldsValid = function (fields) {
+        if (typeof fields !== "object") {
+            return true;
+        }
+
+        var dataId;
+
+        for (dataId in fields) {
+            if (fields.hasOwnProperty(dataId)) {
+                if (!fieldIsValid(dataId, fields[dataId])) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    };
+
+    /**
+     * Retrieve the first page (if the user has an active session, the opening page might be later on in the process)
+     * @returns {*}
+     */
+    getFirstPage = function () {
+        /*jslint nomen: true*/
+        var id = fc.schema.stage[0].page[0]._id.$id,
+            page,
+            nextPageObj,
+            fields,
+            valid;
+        /*jslint nomen: false*/
+
+        // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
+        do {
+            page = getPageById(id);
+            if (page === undefined) {
+                console.log('FC Error: Page not found');
+                break;
+            }
+
+            if (typeof page.stage !== 'object') {
+                break;
+            }
+            fc.currentPage = id;
+
+            // Store field schema locally
+            updateFieldSchema(page.stage);
+            fields = pruneNonPageFields(page, fc.fields);
+            fields = removeInvisibleSectionFields(page, fields);
+            fields = pruneInvisibleFields(fields);
+            valid = formFieldsValid(fields);
+
+            if (valid) {
+                nextPageObj = nextPage(false, true);
+                if (nextPageObj !== undefined && typeof nextPageObj === "object") {
+                    /*jslint nomen: true*/
+                    id = nextPageObj.page._id.$id;
+                    /*jslint nomen: false*/
+                    fc.prevPages[id] = page;
+                } else {
+                    valid = false;
+                }
+            }
+        } while (valid);
+
+        return id;
+    };
 
     /**
      * Load the form schema/definition
@@ -1939,9 +2135,8 @@ var fc = (function ($) {
             if (data.stage !== undefined) {
                 fc.schema = orderSchema(data);
                 if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
-                    /*jslint nomen: true*/
-                    firstPageId = fc.schema.stage[0].page[0]._id.$id;
-                    /*jslint nomen: false*/
+                    firstPageId = getFirstPage();
+                    console.log(firstPageId);
                     render(firstPageId);
                 }
             }
