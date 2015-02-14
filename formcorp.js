@@ -433,6 +433,67 @@ var fc = (function ($) {
          */
         godFields = ["richTextArea"],
 
+        validCreditCardField = function (dataId, field, section) {
+            var value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
+                errors = [],
+                ccForm,
+                cardName,
+                cardNumber,
+                expiryMonth,
+                expiryYear,
+                securityCode;
+
+            // A value for the credit card indicates its all good (to be verified by server)
+            if (value.length > 0) {
+                return [];
+            }
+
+            // Fetch the cc form
+            ccForm = $(fc.jQueryContainer).find('[fc-data-group=' + dataId + ']');
+            if (ccForm.length === 0) {
+                console.log("[FC] Unable to locate CC form");
+                return [];
+            }
+
+            // Map values to js variables
+            cardName = ccForm.find('.fc-cc-name input');
+            cardNumber = ccForm.find('.fc-cc-number input');
+            expiryMonth = ccForm.find('.fc-cc-expirydate option:selected');
+            expiryYear = ccForm.find('.fc-cc-expirydate-year option:selected');
+            securityCode = ccForm.find('.fc-cc-ccv input');
+
+            // Validate credit card name
+            if (cardName.val().length === 0) {
+                errors.push(fc.lang.creditCardMissingName);
+            }
+
+            // Validate credit card number
+            if (cardNumber.val().length === 0) {
+                errors.push(fc.lang.creditCardMissingNumber);
+            }
+
+            // Expiry - ensure values entered
+            if (expiryMonth.val().length === 0 || expiryYear.val().length === 0) {
+                errors.push(fc.lang.creditCardMissingExpiryDate);
+            } else if (typeof expiryMonth.val() !== "number" || expiryMonth.val() < 1 || expiryMonth.val() > 12) {
+                // Check month within range 1 <= month <= 12
+                errors.push(fc.lang.creditCardMissingExpiryDate);
+            } else if (typeof expiryYear.val() !== "number" || expiryYear.val() < (new Date()).getFullYear() || expiryYear.val() > ((new Date()).getFullYear() + 30)) {
+                // Check year within range CURRENT_YEAR <= year <= (CURRENT_YEAR + 30)
+                errors.push(fc.lang.creditCardMissingExpiryDate);
+            } else if (expiryYear.val() === (new Date()).getFullYear() && expiryMonth.val() < (new Date()).getMonth()) {
+                errors.push(fc.lang.creditCardExpired);
+            }
+
+            console.log(cardNumber);
+            console.log(cardName);
+            console.log(expiryMonth);
+            console.log(expiryYear);
+            console.log(securityCode);
+
+            return errors;
+        },
+
         /**
          * Check the validity of the entire form.
          * @returns {boolean}
@@ -464,14 +525,21 @@ var fc = (function ($) {
                     return;
                 }
 
+                // If a credit card payment field, treat uniquely
+                if (field.type === "creditCard") {
+                    localErrors = validCreditCardField(dataId, field, section);
+                }
+
                 // If repeatable and required, check the amount of values
-                if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
-                    required = $(this).attr('data-required');
-                    if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
-                        localErrors.push(fc.lang.emptyFieldError);
+                if (localErrors.length === 0) {
+                    if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
+                        required = $(this).attr('data-required');
+                        if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
+                            localErrors.push(fc.lang.emptyFieldError);
+                        }
+                    } else {
+                        localErrors = fieldErrors(dataId);
                     }
-                } else {
-                    localErrors = fieldErrors(dataId);
                 }
 
                 // If have errors, output
@@ -1469,6 +1537,11 @@ var fc = (function ($) {
             errors,
             params;
 
+        // If unable to locate the field schema, do nothing (i.e. credit card field changes)
+        if (fieldSchema === undefined) {
+            return;
+        }
+
         // Don't perform operations on repeatable fields
         if (typeof fieldSchema.config.repeatable !== 'boolean' || !fieldSchema.config.repeatable) {
             fc.fields[dataId] = value;
@@ -1695,11 +1768,7 @@ var fc = (function ($) {
                 return false;
             }
 
-            if (typeof fc.prevPages[fc.pageId] === "object") {
-                /*jslint nomen: true*/
-                render(fc.prevPages[fc.pageId].page._id.$id);
-                /*jslint nomen: false*/
-            }
+            window.history.back();
             return false;
         });
 
@@ -2084,6 +2153,8 @@ var fc = (function ($) {
                 break;
             }
             fc.currentPage = id;
+            window.location.hash = id;
+            console.log("change hash: " + id);
 
             // Store field schema locally
             updateFieldSchema(page.stage);
@@ -2416,7 +2487,13 @@ var fc = (function ($) {
                 creditCardNumberText: 'Card number (no dashes or spaces)',
                 creditCardExpiryDateText: 'Expiration date',
                 creditCardSecurityCodeText: 'Security code (3 on back, Amex: 4 on front)',
-                monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+                monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+                creditCardMissingName: "You must enter a valid name as it appears on your credit card",
+                creditCardMissingNumber: "You must enter a valid credit card number",
+                creditCardMissingExpiryDate: "You must enter a valid expiry date",
+                creditCardExpired: "Your card has expired",
+                creditCardMissingSecurityCode: "You must enter a valid security code",
+                creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details"
             };
 
             // Update with client options
