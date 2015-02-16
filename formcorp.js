@@ -172,6 +172,7 @@ var fc = (function ($) {
 
     var apiUrl = '//192.168.247.129:9001/',
         cdnUrl = '//192.168.247.129:9004/',
+        prefixSeparator = "_",
 
         /**
          * HTML encode a string.
@@ -404,7 +405,7 @@ var fc = (function ($) {
          * @param errors
          */
         showFieldError = function (dataId, errors) {
-            var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']'),
+            var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]'),
                 x,
                 msg = '';
 
@@ -424,7 +425,7 @@ var fc = (function ($) {
          * @param dataId
          */
         removeFieldError = function (dataId) {
-            $(fc.jQueryContainer).find('div[fc-data-group=' + dataId + ']').removeClass('fc-error');
+            $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
         },
 
         /**
@@ -456,7 +457,7 @@ var fc = (function ($) {
             }
 
             // Fetch the cc form
-            ccForm = $(fc.jQueryContainer).find('[fc-data-group=' + dataId + ']');
+            ccForm = $(fc.jQueryContainer).find('[fc-data-group="' + dataId + '"]');
             if (ccForm.length === 0) {
                 console.log("[FC] Unable to locate CC form");
                 return [];
@@ -526,6 +527,15 @@ var fc = (function ($) {
         },
 
         /**
+         * Returns true if a field element exists within a modal window
+         * @param obj
+         * @returns {boolean}
+         */
+        inModal = function (obj) {
+            return obj.parent().parent().parent().parent().attr("class").indexOf("fc-repeatable-container") > -1;
+        },
+
+        /**
          * Check the validity of the entire form.
          * @returns {boolean}
          */
@@ -537,6 +547,11 @@ var fc = (function ($) {
             $('.fc-field[fc-data-group]').each(function () {
                 // If the field is hidden, not required to validate
                 if ($(this).hasClass('fc-hide')) {
+                    return;
+                }
+
+                // If in modal, do nothing
+                if (inModal($(this))) {
                     return;
                 }
 
@@ -1224,7 +1239,7 @@ var fc = (function ($) {
         if (prefix === undefined) {
             prefix = "";
         } else if (typeof prefix === "object") {
-            prefix = prefix.join(".") + ".";
+            prefix = prefix.join(prefixSeparator) + prefixSeparator;
         }
 
         for (y = 0; y < fields.length; y += 1) {
@@ -1485,9 +1500,9 @@ var fc = (function ($) {
                 visible = eval(field.config.visibility);
                 if (typeof visible === 'boolean') {
                     if (visible) {
-                        $('div[fc-data-group=' + dataId + ']').removeClass('fc-hide');
+                        $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
                     } else {
-                        $('div[fc-data-group=' + dataId + ']').addClass('fc-hide');
+                        $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
                     }
                 }
             }
@@ -1622,6 +1637,7 @@ var fc = (function ($) {
      * @param value
      */
     valueChanged = function (dataId, value) {
+        console.log(dataId);
         var fieldSchema = fc.fieldSchema[dataId],
             errors,
             params;
@@ -1781,21 +1797,9 @@ var fc = (function ($) {
                 dataId = $(this).attr('formcorp-data-id');
                 belongsTo = $(this).parent().parent().parent().attr('fc-belongs-to'); // @todo: make unique - this is horrible
 
-                // Grouplet fields need to be processed separately
-                if (belongsTo !== undefined) {
-                    dataGroup = $(fc.jQueryContainer).find('.fc-field[fc-data-group=' + belongsTo + ']');
-                    if (dataGroup.hasClass('fc-field-grouplet')) {
-                        groupletId = dataGroup.attr('fc-data-group');
-                        if (formData[groupletId] === undefined) {
-                            formData[groupletId] = {};
-                        }
-                        console.log(dataId);
-                        formData[groupletId][dataId] = getFieldValue($(this));
-                    }
-                } else {
-                    // Regular fields can be added to the flat dictionary
-                    formData[dataId] = getFieldValue($(this));
-                }
+                // Regular fields can be added to the flat dictionary
+                formData[dataId] = getFieldValue($(this));
+
             });
 
             // Build the data object to send with the request
@@ -1811,7 +1815,6 @@ var fc = (function ($) {
             }
 
             console.log(data);
-            return false;
 
             // Submit the form fields
             $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
@@ -1825,7 +1828,7 @@ var fc = (function ($) {
                     if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
                         var x, field, sectionId, section, valid = false;
                         for (x = 0; x < data.criticalErrors.length; x += 1) {
-                            field = $('.fc-field[fc-data-group=' + data.criticalErrors[x] + ']');
+                            field = $('.fc-field[fc-data-group="' + data.criticalErrors[x] + '"]');
 
                             // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
                             if (field.length > 0 && !field.hasClass('fc-hide')) {
@@ -2054,7 +2057,7 @@ var fc = (function ($) {
             for (key in schema) {
                 if (schema.hasOwnProperty(key)) {
                     // Chilcren have order, try to order the object
-                    if (typeof schema[key] === 'object' && schema[key][0] !== undefined && schema[key][0].order !== undefined) {
+                    if (!!schema[key] && typeof schema[key] === 'object' && schema[key][0] !== undefined && schema[key][0].order !== undefined) {
                         schema[key] = orderObject(schema[key]);
                     } else {
                         schema[key] = orderSchema(schema[key], orderColumn);
