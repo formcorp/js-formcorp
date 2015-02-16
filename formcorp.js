@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//192.168.247.129:9001/',
-        cdnUrl = '//192.168.247.129:9004/',
+    var apiUrl = '//192.168.110.129:9001/',
+        cdnUrl = '//192.168.110.129:9004/',
         prefixSeparator = "_",
 
         /**
@@ -1207,14 +1207,20 @@ var fc = (function ($) {
      * @returns {string}
      */
     renderGrouplet = function (field) {
-        var html = '',
+        /*jslint nomen: true*/
+        var fieldId = field._id.$id,
+            html = '',
             fields;
+        /*jslint nomen: false*/
 
         if (typeof field.config.grouplet === 'object') {
             fields = field.config.grouplet.field;
-            /*jslint nomen: true*/
-            html = renderFields(fields, field, [field._id.$id]);
-            /*jslint nomen: false*/
+            html += renderFields(fields, field, [fieldId]);
+        }
+
+        // If the grouplet is repeatable, need to mark it as such
+        if (getConfig(field, 'repeatable', false) === true) {
+            html = '<div class="fc-data-repeatable-grouplet" formcorp-data-id="' + fieldId + '">' + html + '</div>';
         }
 
         return html;
@@ -1298,35 +1304,35 @@ var fc = (function ($) {
             fieldHtml += '<div class="fc-fieldgroup">';
 
             switch (field.type) {
-            case 'text':
-                fieldHtml += renderTextfield(field, prefix);
-                break;
-            case 'dropdown':
-                fieldHtml += renderDropdown(field, prefix);
-                break;
-            case 'textarea':
-                fieldHtml += renderTextarea(field, prefix);
-                break;
-            case 'radioList':
-                fieldHtml += renderRadioList(field, prefix);
-                break;
-            case 'checkboxList':
-                fieldHtml += renderCheckboxList(field, prefix);
-                break;
-            case 'hidden':
-                fieldHtml += renderHiddenField(field, prefix);
-                break;
-            case 'richTextArea':
-                fieldHtml += renderRichText(field, prefix);
-                break;
-            case 'grouplet':
-                fieldHtml += renderGrouplet(field, prefix);
-                break;
-            case 'creditCard':
-                fieldHtml += renderCreditCard(field, prefix);
-                break;
-            default:
-                console.log('Unknown field type: ' + field.type);
+                case 'text':
+                    fieldHtml += renderTextfield(field, prefix);
+                    break;
+                case 'dropdown':
+                    fieldHtml += renderDropdown(field, prefix);
+                    break;
+                case 'textarea':
+                    fieldHtml += renderTextarea(field, prefix);
+                    break;
+                case 'radioList':
+                    fieldHtml += renderRadioList(field, prefix);
+                    break;
+                case 'checkboxList':
+                    fieldHtml += renderCheckboxList(field, prefix);
+                    break;
+                case 'hidden':
+                    fieldHtml += renderHiddenField(field, prefix);
+                    break;
+                case 'richTextArea':
+                    fieldHtml += renderRichText(field, prefix);
+                    break;
+                case 'grouplet':
+                    fieldHtml += renderGrouplet(field, prefix);
+                    break;
+                case 'creditCard':
+                    fieldHtml += renderCreditCard(field, prefix);
+                    break;
+                default:
+                    console.log('Unknown field type: ' + field.type);
             }
 
             fieldHtml += '<div class="fc-error-text"></div>';
@@ -1637,14 +1643,27 @@ var fc = (function ($) {
      * @param value
      */
     valueChanged = function (dataId, value) {
-        console.log(dataId);
         var fieldSchema = fc.fieldSchema[dataId],
             errors,
-            params;
+            params,
+            dataParams,
+            parentId,
+            parentField;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
             return;
+        }
+
+        // If the item belongs to a repeatable object, do not store the changed value
+        if (dataId.indexOf(prefixSeparator) > -1) {
+            dataParams = dataId.split(prefixSeparator);
+            parentId = dataParams[0];
+            parentField = fc.fieldSchema[parentId];
+
+            if (parentField !== undefined && getConfig(parentField, 'repeatable', false) === true) {
+                return;
+            }
         }
 
         // Don't perform operations on repeatable fields
@@ -1793,12 +1812,17 @@ var fc = (function ($) {
 
             // Build the form data array
             $('[formcorp-data-id]').each(function () {
-                // If belongs to a grouplet, need to process uniquely
                 dataId = $(this).attr('formcorp-data-id');
-                belongsTo = $(this).parent().parent().parent().attr('fc-belongs-to'); // @todo: make unique - this is horrible
 
-                // Regular fields can be added to the flat dictionary
-                formData[dataId] = getFieldValue($(this));
+                // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+                if ($(this).hasClass('fc-data-repeatable-grouplet')) {
+                    if (formData[dataId] === undefined) {
+                        formData[dataId] = fc.fields[dataId];
+                    }
+                } else {
+                    // Regular fields can be added to the flat dictionary
+                    formData[dataId] = getFieldValue($(this));
+                }
 
             });
 
@@ -1813,8 +1837,6 @@ var fc = (function ($) {
             if ((typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
                 data.complete = true;
             }
-
-            console.log(data);
 
             // Submit the form fields
             $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
