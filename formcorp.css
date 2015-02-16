@@ -276,6 +276,7 @@ div.fc-pagination {
     width: 49%;
     margin-right: 2%;
 }
+
 .fc-payment > div:nth-child(even) {
     margin-right: 0;
 }
@@ -308,4 +309,12 @@ div.fc-pagination {
     position: absolute;
     right: 0;
     top: 35px;
+}
+
+.fc-prev-page {
+    float: left;
+}
+
+.fc-submit {
+    float: right;
 }

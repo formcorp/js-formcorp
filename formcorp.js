@@ -433,6 +433,13 @@ var fc = (function ($) {
          */
         godFields = ["richTextArea"],
 
+        /**
+         * Validate a credit card field
+         * @param dataId
+         * @param field
+         * @param section
+         * @returns {Array}
+         */
         validCreditCardField = function (dataId, field, section) {
             var value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                 errors = [],
@@ -485,13 +492,37 @@ var fc = (function ($) {
                 errors.push(fc.lang.creditCardExpired);
             }
 
-            console.log(cardNumber);
-            console.log(cardName);
-            console.log(expiryMonth);
-            console.log(expiryYear);
-            console.log(securityCode);
-
             return errors;
+        },
+
+        /**
+         * Return a value from the field's configuration options.
+         * @param field
+         * @param key
+         * @param defaultVal
+         * @returns {*}
+         */
+        getConfig = function (field, key, defaultVal) {
+            if (defaultVal === undefined) {
+                defaultVal = '';
+            }
+
+            if (typeof field.config === 'object' && field.config[key] !== undefined) {
+                return field.config[key];
+            }
+
+            return defaultVal;
+        },
+
+        /**
+         *
+         * @param dataId
+         * @param field
+         * @param section
+         * @returns {Array}
+         */
+        validateGrouplet = function (dataId, field, section) {
+            return [];
         },
 
         /**
@@ -515,6 +546,11 @@ var fc = (function ($) {
                     value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                     localErrors = [];
 
+                // If not required, do nothing
+                if (getConfig(field, 'required', false) === false) {
+                    return;
+                }
+
                 // Check if the field requires a value
                 if (typeof field.type === 'string' && godFields.indexOf(field.type) !== -1) {
                     return;
@@ -528,6 +564,9 @@ var fc = (function ($) {
                 // If a credit card payment field, treat uniquely
                 if (field.type === "creditCard") {
                     localErrors = validCreditCardField(dataId, field, section);
+                } else if (field.type === "grouplet") {
+                    // Grouplet field as a whole doesn't need to be validated
+                    return;
                 }
 
                 // If repeatable and required, check the amount of values
@@ -608,7 +647,12 @@ var fc = (function ($) {
             var condition = '',
                 x,
                 rule,
-                comparison;
+                comparison,
+                compare = '';
+
+            if (obj.condition !== undefined) {
+                compare = obj.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
+            }
 
             if (typeof obj.rules === 'object') {
                 condition += '(';
@@ -618,7 +662,7 @@ var fc = (function ($) {
                     if (rule.condition !== undefined) {
                         rule.condition = rule.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
                     } else {
-                        rule.condition = "";
+                        rule.condition = compare;
                     }
 
                     // Optimise the AND/OR clause
@@ -689,6 +733,8 @@ var fc = (function ($) {
                         for (key in page.toCondition) {
                             if (page.toCondition.hasOwnProperty(key)) {
                                 try {
+                                    console.log($.parseJSON(page.toCondition[key]));
+                                    console.log(toBooleanLogic($.parseJSON(page.toCondition[key])));
                                     page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
                                 } catch (ignore) {
                                 }
@@ -806,25 +852,6 @@ var fc = (function ($) {
                     }
                 }
             });
-        },
-
-        /**
-         * Return a value from the field's configuration options.
-         * @param field
-         * @param key
-         * @param defaultVal
-         * @returns {*}
-         */
-        getConfig = function (field, key, defaultVal) {
-            if (defaultVal === undefined) {
-                defaultVal = '';
-            }
-
-            if (typeof field.config === 'object' && field.config[key] !== undefined) {
-                return field.config[key];
-            }
-
-            return defaultVal;
         },
 
         /**
@@ -1056,6 +1083,7 @@ var fc = (function ($) {
         deleteSession = function () {
             $.removeCookie(fc.config.sessionIdName);
             $(fc.jQueryContainer + ' .render').html(fc.lang.sessionExpiredHtml);
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onFormExpired);
             fc.expired = true;
         },
 
@@ -1132,6 +1160,7 @@ var fc = (function ($) {
 
         if (typeof field.config.grouplet === 'object') {
             fields = field.config.grouplet.field;
+            console.log(fields);
             html = renderFields(fields);
         }
 
@@ -1156,12 +1185,13 @@ var fc = (function ($) {
             field = fields[y];
             required = getConfig(field, 'required', false);
             /*jslint nomen: true*/
-            fieldHtml = '<div class="' + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + ' fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '" data-required="' + required + '"';
+            fieldHtml = '<div class="' + (getConfig(field, 'tag', '').length > 0 ? 'fc-tag-' + getConfig(field, 'tag', '') + ' ' : '') + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + 'fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '" data-required="' + required + '"';
 
             // If a section was passed through, track which section the field belongs to
             if (section !== undefined && typeof section === "object") {
                 fieldHtml += ' fc-belongs-to="' + section._id.$id + '"';
             }
+
 
             fieldHtml += '>';
 
@@ -1180,7 +1210,7 @@ var fc = (function ($) {
             fieldHtml += '<div class="fc-fieldcontainer">';
 
             // Field label
-            if (typeof field.config === 'object' && typeof field.config.label === 'string' && field.config.label.length > 0) {
+            if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
             }
 
@@ -1708,7 +1738,6 @@ var fc = (function ($) {
                     $(fc.jQueryContainer).find('.fc-loading-screen').removeClass('show');
 
                     // If 'critical' errors were returned (validation errors on required fields), need to alert the user
-                    console.log(typeof data.criticalErrors);
                     if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
                         var x, field, sectionId, section, valid = false;
                         for (x = 0; x < data.criticalErrors.length; x += 1) {
@@ -1734,10 +1763,9 @@ var fc = (function ($) {
                             }
 
                         }
-                        //console.log("[FC](2) Server side validation errors occurred, client should have caught this");
-                        //return;
                     }
 
+                    $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage);
                     logEvent(fc.eventTypes.onNextPageSuccess);
 
                     // Render the next page if available
@@ -1746,6 +1774,7 @@ var fc = (function ($) {
 
                         // If the application is complete, raise completion event
                         if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                            $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
                             logEvent(fc.eventTypes.onFormComplete);
                         }
                         return;
@@ -1753,6 +1782,7 @@ var fc = (function ($) {
 
                     // Form is deemed complete, output default completion message
                     $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                    $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
                     logEvent(fc.eventTypes.onFormComplete);
                 } else {
                     logEvent(fc.eventTypes.onNextPageError);
@@ -1768,6 +1798,7 @@ var fc = (function ($) {
                 return false;
             }
 
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onPrevPage);
             window.history.back();
             return false;
         });
@@ -2154,7 +2185,6 @@ var fc = (function ($) {
             }
             fc.currentPage = id;
             window.location.hash = id;
-            console.log("change hash: " + id);
 
             // Store field schema locally
             updateFieldSchema(page.stage);
@@ -2207,10 +2237,11 @@ var fc = (function ($) {
                 fc.schema = orderSchema(data);
                 if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
                     firstPageId = getFirstPage();
-                    console.log(firstPageId);
                     render(firstPageId);
                 }
             }
+
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onConnectionMade);
         });
     };
 
@@ -2347,6 +2378,17 @@ var fc = (function ($) {
                 onFormComplete: 'onFormComplete'
             };
 
+            // JS events
+            this.jsEvents = {
+                onFormInit: 'OnFcInit',
+                onFormExpired: 'onFormExpired',
+                onValidationError: 'onValidationError',
+                onFormComplete: 'onFormComplete',
+                onNextPage: 'onNextPage',
+                onPrevPage: 'onPrevPage',
+                onConnectionMade: 'onFCConnectionMade'
+            };
+
             // Set config if not already done so
             if (fc.config === undefined) {
                 this.setConfig();
@@ -2381,6 +2423,7 @@ var fc = (function ($) {
                 // Form has been successfully initialised
                 fc.formPosition = $(fc.jQueryContainer).position();
                 logEvent(fc.eventTypes.onFormInit);
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onFormInit);
 
                 // Send events off to the server
                 setInterval(function () {
