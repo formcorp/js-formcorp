@@ -859,10 +859,15 @@ var fc = (function ($) {
          * @param field
          * @returns {string}
          */
-        renderTextfield = function (field) {
+        renderTextfield = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
             /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-                html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+                fieldId = prefix + field._id.$id,
+                html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
             /*jslint nomen: false*/
             return html;
         },
@@ -872,10 +877,15 @@ var fc = (function ($) {
          * @param field
          * @returns {string}
          */
-        renderDropdown = function (field) {
+        renderDropdown = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
             /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-                html = '<select class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '">',
+                fieldId = prefix + field._id.$id,
+                html = '<select class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '">',
                 options = getConfig(field, 'options', ''),
                 optGroupOpen = false,
                 x,
@@ -919,10 +929,15 @@ var fc = (function ($) {
          * @param field
          * @returns {string}
          */
-        renderTextarea = function (field) {
+        renderTextarea = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
             /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-                html = '<textarea class="fc-fieldinput" formcorp-data-id="' + field._id.$id + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
+                fieldId = prefix + field._id.$id,
+                html = '<textarea class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
             /*jslint nomen: false*/
 
             return html;
@@ -933,15 +948,22 @@ var fc = (function ($) {
          * @param field
          * @returns {string}
          */
-        renderRadioList = function (field) {
+        renderRadioList = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
+            /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
                 options = getConfig(field, 'options', ''),
+                fieldId = prefix + field._id.$id,
                 html = '',
                 x,
                 cssClass,
                 option,
                 id,
                 checked;
+            /*jslint nomen: false*/
 
             if (options.length > 0) {
                 options = options.split("\n");
@@ -954,9 +976,7 @@ var fc = (function ($) {
                     checked = getConfig(field, 'default') === option ? ' checked' : '';
 
                     html += '<div class="' + cssClass + '">';
-                    /*jslint nomen: true*/
-                    html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
-                    /*jslint nomen: false*/
+                    html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
                     html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
                     html += '</div>';
                 }
@@ -970,14 +990,21 @@ var fc = (function ($) {
          * @param field
          * @returns {string}
          */
-        renderCheckboxList = function (field) {
+        renderCheckboxList = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
+            /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
                 options = getConfig(field, 'options', ''),
+                fieldId = prefix + field._id.$id,
                 html = '',
                 cssClass,
                 x,
                 option,
                 id;
+            /*jslint nomen: false*/
 
             if (options.length > 0) {
                 options = options.split("\n");
@@ -990,7 +1017,7 @@ var fc = (function ($) {
 
                     html += '<div class="' + cssClass + '">';
                     /*jslint nomen: true*/
-                    html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + field._id.$id + '" name="' + field._id.$id + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
+                    html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
                     /*jslint nomen: false*/
                     html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
                     html += '</div>';
@@ -1005,9 +1032,14 @@ var fc = (function ($) {
          * @param field
          * @returns {string}
          */
-        renderHiddenField = function (field) {
+        renderHiddenField = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
             /*jslint nomen: true*/
-            var html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + field._id.$id + '" value="' + getConfig(field, 'value') + '">';
+            var fieldId = prefix + field._id.$id,
+                html = '<input class="fc-fieldinput" type="hidden" formcorp-data-id="' + fieldId + '" value="' + getConfig(field, 'value') + '">';
             /*jslint nomen: false*/
             return html;
         },
@@ -1025,6 +1057,11 @@ var fc = (function ($) {
             return '<div class="fc-richtext">' + field.config.rich + '</div>';
         },
 
+        /**
+         * Render a credit card form
+         * @param field
+         * @returns {string}
+         */
         renderCreditCard = function (field) {
             console.log(field);
             var html = '',
@@ -1160,8 +1197,9 @@ var fc = (function ($) {
 
         if (typeof field.config.grouplet === 'object') {
             fields = field.config.grouplet.field;
-            console.log(fields);
-            html = renderFields(fields);
+            /*jslint nomen: true*/
+            html = renderFields(fields, field, [field._id.$id]);
+            /*jslint nomen: false*/
         }
 
         return html;
@@ -1173,19 +1211,40 @@ var fc = (function ($) {
      * @param section
      * @returns {string}
      */
-    renderFields = function (fields, section) {
+    renderFields = function (fields, section, prefix) {
         var html = '',
             y,
             field,
             required,
             fieldHtml,
-            dataId;
+            dataId,
+            fieldId;
+
+        // Field id prefix (for grouplet fields that may be shown multiple times)
+        if (prefix === undefined) {
+            prefix = "";
+        } else if (typeof prefix === "object") {
+            prefix = prefix.join(".") + ".";
+        }
 
         for (y = 0; y < fields.length; y += 1) {
             field = fields[y];
             required = getConfig(field, 'required', false);
             /*jslint nomen: true*/
-            fieldHtml = '<div class="' + (getConfig(field, 'tag', '').length > 0 ? 'fc-tag-' + getConfig(field, 'tag', '') + ' ' : '') + ((getConfig(field, 'repeatable', false) === true) ? 'fc-repeatable-container ' : '') + 'fc-field fc-field-' + field.type + '" fc-data-group="' + field._id.$id + '" data-required="' + required + '"';
+            fieldId = prefix + field._id.$id;
+            fieldHtml = '<div class="';
+
+            // If field has an associated tag, output it
+            if (getConfig(field, 'tag', '').length > 0) {
+                fieldHtml += 'fc-tag-' + getConfig(field, 'tag', '') + ' ';
+            }
+
+            // If field is repeatable, mark it as so
+            if (getConfig(field, 'repeatable', false) === true) {
+                fieldHtml += 'fc-repeatable-container ';
+            }
+
+            fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '"';
 
             // If a section was passed through, track which section the field belongs to
             if (section !== undefined && typeof section === "object") {
@@ -1196,7 +1255,7 @@ var fc = (function ($) {
             fieldHtml += '>';
 
             // Add to field class variable if doesnt exist
-            dataId = field._id.$id;
+            dataId = fieldId;
             /*jslint nomen: false*/
             if (fc.fieldSchema[dataId] === undefined) {
                 fc.fieldSchema[dataId] = field;
@@ -1225,31 +1284,31 @@ var fc = (function ($) {
 
             switch (field.type) {
             case 'text':
-                fieldHtml += renderTextfield(field);
+                fieldHtml += renderTextfield(field, prefix);
                 break;
             case 'dropdown':
-                fieldHtml += renderDropdown(field);
+                fieldHtml += renderDropdown(field, prefix);
                 break;
             case 'textarea':
-                fieldHtml += renderTextarea(field);
+                fieldHtml += renderTextarea(field, prefix);
                 break;
             case 'radioList':
-                fieldHtml += renderRadioList(field);
+                fieldHtml += renderRadioList(field, prefix);
                 break;
             case 'checkboxList':
-                fieldHtml += renderCheckboxList(field);
+                fieldHtml += renderCheckboxList(field, prefix);
                 break;
             case 'hidden':
-                fieldHtml += renderHiddenField(field);
+                fieldHtml += renderHiddenField(field, prefix);
                 break;
             case 'richTextArea':
-                fieldHtml += renderRichText(field);
+                fieldHtml += renderRichText(field, prefix);
                 break;
             case 'grouplet':
-                fieldHtml += renderGrouplet(field);
+                fieldHtml += renderGrouplet(field, prefix);
                 break;
             case 'creditCard':
-                fieldHtml += renderCreditCard(field);
+                fieldHtml += renderCreditCard(field, prefix);
                 break;
             default:
                 console.log('Unknown field type: ' + field.type);
@@ -1710,11 +1769,33 @@ var fc = (function ($) {
 
             var formData = {},
                 data,
-                page;
+                page,
+                belongsTo,
+                dataId,
+                dataGroup,
+                groupletId;
 
             // Build the form data array
             $('[formcorp-data-id]').each(function () {
-                formData[$(this).attr('formcorp-data-id')] = getFieldValue($(this));
+                // If belongs to a grouplet, need to process uniquely
+                dataId = $(this).attr('formcorp-data-id');
+                belongsTo = $(this).parent().parent().parent().attr('fc-belongs-to'); // @todo: make unique - this is horrible
+
+                // Grouplet fields need to be processed separately
+                if (belongsTo !== undefined) {
+                    dataGroup = $(fc.jQueryContainer).find('.fc-field[fc-data-group=' + belongsTo + ']');
+                    if (dataGroup.hasClass('fc-field-grouplet')) {
+                        groupletId = dataGroup.attr('fc-data-group');
+                        if (formData[groupletId] === undefined) {
+                            formData[groupletId] = {};
+                        }
+                        console.log(dataId);
+                        formData[groupletId][dataId] = getFieldValue($(this));
+                    }
+                } else {
+                    // Regular fields can be added to the flat dictionary
+                    formData[dataId] = getFieldValue($(this));
+                }
             });
 
             // Build the data object to send with the request
@@ -1728,6 +1809,9 @@ var fc = (function ($) {
             if ((typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
                 data.complete = true;
             }
+
+            console.log(data);
+            return false;
 
             // Submit the form fields
             $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
