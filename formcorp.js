@@ -923,13 +923,9 @@ var fc = (function ($) {
         renderRepeatableTable = function (fieldId, rows) {
             var html = '',
                 index,
-                key,
-                row,
                 tags = getGroupletTags(fieldId),
                 field = fc.fieldSchema[fieldId],
-                layout = getConfig(field, "summaryLayout", ""),
-                output,
-                rowTags;
+                layout = getConfig(field, "summaryLayout", "");
 
             // Requires a summary layout to work
             if (layout.length === 0) {
