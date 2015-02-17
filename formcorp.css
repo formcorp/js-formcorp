@@ -316,5 +316,13 @@ div.fc-pagination {
 }
 
 .fc-summary-table td {
-    padding-right: 60px;
+    padding: 0 60px 0 0;
+}
+
+.fc-summary-table tr + tr td {
+    padding-top: 35px;
+}
+
+.fc-summary {
+    margin-bottom: 20px;
 }

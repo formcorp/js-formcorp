@@ -938,9 +938,12 @@ var fc = (function ($) {
 
             // Iterate through and render each row
             for (index = 0; index < rows.length; index += 1) {
-                html += "<tr><td>opt</td><td>" + replaceTokens(layout, getGroupletRowTags(rows[index], tags)) + "</td></tr>";
+                html += "<tr><td>opt</td><td>";
+                html += replaceTokens(layout, getGroupletRowTags(rows[index], tags));
+                html += "<div class='fc-summary-options'><a href='#' class='fc-edit'>" + fc.lang.edit + "</a> &nbsp; <a href='#' class='fc-delete'>" + fc.lang.delete + "</a></div>";
+                html += "</td></tr>";
             }
-            html += "</tbody></table";
+            html += "</tbody></table>";
 
             html += '</div>';
             return html;
@@ -964,9 +967,7 @@ var fc = (function ($) {
                     if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
                         // Restore a repeatable value
                         if (typeof value === 'object') {
-                            console.log("value:");
-                            console.log(value);
-                            $('[fc-data-group="' + fieldId + '"] .fc-summary').append(renderRepeatableTable(fieldId, value));
+                            $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
                         }
                     } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
                         // Input type text
@@ -1918,10 +1919,7 @@ var fc = (function ($) {
             var formData = {},
                 data,
                 page,
-                belongsTo,
-                dataId,
-                dataGroup,
-                groupletId;
+                dataId;
 
             // Build the form data array
             $('[formcorp-data-id]').each(function () {
@@ -2061,10 +2059,7 @@ var fc = (function ($) {
         // Add the value for the fc modal
         $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-add', function () {
             var validModal = validateModal(),
-                values = {},
-                list,
-                key,
-                li;
+                values = {};
 
             if (!validModal) {
                 $('.fc-modal .modal-body > div').addClass('fc-error');
@@ -2085,16 +2080,7 @@ var fc = (function ($) {
             }
             fc.fields[fc.activeModalField].push(values);
 
-            // Build a list to output
-            list = $('<ul></ul>');
-            for (key in values) {
-                if (values.hasOwnProperty(key)) {
-                    li = $('<li></li>');
-                    li.html(values[key]);
-                    list.append(li);
-                }
-            }
-            $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').append(list);
+            $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').html(renderRepeatableTable(fc.activeModalField, fc.fields[fc.activeModalField]));
 
             // Hide the modal
             $('.fc-modal.fc-show').removeClass('fc-show');
@@ -2758,7 +2744,9 @@ var fc = (function ($) {
                 creditCardMissingExpiryDate: "You must enter a valid expiry date",
                 creditCardExpired: "Your card has expired",
                 creditCardMissingSecurityCode: "You must enter a valid security code",
-                creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details"
+                creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details",
+                edit: "Edit",
+                delete: "Delete"
             };
 
             // Update with client options
