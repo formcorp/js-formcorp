@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//192.168.110.129:9001/',
-        cdnUrl = '//192.168.110.129:9004/',
+    var apiUrl = '//192.168.247.129:9001/',
+        cdnUrl = '//192.168.247.129:9004/',
         prefixSeparator = "_",
 
         /**
@@ -818,6 +818,139 @@ var fc = (function ($) {
         },
 
         /**
+         * Retrieves list of tags from a grouplet (used for templating)
+         * @param fieldId
+         * @returns {*}
+         */
+        getGroupletTags = function (fieldId) {
+            var schema = fc.fieldSchema[fieldId],
+                field,
+                tags = {},
+                counter,
+                localField,
+                tag;
+
+            if (schema === undefined || schema.type !== "grouplet") {
+                return [];
+            }
+
+            // Iterate through each field in the grouplet, if it has a tag, append to dict
+            field = getConfig(schema, "grouplet");
+            if (typeof field === "object" && field.field !== undefined && field.field.length > 0) {
+                for (counter = 0; counter < field.field.length; counter += 1) {
+                    localField = field.field[counter];
+                    tag = getConfig(localField, "tag", "");
+                    if (tag.length > 0) {
+                        /*jslint nomen: true*/
+                        tags[localField._id.$id] = tag;
+                        /*jslint nomen: false*/
+                    }
+                }
+            }
+
+            return tags;
+        },
+
+        /**
+         * Returns an array of values next to field's associated tags. Used for templating.
+         *
+         * @param row
+         * @param tags
+         * @returns {*}
+         */
+        getGroupletRowTags = function (row, tags) {
+            var key, fieldIdParts, fieldId, vals = {};
+            if (typeof row === "object") {
+                for (key in row) {
+                    if (row.hasOwnProperty(key)) {
+                        // If the id is prefixed (i.e. grouplet-id_field-id), retrieve the field id
+                        if (key.indexOf(prefixSeparator) > -1) {
+                            fieldIdParts = key.split(prefixSeparator);
+                            fieldId = fieldIdParts[fieldIdParts.length - 1];
+                        } else {
+                            fieldId = key;
+                        }
+
+                        // If a tag exists, add it
+                        if (tags.hasOwnProperty(fieldId)) {
+                            vals[tags[fieldId]] = row[key];
+                        } else {
+                            // Otherwise default to the field id
+                            vals[fieldId] = row[key];
+                        }
+                    }
+                }
+            }
+
+            return vals;
+        },
+
+        /**
+         * Replace tokens with their value, for templating
+         * @param layout
+         * @param tokens
+         * @returns {*}
+         */
+        replaceTokens = function (layout, tokens) {
+            var replacements = layout.match(/\{\{([^\}]{0,})\}\}/g),
+                replacement,
+                token,
+                index,
+                re;
+
+            for (index = 0; index < replacements.length; index += 1) {
+                replacement = replacements[index];
+                token = replacement.replace(/[\{\}]/g, "");
+                re = new RegExp('\\{\\{' + token + '\\}\\}', "gi");
+
+                // If the token exists, perform the replacement, else set to empty
+                if (tokens.hasOwnProperty(token)) {
+                    layout = layout.replace(re, tokens[token]);
+                } else {
+                    layout = layout.replace(re, "");
+                }
+            }
+
+            return layout;
+        },
+
+        /**
+         * Renders a repeatable table
+         * @param fieldId
+         * @param rows
+         * @returns {string}
+         */
+        renderRepeatableTable = function (fieldId, rows) {
+            var html = '',
+                index,
+                key,
+                row,
+                tags = getGroupletTags(fieldId),
+                field = fc.fieldSchema[fieldId],
+                layout = getConfig(field, "summaryLayout", ""),
+                output,
+                rowTags;
+
+            // Requires a summary layout to work
+            if (layout.length === 0) {
+                return "";
+            }
+
+            // Start the html output
+            html += "<div class='fc-summary-table'>";
+            html += "<table class='fc-summary'><tbody>";
+
+            // Iterate through and render each row
+            for (index = 0; index < rows.length; index += 1) {
+                html += "<tr><td>opt</td><td>" + replaceTokens(layout, getGroupletRowTags(rows[index], tags)) + "</td></tr>";
+            }
+            html += "</tbody></table";
+
+            html += '</div>';
+            return html;
+        },
+
+        /**
          * Set values on DOM from fields in JS
          */
         setFieldValues = function () {
@@ -825,12 +958,7 @@ var fc = (function ($) {
                 var fieldId = $(this).attr('fc-data-group'),
                     fieldGroup,
                     value,
-                    schema,
-                    x,
-                    list,
-                    key,
-                    li,
-                    obj;
+                    schema;
 
                 if (fc.fields[fieldId] !== undefined) {
                     fieldGroup = $(this).find('.fc-fieldgroup');
@@ -840,20 +968,9 @@ var fc = (function ($) {
                     if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
                         // Restore a repeatable value
                         if (typeof value === 'object') {
-                            // Build a list to output
-                            for (x = 0; x < value.length; x += 1) {
-                                obj = value[x];
-
-                                list = $('<ul></ul>');
-                                for (key in obj) {
-                                    if (obj.hasOwnProperty(key)) {
-                                        li = $('<li></li>');
-                                        li.html(obj[key]);
-                                        list.append(li);
-                                    }
-                                }
-                                $('[fc-data-group="' + fieldId + '"] .fc-summary').append(list);
-                            }
+                            console.log("value:");
+                            console.log(value);
+                            $('[fc-data-group="' + fieldId + '"] .fc-summary').append(renderRepeatableTable(fieldId, value));
                         }
                     } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
                         // Input type text
@@ -1304,35 +1421,35 @@ var fc = (function ($) {
             fieldHtml += '<div class="fc-fieldgroup">';
 
             switch (field.type) {
-                case 'text':
-                    fieldHtml += renderTextfield(field, prefix);
-                    break;
-                case 'dropdown':
-                    fieldHtml += renderDropdown(field, prefix);
-                    break;
-                case 'textarea':
-                    fieldHtml += renderTextarea(field, prefix);
-                    break;
-                case 'radioList':
-                    fieldHtml += renderRadioList(field, prefix);
-                    break;
-                case 'checkboxList':
-                    fieldHtml += renderCheckboxList(field, prefix);
-                    break;
-                case 'hidden':
-                    fieldHtml += renderHiddenField(field, prefix);
-                    break;
-                case 'richTextArea':
-                    fieldHtml += renderRichText(field, prefix);
-                    break;
-                case 'grouplet':
-                    fieldHtml += renderGrouplet(field, prefix);
-                    break;
-                case 'creditCard':
-                    fieldHtml += renderCreditCard(field, prefix);
-                    break;
-                default:
-                    console.log('Unknown field type: ' + field.type);
+            case 'text':
+                fieldHtml += renderTextfield(field, prefix);
+                break;
+            case 'dropdown':
+                fieldHtml += renderDropdown(field, prefix);
+                break;
+            case 'textarea':
+                fieldHtml += renderTextarea(field, prefix);
+                break;
+            case 'radioList':
+                fieldHtml += renderRadioList(field, prefix);
+                break;
+            case 'checkboxList':
+                fieldHtml += renderCheckboxList(field, prefix);
+                break;
+            case 'hidden':
+                fieldHtml += renderHiddenField(field, prefix);
+                break;
+            case 'richTextArea':
+                fieldHtml += renderRichText(field, prefix);
+                break;
+            case 'grouplet':
+                fieldHtml += renderGrouplet(field, prefix);
+                break;
+            case 'creditCard':
+                fieldHtml += renderCreditCard(field, prefix);
+                break;
+            default:
+                console.log('Unknown field type: ' + field.type);
             }
 
             fieldHtml += '<div class="fc-error-text"></div>';
@@ -2079,7 +2196,7 @@ var fc = (function ($) {
             for (key in schema) {
                 if (schema.hasOwnProperty(key)) {
                     // Chilcren have order, try to order the object
-                    if (!!schema[key] && typeof schema[key] === 'object' && schema[key][0] !== undefined && schema[key][0].order !== undefined) {
+                    if (!!schema[key] && typeof schema[key] === 'object' && schema[key][0] !== undefined && !!schema[key][0] && schema[key][0].order !== undefined) {
                         schema[key] = orderObject(schema[key]);
                     } else {
                         schema[key] = orderSchema(schema[key], orderColumn);
