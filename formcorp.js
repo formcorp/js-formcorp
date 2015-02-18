@@ -1556,7 +1556,7 @@ var fc = (function ($) {
 
         // Render page sections
         if (page.section.length > 0) {
-            pageDiv += renderPageSections(page.section);
+            pageDiv += renderPageSections(orderObject(page.section));
         }
 
         nextPageObj = nextPage(false, true);
@@ -2898,7 +2898,14 @@ var fc = (function ($) {
             }
 
             var x,
-                value;
+                value,
+                json;
+
+            // Attempt to typecast string to json
+            try {
+                json = $.parseJSON(field);
+                field = json;
+            } catch (ignore) {}
 
             // Field can be string
             if (typeof field === 'string') {
@@ -2910,6 +2917,15 @@ var fc = (function ($) {
                         }
                     }
                 }
+            } else if (typeof field === "object" && typeof comparisonValue === "object") {
+                // Check an array of values against an array of values
+                for (x = 0; x < comparisonValue.length; x += 1) {
+                    if (field.indexOf(comparisonValue[x]) === -1) {
+                        return false;
+                    }
+                }
+
+                return true;
             }
 
             return false;

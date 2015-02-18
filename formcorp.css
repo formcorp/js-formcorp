@@ -326,3 +326,15 @@ div.fc-pagination {
 .fc-summary {
     margin-bottom: 20px;
 }
+
+.fc-field-grouplet {
+    margin-bottom: 0;
+}
+
+.fc-field-grouplet .fc-field:last-child {
+    margin-bottom: 0;
+}
+
+.fc-section {
+    margin-bottom: 15px;
+}
