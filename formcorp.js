@@ -545,6 +545,11 @@ var fc = (function ($) {
 
             // Test if required fields have a value
             $('.fc-field[fc-data-group]').each(function () {
+                // If a repeatable field, ignore
+                if ($(this).parent().attr("class").indexOf("repeatable") > -1) {
+                    return;
+                }
+
                 // If the field is hidden, not required to validate
                 if ($(this).hasClass('fc-hide')) {
                     return;
@@ -1943,6 +1948,7 @@ var fc = (function ($) {
             };
 
             showDeleteDialog();
+            return false;
         });
     };
 
