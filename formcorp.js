@@ -940,7 +940,7 @@ var fc = (function ($) {
             for (index = 0; index < rows.length; index += 1) {
                 html += "<tr><td>opt</td><td>";
                 html += replaceTokens(layout, getGroupletRowTags(rows[index], tags));
-                html += "<div class='fc-summary-options'><a href='#' class='fc-edit'>" + fc.lang.edit + "</a> &nbsp; <a href='#' class='fc-delete'>" + fc.lang.delete + "</a></div>";
+                html += "<div class='fc-summary-options' data-field-id='" + fieldId + "' data-index='" + index + "'><a href='#' class='fc-edit'>" + fc.lang.edit + "</a> &nbsp; <a href='#' class='fc-delete'>" + fc.lang.delete + "</a></div>";
                 html += "</td></tr>";
             }
             html += "</tbody></table>";
@@ -1285,6 +1285,16 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Hide and reset a modal
+         */
+        hideModal = function () {
+            fc.activeModalField = null;
+            fc.modalState = null;
+            fc.modalMeta = {};
+            $('.fc-modal.fc-show').removeClass('fc-show');
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -1301,6 +1311,10 @@ var fc = (function ($) {
         hasNextPage,
         processEventQueue,
         processSaveQueue,
+        showDeleteDialog,
+        addRepeatableRow,
+        deleteRepeatableRow,
+        registerRepeatableGroupletListeners,
         registerEventListeners,
         nextPage,
         render,
@@ -1904,6 +1918,81 @@ var fc = (function ($) {
     };
 
     /**
+     * Show the delete dialog
+     * @returns {boolean}
+     */
+    showDeleteDialog = function () {
+        $('.fc-modal .modal-header h2').text(fc.lang.deleteDialogHeader);
+        $('.fc-modal .modal-body').html(fc.lang.deleteDigntoaryDialogText);
+        $('.fc-modal .modal-footer .fc-btn-add').text(fc.lang.confirm);
+        $('.fc-modal').addClass('fc-show');
+        return false;
+    };
+
+    /**
+     * Register the event listeners for repeatable grouplets
+     */
+    registerRepeatableGroupletListeners = function () {
+        // Show delete dialog
+        $(fc.jQueryContainer).on('click', '.fc-summary-options .fc-delete', function () {
+            // Set the modal state
+            fc.modalState = fc.states.DELETE_REPEATABLE;
+            fc.modalMeta = {
+                index: $(this).parent().attr('data-index'),
+                fieldId: $(this).parent().attr('data-field-id')
+            };
+
+            showDeleteDialog();
+        });
+    };
+
+    /**
+     * Add a repeatable row through a modal dialog
+     * @returns {boolean}
+     */
+    addRepeatableRow = function () {
+        var validModal = validateModal(),
+            values = {};
+
+        if (!validModal) {
+            $('.fc-modal .modal-body > div').addClass('fc-error');
+            return false;
+        }
+
+        $('.fc-modal .modal-body > div').removeClass('fc-error');
+
+        // Build array of values
+        $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
+            var dataId = $(this).attr('formcorp-data-id');
+            values[dataId] = getFieldValue($(this));
+        });
+
+        // Add the values to the array
+        if (typeof fc.fields[fc.activeModalField] !== 'object') {
+            fc.fields[fc.activeModalField] = [];
+        }
+        fc.fields[fc.activeModalField].push(values);
+
+        $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').html(renderRepeatableTable(fc.activeModalField, fc.fields[fc.activeModalField]));
+
+        // Set to null to signify no repeatable grouplet is being displayed
+        hideModal();
+    };
+
+    /**
+     * Delete a repeatable row through a modal dialog
+     */
+    deleteRepeatableRow = function () {
+        fc.fields[fc.modalMeta.fieldId].splice(fc.modalMeta.index, 1);
+
+        // Set the html
+        var html = renderRepeatableTable(fc.modalMeta.fieldId, fc.fields[fc.modalMeta.fieldId]);
+        $('[fc-data-group="' + fc.modalMeta.fieldId + '"] .fc-summary').html(html);
+
+        hideModal();
+    };
+
+    /**
      * Register event listeners.
      */
     registerEventListeners = function () {
@@ -1934,7 +2023,6 @@ var fc = (function ($) {
                     // Regular fields can be added to the flat dictionary
                     formData[dataId] = getFieldValue($(this));
                 }
-
             });
 
             // Build the data object to send with the request
@@ -2043,6 +2131,7 @@ var fc = (function ($) {
 
             // Set current active modal
             fc.activeModalField = dataId;
+            fc.modalState = fc.states.ADD_REPEATABLE;
 
             $('.fc-modal .modal-body').html(html);
             $('.fc-modal').addClass('fc-show');
@@ -2058,36 +2147,22 @@ var fc = (function ($) {
 
         // Add the value for the fc modal
         $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-add', function () {
-            var validModal = validateModal(),
-                values = {};
-
-            if (!validModal) {
-                $('.fc-modal .modal-body > div').addClass('fc-error');
-                return false;
+            if (fc.modalState !== undefined && typeof fc.modalState === "string") {
+                switch (fc.modalState) {
+                case fc.states.DELETE_REPEATABLE:
+                    deleteRepeatableRow();
+                    break;
+                case fc.states.ADD_REPEATABLE:
+                    addRepeatableRow();
+                    break;
+                }
             }
 
-            $('.fc-modal .modal-body > div').removeClass('fc-error');
-
-            // Build array of values
-            $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
-                var dataId = $(this).attr('formcorp-data-id');
-                values[dataId] = getFieldValue($(this));
-            });
-
-            // Add the values to the array
-            if (typeof fc.fields[fc.activeModalField] !== 'object') {
-                fc.fields[fc.activeModalField] = [];
-            }
-            fc.fields[fc.activeModalField].push(values);
-
-            $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').html(renderRepeatableTable(fc.activeModalField, fc.fields[fc.activeModalField]));
-
-            // Hide the modal
-            $('.fc-modal.fc-show').removeClass('fc-show');
             return false;
         });
 
         registerAnalyticsEventListeners();
+        registerRepeatableGroupletListeners();
     };
 
     /**
@@ -2571,7 +2646,19 @@ var fc = (function ($) {
             this.lastActivity = (new Date()).getTime();
             this.expired = false;
 
-            // Type of events
+            /**
+             * Register modal states
+             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string}}
+             */
+            this.states = {
+                DELETE_REPEATABLE: 'deleteRepeatable',
+                ADD_REPEATABLE: 'addRepeatableRow'
+            };
+
+            /**
+             * Type of events
+             * @type {{onFocus: string, onBlur: string, onValueChange: string, onNextStage: string, onFormInit: string, onMouseDown: string, onFieldError: string, onNextPageClick: string, onNextPageSuccess: string, onNextPageError: string, onFormComplete: string}}
+             */
             this.eventTypes = {
                 onFocus: 'onFocus',
                 onBlur: 'onBlur',
@@ -2586,7 +2673,10 @@ var fc = (function ($) {
                 onFormComplete: 'onFormComplete'
             };
 
-            // JS events
+            /**
+             * Javascript events to raise
+             * @type {{onFormInit: string, onFormExpired: string, onValidationError: string, onFormComplete: string, onNextPage: string, onPrevPage: string, onConnectionMade: string}}
+             */
             this.jsEvents = {
                 onFormInit: 'OnFcInit',
                 onFormExpired: 'onFormExpired',
@@ -2746,7 +2836,10 @@ var fc = (function ($) {
                 creditCardMissingSecurityCode: "You must enter a valid security code",
                 creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details",
                 edit: "Edit",
-                delete: "Delete"
+                delete: "Delete",
+                deleteDialogHeader: "Are you sure?",
+                deleteDigntoaryDialogText: "Are you sure you want to delete the selected signatory?",
+                confirm: "Confirm"
             };
 
             // Update with client options
