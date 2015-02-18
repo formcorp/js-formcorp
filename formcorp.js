@@ -753,8 +753,6 @@ var fc = (function ($) {
                         for (key in page.toCondition) {
                             if (page.toCondition.hasOwnProperty(key)) {
                                 try {
-                                    console.log($.parseJSON(page.toCondition[key]));
-                                    console.log(toBooleanLogic($.parseJSON(page.toCondition[key])));
                                     page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
                                 } catch (ignore) {
                                 }
@@ -1137,8 +1135,21 @@ var fc = (function ($) {
                 cssClass,
                 x,
                 option,
-                id;
+                id,
+                json,
+                savedValues = [];
             /*jslint nomen: false*/
+
+            // Create an array of the field's values
+            if (fc.fields[fieldId] !== undefined && typeof fc.fields[fieldId] === "string") {
+                try {
+                    json = $.parseJSON(fc.fields[fieldId]);
+                    savedValues = json;
+                } catch (ignore) {
+                }
+            } else if (typeof fc.fields[fieldId] === "object") {
+                savedValues = fc.fields[fieldId];
+            }
 
             if (options.length > 0) {
                 options = options.split("\n");
@@ -1150,9 +1161,13 @@ var fc = (function ($) {
                     /*jslint nomen: false*/
 
                     html += '<div class="' + cssClass + '">';
-                    /*jslint nomen: true*/
-                    html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '">';
-                    /*jslint nomen: false*/
+                    html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '"';
+
+                    if (savedValues.indexOf(option) > -1) {
+                        html += ' checked="checked"';
+                    }
+
+                    html += '>';
                     html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
                     html += '</div>';
                 }
@@ -1197,7 +1212,6 @@ var fc = (function ($) {
          * @returns {string}
          */
         renderCreditCard = function (field) {
-            console.log(field);
             var html = '',
                 month,
                 year,
@@ -1624,8 +1638,8 @@ var fc = (function ($) {
      * certain fields may need to be altered.
      */
     flushFieldVisibility = function () {
-        $(fc.jQueryContainer).find('.fc-fieldinput').each(function () {
-            var dataId = $(this).attr('formcorp-data-id'),
+        $(fc.jQueryContainer).find('.fc-field').each(function () {
+            var dataId = $(this).attr('fc-data-group'),
                 field,
                 visible;
 
@@ -1847,6 +1861,11 @@ var fc = (function ($) {
         // Dropdown box change
         $(fc.jQueryContainer).on('change', 'select.fc-fieldinput', function () {
             valueChanged($(this).attr('formcorp-data-id'), $(this).find('option:selected').val());
+        });
+
+        // Radio lists
+        $(fc.jQueryContainer).on('change', '.fc-field-checkboxList :checkbox', function () {
+            valueChanged($(this).attr('formcorp-data-id'), getFieldValue($(this)));
         });
     };
 
@@ -2905,7 +2924,8 @@ var fc = (function ($) {
             try {
                 json = $.parseJSON(field);
                 field = json;
-            } catch (ignore) {}
+            } catch (ignore) {
+            }
 
             // Field can be string
             if (typeof field === 'string') {
@@ -2929,6 +2949,16 @@ var fc = (function ($) {
             }
 
             return false;
+        },
+
+        /**
+         * Makes sure a value does not exist within a set
+         * @param field
+         * @param comparisonValue
+         * @returns {boolean}
+         */
+        comparisonNot_in: function (field, comparisonValue) {
+            return !fc.comparisonIn(field, comparisonValue);
         },
 
         /**
