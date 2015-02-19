@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//192.168.247.129:9001/',
-        cdnUrl = '//192.168.247.129:9004/',
+    var apiUrl = '//192.168.1.115:9001/',
+        cdnUrl = '//192.168.1.115:9004/',
         prefixSeparator = "_",
 
         /**
@@ -1715,6 +1715,9 @@ var fc = (function ($) {
         // Update the hash, and ignore the hash change event
         fc.ignoreHashChangeEvent = true;
         window.location.hash = pageId;
+
+        // Fire the event to signal form finished rendering
+        $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
     };
 
     /**
@@ -2709,7 +2712,8 @@ var fc = (function ($) {
                 onFormComplete: 'onFormComplete',
                 onNextPage: 'onNextPage',
                 onPrevPage: 'onPrevPage',
-                onConnectionMade: 'onFCConnectionMade'
+                onConnectionMade: 'onFCConnectionMade',
+                onFinishRender: 'onFinishFormRender'
             };
 
             // Set config if not already done so
