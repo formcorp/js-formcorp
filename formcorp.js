@@ -2322,6 +2322,8 @@ var fc = (function ($) {
             // Smooth scroll
             if (fc.config.smoothScroll) {
                 setTimeout(function (pageId) {
+                    var offset;
+
                     // Only want to scroll once
                     if (fc.activeScroll.length > 0) {
                         return;
@@ -2330,8 +2332,27 @@ var fc = (function ($) {
 
                     pageDiv = $('.fc-page:last');
                     if (pageDiv.length > 0 && pageDiv.attr('data-page-id') === pageId) {
+                        offset = parseInt(pageDiv.offset().top, 10) + parseInt(fc.config.scrollOffset, 10);
+
+                        // If at the top of the page, apply the initial offset
+                        if ($(document).scrollTop() === 0) {
+                            offset += fc.config.initialScrollOffset;
+                        }
+
+                        // Apply a conditional offset
+                        if (fc.config.conditionalHtmlScrollOffset.class !== undefined) {
+                            console.log("check conditional offset");
+                            if ($('html').hasClass(fc.config.conditionalHtmlScrollOffset.class)) {
+                                console.log('apply conditional offset');
+                                offset += fc.config.conditionalHtmlScrollOffset.offset;
+                            }
+                        }
+
+                        console.log("page offset: " + pageDiv.offset().top);
+                        console.log("target: " + offset + "px");
+
                         $('html,body').animate({
-                            scrollTop: pageDiv.offset().top
+                            scrollTop: offset + "px"
                         }, fc.config.scrollDuration, function () {
                             fc.activeScroll = "";
                         });
@@ -2380,10 +2401,6 @@ var fc = (function ($) {
 
         registerAnalyticsEventListeners();
         registerRepeatableGroupletListeners();
-
-        $(fc.jQueryContainer).on(fc.jsEvents.onFinishRender, function () {
-            console.log('finished rendering');
-        });
     };
 
     /**
@@ -2715,7 +2732,6 @@ var fc = (function ($) {
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
-            console.log(id);
             page = getPageById(id);
             if (page === undefined) {
                 console.log('FC Error: Page not found');
@@ -2737,7 +2753,6 @@ var fc = (function ($) {
 
             // If using a one page form structure, output
             if (fc.config.onePage) {
-                console.log('render page: ' + id);
                 render(id);
             }
 
@@ -3058,7 +3073,10 @@ var fc = (function ($) {
                 onePage: false,
                 smoothScroll: true,
                 scrollDuration: 1000,
-                scrollWait: 500
+                scrollWait: 500,
+                initialScrollOffset: 0,
+                scrollOffset: 0,
+                conditionalHtmlScrollOffset: {}
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
