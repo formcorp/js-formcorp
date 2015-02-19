@@ -1449,6 +1449,7 @@ var fc = (function ($) {
         addRepeatableRow,
         deleteRepeatableRow,
         registerRepeatableGroupletListeners,
+        registerOnePageListeners,
         registerEventListeners,
         nextPage,
         render,
@@ -2216,6 +2217,10 @@ var fc = (function ($) {
         hideModal();
     };
 
+    /**
+     * Load the next page
+     * @returns {boolean}
+     */
     loadNextPage = function () {
         logEvent(fc.eventTypes.onNextPageClick);
 
@@ -2227,7 +2232,9 @@ var fc = (function ($) {
         var formData = {},
             data,
             page,
-            dataId;
+            dataId,
+            oldPage,
+            newPage;
 
         // Build the form data array
         $('[formcorp-data-id]').each(function () {
@@ -2292,12 +2299,16 @@ var fc = (function ($) {
                     }
                 }
 
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage);
-                logEvent(fc.eventTypes.onNextPageSuccess);
-
                 // Render the next page if available
                 if (hasNextPage()) {
+                    oldPage = fc.currentPage;
                     nextPage();
+                    newPage = fc.currentPage;
+
+                    // Trigger the newpage event
+                    $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
+                    $(fc.jQueryContainer).trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
+                    logEvent(fc.eventTypes.onNextPageSuccess);
 
                     // If the application is complete, raise completion event
                     if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -2313,6 +2324,36 @@ var fc = (function ($) {
                 logEvent(fc.eventTypes.onFormComplete);
             } else {
                 logEvent(fc.eventTypes.onNextPageError);
+            }
+        });
+    };
+
+    /**
+     * Register event listeners specific for one page
+     */
+    registerOnePageListeners = function () {
+        // When the user scrolls up/down, change the active page state depending on the offset
+        $(document).on('scroll', function () {
+            var iterator, offset, page;
+
+            for (iterator = 0; iterator < fc.pageOrders.length; iterator += 1) {
+                // Determine the offset of the page
+                offset = parseInt($('[data-page-id="' + fc.pageOrders[iterator] + '"]').offset().top, 10);
+                offset += parseInt(fc.config.scrollOffset, 10) - fc.config.activePageOffset;
+
+                if ($(document).scrollTop() > offset) {
+                    if (fc.activePage === undefined) {
+                        fc.activePage = fc.pageOrders[iterator];
+                    }
+
+                    page = fc.pageOrders[iterator];
+                }
+            }
+
+            // If a page was found and its different to the current page, fire off the change in state
+            if (page !== undefined && fc.activePage !== page) {
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onPageChange, [fc.activePage, page]);
+                fc.activePage = page;
             }
         });
     };
@@ -2430,6 +2471,10 @@ var fc = (function ($) {
 
         registerAnalyticsEventListeners();
         registerRepeatableGroupletListeners();
+
+        if (fc.config.onePage) {
+            registerOnePageListeners();
+        }
     };
 
     /**
@@ -2999,6 +3044,7 @@ var fc = (function ($) {
                 onValidationError: 'onValidationError',
                 onFormComplete: 'onFormComplete',
                 onNextPage: 'onNextPage',
+                onPageChange: 'onPageChange',
                 onPrevPage: 'onPrevPage',
                 onConnectionMade: 'onFCConnectionMade',
                 onFinishRender: 'onFinishFormRender'
@@ -3106,7 +3152,8 @@ var fc = (function ($) {
                 initialScrollOffset: 0,
                 scrollOffset: 0,
                 conditionalHtmlScrollOffset: {},
-                autoLoadPages: false
+                autoLoadPages: false,
+                activePageOffset: 250
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
