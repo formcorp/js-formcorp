@@ -1438,10 +1438,11 @@ var fc = (function ($) {
         pruneInvisibleFields,
         fieldIsValid,
         formFieldsValid,
-        shouldPageBeVisible,
+        checkAutoLoad,
         getFirstPage,
         loadSchema,
         hasNextPage,
+        loadNextPage,
         processEventQueue,
         processSaveQueue,
         showDeleteDialog,
@@ -1844,6 +1845,11 @@ var fc = (function ($) {
 
         // Fire the event to signal form finished rendering
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
+
+        // Often various pages will be loaded at the same time (when no fields on that page are required)
+        if (fc.config.autoLoadPages) {
+            //checkAutoLoad();
+        }
     };
 
     /**
@@ -1916,6 +1922,21 @@ var fc = (function ($) {
         }
 
         return false;
+    };
+
+    /**
+     * Auto loads the next page
+     */
+    checkAutoLoad = function () {
+        console.log("check autoload");
+        if (!fc.config.autoLoadPages) {
+            return;
+        }
+
+        // If a next page exists and the current page is valid, load the next page
+        if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
+            loadNextPage();
+        }
     };
 
     /**
@@ -2016,6 +2037,14 @@ var fc = (function ($) {
                 fieldId: dataId
             };
             logEvent(fc.eventTypes.onValueChange, params);
+        }
+
+        // Check to see if the next page should be automatically loaded
+        if (fc.config.autoLoadPages) {
+            pageId = getFieldPageId(dataId);
+            if (pageId === fc.currentPage) {
+                checkAutoLoad();
+            }
         }
     };
 
@@ -2187,111 +2216,114 @@ var fc = (function ($) {
         hideModal();
     };
 
+    loadNextPage = function () {
+        logEvent(fc.eventTypes.onNextPageClick);
+
+        if (!validForm()) {
+            logEvent(fc.eventTypes.onNextPageError);
+            return false;
+        }
+
+        var formData = {},
+            data,
+            page,
+            dataId;
+
+        // Build the form data array
+        $('[formcorp-data-id]').each(function () {
+            dataId = $(this).attr('formcorp-data-id');
+
+            // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+            if ($(this).hasClass('fc-data-repeatable-grouplet')) {
+                if (formData[dataId] === undefined) {
+                    formData[dataId] = fc.fields[dataId];
+                }
+            } else {
+                // Regular fields can be added to the flat dictionary
+                formData[dataId] = getFieldValue($(this));
+            }
+        });
+
+        // Build the data object to send with the request
+        data = {
+            form_id: fc.formId,
+            page_id: fc.pageId,
+            form_values: formData
+        };
+        // Determine whether the application should be marked as complete
+        page = nextPage(false, true);
+        if ((typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
+            data.complete = true;
+        }
+
+        // Submit the form fields
+        $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
+        api('page/submit', data, 'put', function (data) {
+            if (typeof data.success === 'boolean' && data.success) {
+                // Update activity (server last active timestamp updated)
+                fc.lastActivity = (new Date()).getTime();
+                $(fc.jQueryContainer).find('.fc-loading-screen').removeClass('show');
+
+                // If 'critical' errors were returned (validation errors on required fields), need to alert the user
+                if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
+                    var x, field, sectionId, section, valid = false;
+                    for (x = 0; x < data.criticalErrors.length; x += 1) {
+                        field = $('.fc-field[fc-data-group="' + data.criticalErrors[x] + '"]');
+
+                        // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
+                        if (field.length > 0 && !field.hasClass('fc-hide')) {
+                            sectionId = field.attr("fc-belongs-to");
+                            section = $(fc.jQueryContainer).find('.fc-section[formcorp-data-id=' + sectionId + ']');
+
+                            // If the section exists and is visible, do not proceed to the next stage
+                            if (section.length > 0) {
+                                if (!section.hasClass('fc-hide')) {
+                                    return;
+                                }
+                                valid = true;
+                            }
+
+                            if (valid === false) {
+                                console.log("[FC](1) Server side validation errors occurred, client should have caught this");
+                                return;
+                            }
+                        }
+
+                    }
+                }
+
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage);
+                logEvent(fc.eventTypes.onNextPageSuccess);
+
+                // Render the next page if available
+                if (hasNextPage()) {
+                    nextPage();
+
+                    // If the application is complete, raise completion event
+                    if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                        $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
+                        logEvent(fc.eventTypes.onFormComplete);
+                    }
+                    return;
+                }
+
+                // Form is deemed complete, output default completion message
+                $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
+                logEvent(fc.eventTypes.onFormComplete);
+            } else {
+                logEvent(fc.eventTypes.onNextPageError);
+            }
+        });
+    };
+
     /**
      * Register event listeners.
      */
     registerEventListeners = function () {
         // Submit a form page
         $(fc.jQueryContainer).on('click', 'div.fc-submit input[type=submit]', function () {
-            logEvent(fc.eventTypes.onNextPageClick);
-
-            if (!validForm()) {
-                logEvent(fc.eventTypes.onNextPageError);
-                return false;
-            }
-
-            var formData = {},
-                data,
-                page,
-                dataId;
-
-            // Build the form data array
-            $('[formcorp-data-id]').each(function () {
-                dataId = $(this).attr('formcorp-data-id');
-
-                // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
-                if ($(this).hasClass('fc-data-repeatable-grouplet')) {
-                    if (formData[dataId] === undefined) {
-                        formData[dataId] = fc.fields[dataId];
-                    }
-                } else {
-                    // Regular fields can be added to the flat dictionary
-                    formData[dataId] = getFieldValue($(this));
-                }
-            });
-
-            // Build the data object to send with the request
-            data = {
-                form_id: fc.formId,
-                page_id: fc.pageId,
-                form_values: formData
-            };
-            // Determine whether the application should be marked as complete
-            page = nextPage(false, true);
-            if ((typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
-                data.complete = true;
-            }
-
-            // Submit the form fields
-            $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
-            api('page/submit', data, 'put', function (data) {
-                if (typeof data.success === 'boolean' && data.success) {
-                    // Update activity (server last active timestamp updated)
-                    fc.lastActivity = (new Date()).getTime();
-                    $(fc.jQueryContainer).find('.fc-loading-screen').removeClass('show');
-
-                    // If 'critical' errors were returned (validation errors on required fields), need to alert the user
-                    if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
-                        var x, field, sectionId, section, valid = false;
-                        for (x = 0; x < data.criticalErrors.length; x += 1) {
-                            field = $('.fc-field[fc-data-group="' + data.criticalErrors[x] + '"]');
-
-                            // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
-                            if (field.length > 0 && !field.hasClass('fc-hide')) {
-                                sectionId = field.attr("fc-belongs-to");
-                                section = $(fc.jQueryContainer).find('.fc-section[formcorp-data-id=' + sectionId + ']');
-
-                                // If the section exists and is visible, do not proceed to the next stage
-                                if (section.length > 0) {
-                                    if (!section.hasClass('fc-hide')) {
-                                        return;
-                                    }
-                                    valid = true;
-                                }
-
-                                if (valid === false) {
-                                    console.log("[FC](1) Server side validation errors occurred, client should have caught this");
-                                    return;
-                                }
-                            }
-
-                        }
-                    }
-
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage);
-                    logEvent(fc.eventTypes.onNextPageSuccess);
-
-                    // Render the next page if available
-                    if (hasNextPage()) {
-                        nextPage();
-
-                        // If the application is complete, raise completion event
-                        if (typeof page.page === "object" && isSubmitPage(page.page)) {
-                            $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
-                            logEvent(fc.eventTypes.onFormComplete);
-                        }
-                        return;
-                    }
-
-                    // Form is deemed complete, output default completion message
-                    $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
-                    logEvent(fc.eventTypes.onFormComplete);
-                } else {
-                    logEvent(fc.eventTypes.onNextPageError);
-                }
-            });
-
+            loadNextPage();
             return false;
         });
 
@@ -3073,7 +3105,8 @@ var fc = (function ($) {
                 scrollWait: 500,
                 initialScrollOffset: 0,
                 scrollOffset: 0,
-                conditionalHtmlScrollOffset: {}
+                conditionalHtmlScrollOffset: {},
+                autoLoadPages: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
