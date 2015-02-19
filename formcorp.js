@@ -364,7 +364,7 @@ var fc = (function ($) {
 
             // Test required data
             dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
-            if (fieldIsEmpty(dataField)) {
+            if (getConfig(field, 'required', false) && fieldIsEmpty(dataField)) {
                 errors.push(fc.lang.emptyFieldError);
                 return errors;
             }
@@ -1825,7 +1825,9 @@ var fc = (function ($) {
 
             // Check real time validation
             if (fc.config.realTimeValidation === true) {
+                console.log(dataId);
                 errors = fieldErrors(dataId);
+                console.log(errors);
                 if (errors.length > 0) {
                     // Log the error event
                     logEvent(fc.eventTypes.onFieldError, {
@@ -2427,14 +2429,51 @@ var fc = (function ($) {
      * @returns {boolean}
      */
     fieldIsValid = function (dataId, value) {
-        var schema = fc.fieldSchema[dataId],
-            customErrors;
+        var schema,
+            customErrors,
+            id,
+            iterator,
+            grouplet,
+            val;
+
+        // Can pass through either an id to retrieve the schema, or the schema itself
+        try {
+            if (typeof dataId === "string") {
+                schema = fc.fieldSchema[dataId];
+            } else if (typeof dataId === "object") {
+                schema = dataId;
+                dataId = schema._id.$id;
+            }
+
+            if (typeof schema !== "object") {
+                return true;
+            }
+        } catch (ignore) {
+        }
 
         // Return false if required and empty
         if (schema.config !== undefined && schema.config.required !== undefined) {
             if (schema.config.required && value === "") {
                 return false;
             }
+        }
+
+        // If a grouplet, need to check each field within
+        if (schema.type === "grouplet" && !getConfig(schema, "repeatable", false)) {
+            grouplet = getConfig(schema, 'grouplet', {});
+            if (grouplet.field !== undefined && typeof grouplet.field === "object" && grouplet.field.length > 0) {
+                for (iterator = 0; iterator < grouplet.field.length; iterator += 1) {
+                    /*jslint nomen: true*/
+                    id = dataId + prefixSeparator + grouplet.field[iterator]._id.$id;
+                    /*jslint nomen: false*/
+                    val = (fc.fields[id] !== undefined) ? fc.fields[id] : "";
+                    if (!fieldIsValid(grouplet.field[iterator], val)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         // Check custom validators
@@ -2485,6 +2524,7 @@ var fc = (function ($) {
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
+            console.log(id);
             page = getPageById(id);
             if (page === undefined) {
                 console.log('FC Error: Page not found');
