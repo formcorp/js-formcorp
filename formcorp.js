@@ -1828,6 +1828,8 @@ var fc = (function ($) {
         } else {
             $(fc.jQueryContainer + ' .render').append(html);
             fc.pageOrders.push(pageId);
+            $(fc.jQueryContainer).find('.fc-pagination').hide();
+            $(fc.jQueryContainer).find('.fc-pagination:last').show();
         }
 
         // Set values from data array
