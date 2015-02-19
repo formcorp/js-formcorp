@@ -2348,9 +2348,6 @@ var fc = (function ($) {
                             }
                         }
 
-                        console.log("page offset: " + pageDiv.offset().top);
-                        console.log("target: " + offset + "px");
-
                         $('html,body').animate({
                             scrollTop: offset + "px"
                         }, fc.config.scrollDuration, function () {
@@ -3071,7 +3068,7 @@ var fc = (function ($) {
                 timeOutAfter: 900, // 15 minutes,
                 cvvImage: null,
                 onePage: false,
-                smoothScroll: true,
+                smoothScroll: false,
                 scrollDuration: 1000,
                 scrollWait: 500,
                 initialScrollOffset: 0,
