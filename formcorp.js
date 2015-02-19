@@ -280,6 +280,25 @@ var fc = (function ($) {
         },
 
         /**
+         * Return a value from the field's configuration options.
+         * @param field
+         * @param key
+         * @param defaultVal
+         * @returns {*}
+         */
+        getConfig = function (field, key, defaultVal) {
+            if (defaultVal === undefined) {
+                defaultVal = '';
+            }
+
+            if (typeof field.config === 'object' && field.config[key] !== undefined) {
+                return field.config[key];
+            }
+
+            return defaultVal;
+        },
+
+        /**
          * Returns true if a field is empty, false if not.
          * @param field
          * @returns {boolean}
@@ -304,8 +323,21 @@ var fc = (function ($) {
                 callbackSplit,
                 error,
                 type,
-                callbackFunction;
+                callbackFunction,
+                json;
 
+            // If validators is a string (and starts with a json char to speed up), try to typecast to json
+            if (typeof field.config.validators === "string" && ['[', '}'].indexOf(field.config.validators.substring(0, 1)) > -1) {
+                console.log('STRING');
+                try {
+                    json = $.parseJSON(field.config.validators);
+                    console.log(json);
+                    field.config.validators = json;
+                } catch (ignore) {
+                }
+            }
+
+            // If validators are set, attempt to validate
             if (typeof field.config.validators === 'object' && field.config.validators.length > 0) {
                 for (x = 0; x < field.config.validators.length; x += 1) {
                     validator = field.config.validators[x];
@@ -494,25 +526,6 @@ var fc = (function ($) {
             }
 
             return errors;
-        },
-
-        /**
-         * Return a value from the field's configuration options.
-         * @param field
-         * @param key
-         * @param defaultVal
-         * @returns {*}
-         */
-        getConfig = function (field, key, defaultVal) {
-            if (defaultVal === undefined) {
-                defaultVal = '';
-            }
-
-            if (typeof field.config === 'object' && field.config[key] !== undefined) {
-                return field.config[key];
-            }
-
-            return defaultVal;
         },
 
         /**
@@ -1825,9 +1838,7 @@ var fc = (function ($) {
 
             // Check real time validation
             if (fc.config.realTimeValidation === true) {
-                console.log(dataId);
                 errors = fieldErrors(dataId);
-                console.log(errors);
                 if (errors.length > 0) {
                     // Log the error event
                     logEvent(fc.eventTypes.onFieldError, {
