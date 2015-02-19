@@ -2310,13 +2310,35 @@ var fc = (function ($) {
 
         // When the hash changes - navigate forward/backwards
         $(window).on('hashchange', function () {
-            var pageId = window.location.hash.substr(1);
+            var pageId = window.location.hash.substr(1),
+                pageDiv;
             if (fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
                 render(pageId);
             }
 
             fc.oldHash = pageId;
             fc.ignoreHashChangeEvent = false;
+
+            // Smooth scroll
+            if (fc.config.smoothScroll) {
+                setTimeout(function (pageId) {
+                    // Only want to scroll once
+                    if (fc.activeScroll.length > 0) {
+                        return;
+                    }
+                    fc.activeScroll = pageId;
+
+                    pageDiv = $('.fc-page:last');
+                    if (pageDiv.length > 0 && pageDiv.attr('data-page-id') === pageId) {
+                        $('html,body').animate({
+                            scrollTop: pageDiv.offset().top
+                        }, fc.config.scrollDuration, function () {
+                            fc.activeScroll = "";
+                        });
+                    }
+
+                }.bind(this, pageId), fc.config.scrollWait);
+            }
         });
 
         // Add value for a repeatable group
@@ -2894,6 +2916,7 @@ var fc = (function ($) {
             this.lastActivity = (new Date()).getTime();
             this.expired = false;
             this.pageOrders = [];
+            this.activeScroll = "";
 
             /**
              * Register modal states
@@ -3032,7 +3055,10 @@ var fc = (function ($) {
                 timeOutWarning: 870, // 14 minutes 30 seconds
                 timeOutAfter: 900, // 15 minutes,
                 cvvImage: null,
-                onePage: false
+                onePage: false,
+                smoothScroll: true,
+                scrollDuration: 1000,
+                scrollWait: 500
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)

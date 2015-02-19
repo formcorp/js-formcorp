@@ -338,3 +338,7 @@ div.fc-pagination {
 .fc-section {
     margin-bottom: 15px;
 }
+
+.fc-page {
+    padding-top: 10px;
+}
