@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//192.168.1.115:9001/',
-        cdnUrl = '//192.168.1.115:9004/',
+    var apiUrl = '//220.244.30.198:9001/',
+        cdnUrl = '//220.244.30.198:9004/',
         prefixSeparator = "_",
 
         /**
@@ -372,7 +372,11 @@ var fc = (function ($) {
                 field,
                 value,
                 errors = [],
-                dataField;
+                dataField,
+                belongsTo,
+                parentGroupletId,
+                selector,
+                grouplets = [];
 
             if (fieldSelector.length === 0) {
                 return [];
@@ -391,6 +395,19 @@ var fc = (function ($) {
             if (section.hasClass('fc-hide')) {
                 return [];
             }
+
+            // If belongs to a grouplet, and the parent grouplet is hidden, do not display
+            selector = fieldSelector;
+            do {
+                belongsTo = selector.attr('fc-belongs-to');
+                parentGroupletId = $('.fc-field[fc-data-group="' + belongsTo + '"]').attr("fc-data-group");
+
+                if (parentGroupletId !== undefined) {
+                    grouplets.push(belongsTo);
+                    selector = $('.fc-field[fc-data-group="' + belongsTo + '"]');
+                }
+            } while (parentGroupletId !== undefined);
+            console.log(grouplets);
 
             // Test required data
             dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
