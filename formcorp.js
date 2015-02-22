@@ -578,6 +578,27 @@ var fc = (function ($) {
         godFields = ["richTextArea"],
 
         /**
+         * Performs a simple check using the Luhn algorithm to determine if a credit card number is valid.
+         * @param val
+         * @returns {boolean}
+         */
+        luhnCheck = function (val) {
+            var sum = 0, iterator, intVal;
+
+            for (iterator = 0; iterator < val.length; iterator += 1) {
+                intVal = parseInt(val.substr(iterator, 1), 10);
+                if (iterator % 2 === 0) {
+                    intVal *= 2;
+                    if (intVal > 9) {
+                        intVal = 1 + (intVal % 10);
+                    }
+                }
+                sum += intVal;
+            }
+            return (sum % 10) === 0;
+        },
+
+        /**
          * Validate a credit card field
          * @param dataId
          * @param field
@@ -609,8 +630,8 @@ var fc = (function ($) {
             // Map values to js variables
             cardName = ccForm.find('.fc-cc-name input');
             cardNumber = ccForm.find('.fc-cc-number input');
-            expiryMonth = ccForm.find('.fc-cc-expirydate option:selected');
-            expiryYear = ccForm.find('.fc-cc-expirydate-year option:selected');
+            expiryMonth = parseInt(ccForm.find('.fc-cc-expirydate option:selected').val(), 0);
+            expiryYear = parseInt(ccForm.find('.fc-cc-expirydate-year option:selected').val(), 0);
             securityCode = ccForm.find('.fc-cc-ccv input');
 
             // Validate credit card name
@@ -619,21 +640,32 @@ var fc = (function ($) {
             }
 
             // Validate credit card number
-            if (cardNumber.val().length === 0) {
+            cardNumber = cardNumber.val().replace(/[^0-9]/g, "", cardNumber);
+            if (cardNumber.length === 0) {
+                // Ensure a value was entered
                 errors.push(fc.lang.creditCardMissingNumber);
+            } else if (cardNumber.length < fc.config.creditCardNumberLimits[0] || cardNumber.length > fc.config.creditCardNumberLimits[1] || !luhnCheck(cardNumber)) {
+                // Ensure the value was the correct limit
+                errors.push(fc.lang.invalidCardFormat);
             }
 
             // Expiry - ensure values entered
-            if (expiryMonth.val().length === 0 || expiryYear.val().length === 0) {
+            if (expiryMonth === undefined || expiryMonth.length === 0 || expiryYear === undefined || expiryYear.length === 0 || isNaN(expiryMonth) || isNaN(expiryYear)) {
                 errors.push(fc.lang.creditCardMissingExpiryDate);
-            } else if (typeof expiryMonth.val() !== "number" || expiryMonth.val() < 1 || expiryMonth.val() > 12) {
+            } else if (expiryMonth < 1 || expiryMonth > 12) {
                 // Check month within range 1 <= month <= 12
                 errors.push(fc.lang.creditCardMissingExpiryDate);
-            } else if (typeof expiryYear.val() !== "number" || expiryYear.val() < (new Date()).getFullYear() || expiryYear.val() > ((new Date()).getFullYear() + 30)) {
+            } else if (expiryYear < (new Date()).getFullYear() || expiryYear > ((new Date()).getFullYear() + 30)) {
                 // Check year within range CURRENT_YEAR <= year <= (CURRENT_YEAR + 30)
                 errors.push(fc.lang.creditCardMissingExpiryDate);
-            } else if (expiryYear.val() === (new Date()).getFullYear() && expiryMonth.val() < (new Date()).getMonth()) {
+            } else if (expiryYear === (new Date()).getFullYear() && expiryMonth < ((new Date()).getMonth() +1)) {
                 errors.push(fc.lang.creditCardExpired);
+            }
+
+            // Validate security code - min and max length
+            securityCode = securityCode.val().replace(/[^0-9]/g, "", securityCode);
+            if (securityCode.length === 0 || securityCode.length > fc.config.maxCreditCardCodeLength) {
+                errors.push(fc.lang.creditCardMissingSecurityCode);
             }
 
             return errors;
@@ -698,7 +730,8 @@ var fc = (function ($) {
                     section = $(this).parent(),
                     field = fc.fieldSchema[dataId],
                     value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
-                    localErrors = [];
+                    localErrors = [],
+                    skipCheck = false;
 
                 // If not required, do nothing
                 if (getConfig(field, 'required', false) === false) {
@@ -718,13 +751,14 @@ var fc = (function ($) {
                 // If a credit card payment field, treat uniquely
                 if (field.type === "creditCard") {
                     localErrors = validCreditCardField(dataId, field, section);
+                    skipCheck = true;
                 } else if (field.type === "grouplet") {
                     // Grouplet field as a whole doesn't need to be validated
                     return;
                 }
 
                 // If repeatable and required, check the amount of values
-                if (localErrors.length === 0) {
+                if (!skipCheck && localErrors.length === 0) {
                     if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
                         required = $(this).attr('data-required');
                         if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
@@ -3178,7 +3212,9 @@ var fc = (function ($) {
                 scrollOffset: 0,
                 conditionalHtmlScrollOffset: {},
                 autoLoadPages: false,
-                activePageOffset: 250
+                activePageOffset: 250,
+                creditCardNumberLimits: [16, 16],
+                maxCreditCardCodeLength: 4
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
@@ -3236,7 +3272,8 @@ var fc = (function ($) {
                 delete: "Delete",
                 deleteDialogHeader: "Are you sure?",
                 deleteDigntoaryDialogText: "Are you sure you want to delete the selected signatory?",
-                confirm: "Confirm"
+                confirm: "Confirm",
+                invalidCardFormat: "The credit card you entered could not be recognised"
             };
 
             // Update with client options
