@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//220.244.30.198:9001/',
-        cdnUrl = '//220.244.30.198:9004/',
+    var apiUrl = '//192.168.247.129:9001/',
+        cdnUrl = '//192.168.247.129:9004/',
         prefixSeparator = "_",
 
         /**
@@ -374,9 +374,9 @@ var fc = (function ($) {
                 errors = [],
                 dataField,
                 belongsTo,
+                parentGrouplet,
                 parentGroupletId,
-                selector,
-                grouplets = [];
+                selector;
 
             if (fieldSelector.length === 0) {
                 return [];
@@ -400,14 +400,22 @@ var fc = (function ($) {
             selector = fieldSelector;
             do {
                 belongsTo = selector.attr('fc-belongs-to');
-                parentGroupletId = $('.fc-field[fc-data-group="' + belongsTo + '"]').attr("fc-data-group");
+                parentGrouplet = $('[fc-data-group="' + belongsTo + '"],[formcorp-data-id="' + belongsTo + '"]');
 
+                // Fetch the id
+                parentGroupletId = parentGrouplet.attr('fc-data-group');
+                if (parentGroupletId === undefined) {
+                    parentGroupletId = parentGrouplet.attr('formcorp-data-id');
+                }
+
+                // If an id/instance is defined, check if hidden (if hidden, do not render errors)
                 if (parentGroupletId !== undefined) {
-                    grouplets.push(belongsTo);
-                    selector = $('.fc-field[fc-data-group="' + belongsTo + '"]');
+                    if (parentGrouplet.hasClass('fc-hide')) {
+                        return [];
+                    }
+                    selector = $('[fc-data-group="' + belongsTo + '"],[formcorp-data-id="' + belongsTo + '"]');
                 }
             } while (parentGroupletId !== undefined);
-            console.log(grouplets);
 
             // Test required data
             dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
