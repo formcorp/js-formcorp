@@ -1599,19 +1599,47 @@ var fc = (function ($) {
         },
 
         /**
+         * Poll the API intermittently to see if the field has been verified (if it has, update in real time)
+         * @param dataId
+         */
+        waitForVerification = function (dataId) {
+            var data = {
+                fieldId: dataId
+            };
+
+            // Need to poll the database intermittently and wait for verification
+            api('verification/is-verified', {fieldId: dataId}, 'POST', function (data) {
+                if (typeof data === "object" && data.success !== undefined && data.success === true) {
+                    // The field has successfully been verified
+                    $('[fc-data-group="' + dataId + '"]').addClass('fc-verified');
+                    fc.fields[dataId] = '1';
+                    hideModal();
+                    return;
+                }
+
+                // The field has yet to be verified, poll again
+                setTimeout(function () {
+                    waitForVerification(dataId);
+                }, 5000);
+            });
+        },
+
+        /**
          * Register the email verification event listeners
          */
         registerEmailVerificationListeners = function () {
             // Send an email to the user
             $(fc.jQueryContainer).on('click', '.fc-email-verification .fc-send-email input[type=submit]', function () {
                 var elParent = $(this).parent(),
-                    data;
+                    data,
+                    fieldId;
 
                 elParent.find('.fc-loading').removeClass('fc-hide');
+                fieldId = elParent.parent().attr('fc-belongs-to');
 
                 // Data to send with the request
                 data = {
-                    field: elParent.parent().attr('fc-belongs-to')
+                    field: fieldId
                 };
 
                 // Send the api callback
@@ -1620,7 +1648,8 @@ var fc = (function ($) {
 
                     // On successful request, load a dialog to input the code
                     if (typeof data === "object" && data.success !== undefined && data.success) {
-                        showEmailVerificationModal(data.field);
+                        showEmailVerificationModal(fieldId);
+                        waitForVerification(fieldId);
                     }
                 });
 
