@@ -342,3 +342,53 @@ div.fc-pagination {
 .fc-page {
     padding-top: 10px;
 }
+
+.fc-send-email .fc-btn {
+    float: left;
+}
+
+.fc-send-email .fc-loading, .fc-modal .modal-footer .fc-loading {
+    float: left;
+    background: #fff url(img/loading-small.gif) no-repeat center center;
+    height: 36px;
+    width: 36px;
+    border-radius: 18px;
+    margin-left: 10px;
+}
+
+.fc-modal .modal-footer .fc-loading {
+    float: left;
+    margin-left: 0;
+}
+
+.fc-verification-options {
+    padding-top: 14px;
+}
+
+.fc-modal .modal-footer .fc-error {
+    float: left;
+    font-size: 11px;
+    color: #F62459;
+    width: 300px;
+    text-align: left;
+}
+
+.fc-field-emailVerification .fc-success {
+    display: none;
+}
+
+.fc-field-emailVerification.fc-verified .fc-success {
+    display: block;
+}
+
+.fc-field-emailVerification.fc-verified .fc-email-verification {
+    display: none;
+}
+
+.fc-success p {
+    color: #82B32C;
+}
+
+.fc-force-show {
+    display: block !important;
+}

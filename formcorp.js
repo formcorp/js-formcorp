@@ -184,6 +184,40 @@ var fc = (function ($) {
         },
 
         /**
+         * Return the mongo id of an object instance.
+         * @param obj
+         * @returns {*}
+         */
+        getId = function (obj) {
+            /*jslint nomen:true*/
+            if (typeof obj === "object" && obj._id !== undefined && obj._id.$id !== undefined) {
+                return obj._id.$id;
+            }
+            /*jslint nomen:false*/
+
+            return "";
+        },
+
+        /**
+         * Return a value from the field's configuration options.
+         * @param field
+         * @param key
+         * @param defaultVal
+         * @returns {*}
+         */
+        getConfig = function (field, key, defaultVal) {
+            if (defaultVal === undefined) {
+                defaultVal = '';
+            }
+
+            if (typeof field.config === 'object' && field.config[key] !== undefined) {
+                return field.config[key];
+            }
+
+            return defaultVal;
+        },
+
+        /**
          * Send off an API call.
          * @param uri
          * @param data
@@ -238,6 +272,67 @@ var fc = (function ($) {
         },
 
         /**
+         * Checks whether a particular action has been processed (i.e. used for rendering actions only once)
+         *
+         * @param field
+         * @param defaultValue
+         * @returns {*}
+         */
+        processed = function (field, defaultValue) {
+            if (defaultValue === undefined || typeof defaultValue !== "boolean") {
+                defaultValue = false;
+            }
+
+            // If the value has been set, return it
+            if (typeof fc.processedActions[field] === "boolean") {
+                return fc.processedActions[field];
+            }
+
+            return defaultValue;
+        },
+
+        /**
+         * Sort fields in to an array with keys based on tags against their values
+         * @returns {Array}
+         */
+        getFieldTags = function () {
+            var tags = [],
+                key,
+                value,
+                parts,
+                field,
+                iterator,
+                tag,
+                tagParts;
+
+            for (key in fc.fields) {
+                if (fc.fields.hasOwnProperty(key)) {
+                    tagParts = [];
+                    value = fc.fields[key];
+                    parts = key.split(prefixSeparator);
+
+                    for (iterator = 0; iterator < parts.length; iterator += 1) {
+                        field = fc.fieldSchema[parts[iterator]];
+                        if (field === undefined) {
+                            continue;
+                        }
+
+                        tag = getConfig(field, 'tag', "");
+                        if (tag.length === 0) {
+                            tag = getId(field);
+                        }
+                        tagParts.push(tag);
+                    }
+
+                    tag = tagParts.join('.');
+                    tags[tag] = value;
+                }
+            }
+
+            return tags;
+        },
+
+        /**
          * Return the value of a field element.
          * @param field
          * @returns {*}
@@ -277,25 +372,6 @@ var fc = (function ($) {
             }
 
             return '';
-        },
-
-        /**
-         * Return a value from the field's configuration options.
-         * @param field
-         * @param key
-         * @param defaultVal
-         * @returns {*}
-         */
-        getConfig = function (field, key, defaultVal) {
-            if (defaultVal === undefined) {
-                defaultVal = '';
-            }
-
-            if (typeof field.config === 'object' && field.config[key] !== undefined) {
-                return field.config[key];
-            }
-
-            return defaultVal;
         },
 
         /**
@@ -658,7 +734,7 @@ var fc = (function ($) {
             } else if (expiryYear < (new Date()).getFullYear() || expiryYear > ((new Date()).getFullYear() + 30)) {
                 // Check year within range CURRENT_YEAR <= year <= (CURRENT_YEAR + 30)
                 errors.push(fc.lang.creditCardMissingExpiryDate);
-            } else if (expiryYear === (new Date()).getFullYear() && expiryMonth < ((new Date()).getMonth() +1)) {
+            } else if (expiryYear === (new Date()).getFullYear() && expiryMonth < ((new Date()).getMonth() + 1)) {
                 errors.push(fc.lang.creditCardExpired);
             }
 
@@ -752,6 +828,13 @@ var fc = (function ($) {
                 if (field.type === "creditCard") {
                     localErrors = validCreditCardField(dataId, field, section);
                     skipCheck = true;
+                } else if (field.type === "emailVerification") {
+                    if (fc.fields[getId(field)] === undefined || fc.fields[getId(field)] !== '1') {
+                        localErrors.push(fc.lang.fieldMustBeVerified);
+                    } else {
+                        // Successfully verified
+                        skipCheck = true;
+                    }
                 } else if (field.type === "grouplet") {
                     // Grouplet field as a whole doesn't need to be validated
                     return;
@@ -896,6 +979,44 @@ var fc = (function ($) {
         },
 
         /**
+         * Update schema definitions for a set of fields
+         * @param fields
+         */
+        updateFieldSchemas = function (fields) {
+            var iterator, field, id, a, jsonDecode = ['visibility', 'validators'], toBoolean = ['visibility'], grouplet;
+
+            for (iterator = 0; iterator < fields.length; iterator += 1) {
+                field = fields[iterator];
+                /*jslint nomen: true*/
+                id = field._id.$id;
+                /*jslint nomen: false*/
+
+                // Add t field schema if doesn't already exist
+                if (fc.fieldSchema[id] === undefined) {
+                    // Decode configuration strings to json objects as required
+                    for (a = 0; a < jsonDecode.length; a += 1) {
+                        if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
+                            field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
+
+                            // Whether or not the object needs to be converted to boolean logic
+                            if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
+                                field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
+                            }
+                        }
+                    }
+
+                    fc.fieldSchema[id] = field;
+                }
+
+                // If the field is a grouplet, need to recursively update the field schema
+                if (field.type === "grouplet") {
+                    grouplet = getConfig(field, 'grouplet', {field: []});
+                    updateFieldSchemas(grouplet.field);
+                }
+            }
+        },
+
+        /**
          * Update field schema (object stores the configuration of each field for easy access)
          * @param stage
          */
@@ -907,10 +1028,7 @@ var fc = (function ($) {
                 key,
                 page,
                 section,
-                a,
-                z,
-                field,
-                id;
+                a;
 
             if (stage.page !== undefined) {
                 // Iterate through each page
@@ -964,29 +1082,7 @@ var fc = (function ($) {
                         /*jslint nomen: false*/
 
                         // Iterate through each field
-                        for (z = 0; z < section.field.length; z += 1) {
-                            field = section.field[z];
-                            /*jslint nomen: true*/
-                            id = field._id.$id;
-                            /*jslint nomen: false*/
-
-                            // Add t field schema if doesn't already exist
-                            if (fc.fieldSchema[id] === undefined) {
-                                // Decode configuration strings to json objects as required
-                                for (a = 0; a < jsonDecode.length; a += 1) {
-                                    if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
-                                        field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
-
-                                        // Whether or not the object needs to be converted to boolean logic
-                                        if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                                            field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
-                                        }
-                                    }
-                                }
-
-                                fc.fieldSchema[id] = field;
-                            }
-                        }
+                        updateFieldSchemas(section.field);
                     }
                 }
             }
@@ -1422,6 +1518,167 @@ var fc = (function ($) {
         },
 
         /**
+         * Hide and reset a modal
+         */
+        hideModal = function () {
+            fc.activeModalField = null;
+            fc.modalState = null;
+            fc.modalMeta = {};
+            $('.fc-modal.fc-show').removeClass('fc-show');
+        },
+
+        /**
+         * Verify the user email input
+         * @returns {boolean}
+         */
+        verifyEmailAddress = function () {
+            var verificationCode = $('.fc-email-verification-submit input[type=text]').val(),
+                tags = getFieldTags(),
+                schema,
+                data,
+                email;
+
+            // Retrieve the field schema
+            schema = fc.fieldSchema[fc.modalMeta.fieldId];
+            if (schema === undefined) {
+                return false;
+            }
+
+            // Try to retrieve the email
+            email = tags[getConfig(schema, 'validateAgainst', '')];
+            if (email === undefined) {
+                return false;
+            }
+
+            // Send the request to the API server
+            data = {
+                fieldId: fc.modalMeta.fieldId,
+                code: verificationCode
+            };
+
+            // Perform the API request
+            $('.fc-modal .modal-footer .fc-loading').removeClass('fc-hide');
+            $('.fc-modal .modal-footer .fc-error').html('').addClass('fc-hide');
+            api('verification/verify', data, 'POST', function (data) {
+                if (typeof data !== "object" || data.success === undefined) {
+                    $('.fc-modal .modal-footer .fc-error').html('An unknown error occurred communicating with the API server').removeClass('fc-hide');
+                } else if (!data.success && typeof data.message === "string") {
+                    $('.fc-modal .modal-footer .fc-error').html(data.message).removeClass('fc-hide');
+                } else if (data.success) {
+                    // The field was successfully verified
+                    $('[fc-data-group="' + fc.modalMeta.fieldId + '"]').addClass('fc-verified');
+                    fc.fields[fc.modalMeta.fieldId] = '1';
+                    hideModal();
+                }
+
+                $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
+            });
+        },
+
+        /**
+         * Show the email verification modal
+         * @param fieldId
+         * @returns {boolean}
+         */
+        showEmailVerificationModal = function (fieldId) {
+            // Configure the modal
+            fc.modalState = fc.states.EMAIL_VERIFICATION_CODE;
+            fc.modalMeta = {
+                fieldId: fieldId
+            };
+
+            var modalBody = '<p>To verify your email, input the code sent to your e-mail address in the area below, and click the \'Verify email\' button.</p>';
+            modalBody += '<div class="fc-email-verification-submit"><input class="fc-fieldinput" type="text" placeholder="Enter verification code..."></div>';
+
+            // Update the modal html and show it
+            $('.fc-modal .modal-header h2').text("Success!");
+            $('.fc-modal .modal-body').html(modalBody);
+            $('.fc-modal .modal-footer .fc-btn-add').text("Verify email");
+            $('.fc-modal').addClass('fc-show');
+            return false;
+        },
+
+        /**
+         * Register the email verification event listeners
+         */
+        registerEmailVerificationListeners = function () {
+            // Send an email to the user
+            $(fc.jQueryContainer).on('click', '.fc-email-verification .fc-send-email input[type=submit]', function () {
+                var elParent = $(this).parent(),
+                    data;
+
+                elParent.find('.fc-loading').removeClass('fc-hide');
+
+                // Data to send with the request
+                data = {
+                    field: elParent.parent().attr('fc-belongs-to')
+                };
+
+                // Send the api callback
+                api('verification/callback', data, 'POST', function (data) {
+                    elParent.find('.fc-loading').addClass('fc-hide');
+
+                    // On successful request, load a dialog to input the code
+                    if (typeof data === "object" && data.success !== undefined && data.success) {
+                        showEmailVerificationModal(data.field);
+                    }
+                });
+
+                return false;
+            });
+
+            // Open the modal
+            $(fc.jQueryContainer).on('click', '.fc-email-verification-modal', function () {
+                var dataId = $(this).attr('data-for');
+                showEmailVerificationModal(dataId);
+
+                return false;
+            });
+
+            fc.processedActions[fc.processes.emailListeners] = true;
+        },
+
+        /**
+         * Render the email verification field
+         * @param field
+         * @returns {string}
+         */
+        renderEmailVerification = function (field) {
+            // Register the email verification event listeners if required
+            if (!processed(fc.processes.emailListeners)) {
+                registerEmailVerificationListeners();
+            }
+
+            /// Start formatting the html to output
+            var html = '',
+                fieldValue = fc.fields[getId(field)],
+                verified = fieldValue !== undefined && fieldValue === '1';
+
+            console.log(verified);
+
+            // If not verified, show the form to verify
+            if (!verified) {
+                html += '<div class="fc-email-verification" fc-belongs-to="' + getId(field) + '">';
+
+                html += '<div class="fc-send-email">';
+                html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendEmail + '"><div class="fc-loading fc-hide"></div>';
+                html += '<div class="fc-clear fc-verification-options">';
+                html += '<p><small>Already have a verification code? Click <a href="#" class="fc-email-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
+                html += '</div></div>';
+
+                html += '</div>';
+                /*!fc-email-verification*/
+            }
+
+            // Success text
+            html += '<div class="fc-success' + (verified ? ' fc-force-show' : '') + '">';
+            html += fc.lang.fieldValidated;
+            html += '</div>'; /*!fc-success*/
+
+            return html;
+        },
+
+        /**
          * Returns true if a page is deemed to be a submission page
          * @param page
          * @returns {boolean}
@@ -1474,16 +1731,6 @@ var fc = (function ($) {
                     deleteSession();
                 }
             }
-        },
-
-        /**
-         * Hide and reset a modal
-         */
-        hideModal = function () {
-            fc.activeModalField = null;
-            fc.modalState = null;
-            fc.modalMeta = {};
-            $('.fc-modal.fc-show').removeClass('fc-show');
         },
 
         renderGrouplet,
@@ -1604,8 +1851,8 @@ var fc = (function ($) {
                 fc.fieldSchema[dataId] = field;
             }
 
-            // Description text
-            if (getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
+            // Description text - show before the label
+            if (fc.config.descriptionBeforeLabel === true && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
                 fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
             }
 
@@ -1614,6 +1861,11 @@ var fc = (function ($) {
             // Field label
             if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 fieldHtml += '<label>' + field.config.label + '</label>';
+            }
+
+            // Show the description after the label
+            if (fc.config.descriptionBeforeLabel === false && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
+                fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
             }
 
             // Output a repeatable field
@@ -1652,6 +1904,9 @@ var fc = (function ($) {
                 break;
             case 'creditCard':
                 fieldHtml += renderCreditCard(field, prefix);
+                break;
+            case 'emailVerification':
+                fieldHtml += renderEmailVerification(field, prefix);
                 break;
             default:
                 console.log('Unknown field type: ' + field.type);
@@ -2473,9 +2728,7 @@ var fc = (function ($) {
 
                         // Apply a conditional offset
                         if (fc.config.conditionalHtmlScrollOffset.class !== undefined) {
-                            console.log("check conditional offset");
                             if ($('html').hasClass(fc.config.conditionalHtmlScrollOffset.class)) {
-                                console.log('apply conditional offset');
                                 offset += fc.config.conditionalHtmlScrollOffset.offset;
                             }
                         }
@@ -2521,6 +2774,9 @@ var fc = (function ($) {
                     break;
                 case fc.states.ADD_REPEATABLE:
                     addRepeatableRow();
+                    break;
+                case fc.states.EMAIL_VERIFICATION_CODE:
+                    verifyEmailAddress();
                     break;
                 }
             }
@@ -2596,6 +2852,8 @@ var fc = (function ($) {
             '<p>One modal example here! :D</p>' +
             '</div>' +
             '<div class="modal-footer">' +
+            '<div class="fc-loading fc-hide"></div>' +
+            '<div class="fc-error fc-hide"></div>' +
             '<a href="#" class="btn btn-danger fc-btn-close">' + fc.lang.closeModalText + '</a> ' +
             '<a href="#" class="btn btn-success fc-btn-add">' + fc.lang.addModalText + '</a> ' +
             '</div>' +
@@ -3065,14 +3323,16 @@ var fc = (function ($) {
             this.expired = false;
             this.pageOrders = [];
             this.activeScroll = "";
+            this.processedActions = {};
 
             /**
              * Register modal states
-             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string}}
+             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string}}
              */
             this.states = {
                 DELETE_REPEATABLE: 'deleteRepeatable',
-                ADD_REPEATABLE: 'addRepeatableRow'
+                ADD_REPEATABLE: 'addRepeatableRow',
+                EMAIL_VERIFICATION_CODE: 'emailVerificationCode'
             };
 
             /**
@@ -3107,6 +3367,14 @@ var fc = (function ($) {
                 onPrevPage: 'onPrevPage',
                 onConnectionMade: 'onFCConnectionMade',
                 onFinishRender: 'onFinishFormRender'
+            };
+
+            /**
+             * One time processes
+             * @type {{emailListeners: string}}
+             */
+            this.processes = {
+                emailListeners: 'emailListeners'
             };
 
             // Set config if not already done so
@@ -3214,7 +3482,8 @@ var fc = (function ($) {
                 autoLoadPages: false,
                 activePageOffset: 250,
                 creditCardNumberLimits: [16, 16],
-                maxCreditCardCodeLength: 4
+                maxCreditCardCodeLength: 4,
+                descriptionBeforeLabel: true
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
@@ -3273,7 +3542,10 @@ var fc = (function ($) {
                 deleteDialogHeader: "Are you sure?",
                 deleteDigntoaryDialogText: "Are you sure you want to delete the selected signatory?",
                 confirm: "Confirm",
-                invalidCardFormat: "The credit card you entered could not be recognised"
+                invalidCardFormat: "The credit card you entered could not be recognised",
+                sendEmail: "Send email",
+                fieldValidated: "<p>Successfully verified</p>",
+                fieldMustBeVerified: "You must first complete verification"
             };
 
             // Update with client options
