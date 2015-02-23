@@ -1683,8 +1683,6 @@ var fc = (function ($) {
                 fieldValue = fc.fields[getId(field)],
                 verified = fieldValue !== undefined && fieldValue === '1';
 
-            console.log(verified);
-
             // If not verified, show the form to verify
             if (!verified) {
                 html += '<div class="fc-email-verification" fc-belongs-to="' + getId(field) + '">';
