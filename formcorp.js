@@ -728,7 +728,8 @@ var fc = (function ($) {
                 cardNumber,
                 expiryMonth,
                 expiryYear,
-                securityCode;
+                securityCode,
+                cardType;
 
             // A value for the credit card indicates its all good (to be verified by server)
             if (value.length > 0) {
@@ -854,7 +855,9 @@ var fc = (function ($) {
 
                 // If a credit card payment field, treat uniquely
                 if (field.type === "creditCard") {
-                    localErrors = validCreditCardField(dataId, field, section);
+                    if (value.length === 0) {
+                        localErrors.push(fc.lang.paymentRequired);
+                    }
                     skipCheck = true;
                 } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
                     // If email or sms verification, check if verified
@@ -1592,13 +1595,13 @@ var fc = (function ($) {
         registerCreditCardListeners = function () {
             // Button to process a payment
             $(fc.jQueryContainer).on('click', '.fc-submit-payment .fc-btn', function () {
-                var dataObjectId, rootElement, gateway, schema;
+                var dataObjectId, rootElement, gateway, schema, localErrors;
 
+                // Retrieve the field id the payment form belongs to
                 dataObjectId = $(this).attr('data-for');
                 if (dataObjectId === undefined) {
                     return false;
                 }
-
                 // Fetch the root credit card instance
                 rootElement = $('[fc-data-group="' + dataObjectId + '"]');
                 if (rootElement.length === 0) {
@@ -1610,6 +1613,23 @@ var fc = (function ($) {
                 if (schema === undefined) {
                     return false;
                 }
+
+                // Validate the payment form before going any further
+                localErrors = validCreditCardField(dataObjectId, schema, rootElement.parent());
+                // If have errors, output
+                if (localErrors.length > 0) {
+                    // Log error event
+                    logEvent(fc.eventTypes.onFieldError, {
+                        fieldId: dataObjectId,
+                        errors: localErrors
+                    });
+
+                    // Show the error and return
+                    showFieldError(dataObjectId, localErrors);
+                    return false;
+                }
+
+                removeFieldError(dataObjectId);
 
                 // What gateway to use
                 gateway = getConfig(schema, 'paymentGateway', {}, true);
@@ -1642,7 +1662,26 @@ var fc = (function ($) {
             var html = '',
                 month,
                 year,
-                currentYear = (new Date()).getFullYear();
+                currentYear = (new Date()).getFullYear(),
+                fieldValue,
+                error;
+
+            // Retrieve the field value and check to see if it's completed
+            fieldValue = fc.fields[getId(field)];
+            if (fieldValue !== undefined && fieldValue.length > 0) {
+                // Successfully been completed, return a completion message
+                html += '<div class="fc-payment">';
+                html += '<div class="fc-success">' + fc.lang.creditCardSuccess + '</div>';
+                html += '</div>';
+
+                return html;
+            }
+
+            // If an error was passed through, check
+            error = fc.getUrlParameter(fc.config.creditCardErrorUrlParam);
+            if (error !== undefined && error.length > 0) {
+                html += '<div class="fc-error"><label>' + htmlEncode(error) + '</label></div>';
+            }
 
             // Register the credit card event listeners if not already done so
             if (!processed(fc.processes.creditCardListeners)) {
@@ -3779,6 +3818,18 @@ var fc = (function ($) {
         },
 
         /**
+         * Retrieve a URL parameter by name
+         * @param name
+         * @returns {string}
+         */
+        getUrlParameter: function (name) {
+            name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+            var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+                results = regex.exec(location.search);
+            return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+        },
+
+        /**
          * Set the form branch to use.
          * @param branch
          */
@@ -3820,7 +3871,8 @@ var fc = (function ($) {
                 activePageOffset: 250,
                 creditCardNumberLimits: [16, 16],
                 maxCreditCardCodeLength: 4,
-                descriptionBeforeLabel: true
+                descriptionBeforeLabel: true,
+                creditCardErrorUrlParam: 'creditCardError'
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
@@ -3884,7 +3936,9 @@ var fc = (function ($) {
                 fieldValidated: "<p>Successfully verified</p>",
                 fieldMustBeVerified: "You must first complete verification",
                 sendSms: "Send SMS",
-                payNow: "Pay now"
+                payNow: "Pay now",
+                creditCardSuccess: "<p>Your payment has successfully been processed.</p>",
+                paymentRequired: "Payment is required before proceeding."
             };
 
             // Update with client options

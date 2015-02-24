@@ -396,3 +396,7 @@ div.fc-pagination {
 .fc-verified .fc-error-text {
     display: none;
 }
+
+.fc-field-creditCard .fc-error {
+    padding: 0 0 18px 0;
+}
