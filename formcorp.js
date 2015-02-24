@@ -217,7 +217,7 @@ var fc = (function ($) {
                 jsonify = false;
             }
 
-            if (typeof field.config === 'object' && field.config[key] !== undefined) {
+            if (field !== undefined && typeof field.config === 'object' && field.config[key] !== undefined) {
                 if (jsonify) {
                     // Attempt to convert to json string
                     if (typeof field.config[key] === "string" && ['[', '{'].indexOf(field.config[key].substring(0, 1)) > -1) {
@@ -955,7 +955,8 @@ var fc = (function ($) {
                 x,
                 rule,
                 comparison,
-                compare = '';
+                compare = '',
+                json;
 
             if (obj.condition !== undefined) {
                 compare = obj.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
@@ -987,6 +988,15 @@ var fc = (function ($) {
                         comparison = 'fc.comparison';
                         if (typeof rule.operator === 'string' && rule.operator.length > 0) {
                             comparison += rule.operator.charAt(0).toUpperCase() + rule.operator.slice(1);
+                        }
+
+                        // Attempt to typecast to object from string
+                        if (typeof rule.value === 'string' && ['[', '{'].indexOf(rule.value.substring(0, 1)) > -1) {
+                            try {
+                                json = $.parseJSON(rule.value);
+                                rule.value = json;
+                            } catch (ignore) {
+                            }
                         }
 
                         // If object, cast to JSON string
@@ -1215,6 +1225,43 @@ var fc = (function ($) {
             }
 
             return layout;
+        },
+
+        /**
+         * Retrieve the payment amount for a credit card field, based on the default and conditional parameters
+         *
+         * @param fieldId
+         * @returns {*}
+         */
+        getPaymentAmount = function (fieldId) {
+            var schema, price, conditionalPrices, booleanLogic, conditionalPrice, iterator;
+
+            // Retrieve the field schema
+            schema = fc.fieldSchema[fieldId];
+            if (schema === undefined) {
+                return;
+            }
+
+            // Use the default price initially
+            price = getConfig(schema, 'defaultPrice', 0);
+
+            // Check to see if conditional prices were supplied and, if so iterate through them
+            conditionalPrices = getConfig(schema, 'conditionalPrice', [], true);
+            if (typeof conditionalPrices === "object" && conditionalPrices.length > 0) {
+                for (iterator = 0; iterator < conditionalPrices.length; iterator += 1) {
+                    conditionalPrice = conditionalPrices[iterator];
+
+                    // If conditions passed through, check if true
+                    if (typeof conditionalPrice.conditions === "object") {
+                        booleanLogic = toBooleanLogic(conditionalPrice.conditions);
+                        if (eval(booleanLogic)) {
+                            price = conditionalPrice.price;
+                        }
+                    }
+                }
+            }
+
+            return price;
         },
 
         /**
@@ -1577,10 +1624,12 @@ var fc = (function ($) {
                 cardExpiryMM: month,
                 cardExpiryYYYY: rootElement.find('.fc-cc-expirydate-year').val(),
                 cardSecureId: rootElement.find('.fc-cc-ccv input').val().replace(/[^0-9]+/g, ""),
-                paymentAmount: '1.00',
+                paymentAmount: getPaymentAmount(rootElement.attr('fc-data-group')),
                 metaData1: rootElement.attr('fc-data-group'),
                 metaData2: fc.sessionId
             };
+
+            console.log(data);
 
             // Automatically generate a form
             form = createDynamicFormFromData(fc.gateways.paycorp, data);
