@@ -373,15 +373,15 @@ div.fc-pagination {
     text-align: left;
 }
 
-.fc-field-emailVerification .fc-success {
+.fc-field-emailVerification .fc-success, .fc-field-smsVerification .fc-success {
     display: none;
 }
 
-.fc-field-emailVerification.fc-verified .fc-success {
+.fc-field-emailVerification.fc-verified .fc-success, .fc-field-smsVerification.fc-verified .fc-success {
     display: block;
 }
 
-.fc-field-emailVerification.fc-verified .fc-email-verification {
+.fc-field-emailVerification.fc-verified .fc-email-verification, .fc-field-smsVerification.fc-verified .fc-sms-verification {
     display: none;
 }
 
@@ -391,4 +391,8 @@ div.fc-pagination {
 
 .fc-force-show {
     display: block !important;
+}
+
+.fc-verified .fc-error-text {
+    display: none;
 }

@@ -748,17 +748,6 @@ var fc = (function ($) {
         },
 
         /**
-         *
-         * @param dataId
-         * @param field
-         * @param section
-         * @returns {Array}
-         */
-        validateGrouplet = function (dataId, field, section) {
-            return [];
-        },
-
-        /**
          * Returns true if a field element exists within a modal window
          * @param obj
          * @returns {boolean}
@@ -828,7 +817,8 @@ var fc = (function ($) {
                 if (field.type === "creditCard") {
                     localErrors = validCreditCardField(dataId, field, section);
                     skipCheck = true;
-                } else if (field.type === "emailVerification") {
+                } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
+                    // If email or sms verification, check if verified
                     if (fc.fields[getId(field)] === undefined || fc.fields[getId(field)] !== '1') {
                         localErrors.push(fc.lang.fieldMustBeVerified);
                     } else {
@@ -1528,25 +1518,17 @@ var fc = (function ($) {
         },
 
         /**
-         * Verify the user email input
+         * Verify a mobile or email
+         * @param verificationCode
          * @returns {boolean}
          */
-        verifyEmailAddress = function () {
-            var verificationCode = $('.fc-email-verification-submit input[type=text]').val(),
-                tags = getFieldTags(),
-                schema,
-                data,
-                email;
+        verifyCode = function (verificationCode) {
+            var schema,
+                data;
 
             // Retrieve the field schema
             schema = fc.fieldSchema[fc.modalMeta.fieldId];
             if (schema === undefined) {
-                return false;
-            }
-
-            // Try to retrieve the email
-            email = tags[getConfig(schema, 'validateAgainst', '')];
-            if (email === undefined) {
                 return false;
             }
 
@@ -1573,6 +1555,14 @@ var fc = (function ($) {
 
                 $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
             });
+        },
+
+        /**
+         * Verify the user email input
+         * @returns {boolean}
+         */
+        verifyEmailAddress = function () {
+            verifyCode($('.fc-email-verification-submit input[type=text]').val());
         },
 
         /**
@@ -1603,10 +1593,6 @@ var fc = (function ($) {
          * @param dataId
          */
         waitForVerification = function (dataId) {
-            var data = {
-                fieldId: dataId
-            };
-
             // Need to poll the database intermittently and wait for verification
             api('verification/is-verified', {fieldId: dataId}, 'POST', function (data) {
                 if (typeof data === "object" && data.success !== undefined && data.success === true) {
@@ -1691,6 +1677,118 @@ var fc = (function ($) {
                 html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendEmail + '"><div class="fc-loading fc-hide"></div>';
                 html += '<div class="fc-clear fc-verification-options">';
                 html += '<p><small>Already have a verification code? Click <a href="#" class="fc-email-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
+                html += '</div></div>';
+
+                html += '</div>';
+                /*!fc-email-verification*/
+            }
+
+            // Success text
+            html += '<div class="fc-success' + (verified ? ' fc-force-show' : '') + '">';
+            html += fc.lang.fieldValidated;
+            html += '</div>'; /*!fc-success*/
+
+            return html;
+        },
+
+        /**
+         * Verify the mobile phone number
+         * @returns {boolean}
+         */
+        verifyMobileNumber = function () {
+            verifyCode($('.fc-sms-verification-submit input[type=text]').val());
+        },
+
+        /**
+         * Show the email verification modal
+         * @param fieldId
+         * @returns {boolean}
+         */
+        showSmsVerificationModal = function (fieldId) {
+            // Configure the modal
+            fc.modalState = fc.states.SMS_VERIFICATION_CODE;
+            fc.modalMeta = {
+                fieldId: fieldId
+            };
+
+            var modalBody = '<p>To verify your mobile, input the code sent to you via SMS in the area below, and click the \'Verify mobile\' button.</p>';
+            modalBody += '<div class="fc-sms-verification-submit"><input class="fc-fieldinput" type="text" placeholder="Enter verification code..."></div>';
+
+            // Update the modal html and show it
+            $('.fc-modal .modal-header h2').text("Success!");
+            $('.fc-modal .modal-body').html(modalBody);
+            $('.fc-modal .modal-footer .fc-btn-add').text("Verify mobile");
+            $('.fc-modal').addClass('fc-show');
+            return false;
+        },
+
+        /**
+         * Register the event listeners for SMS verifications
+         */
+        registerSmsVerificationListeners = function () {
+            // Send an email to the user
+            $(fc.jQueryContainer).on('click', '.fc-sms-verification .fc-send-sms input[type=submit]', function () {
+                var elParent = $(this).parent(),
+                    data,
+                    fieldId;
+
+                elParent.find('.fc-loading').removeClass('fc-hide');
+                fieldId = elParent.parent().attr('fc-belongs-to');
+
+                // Data to send with the request
+                data = {
+                    field: fieldId
+                };
+
+                // Send the api callback
+                api('verification/callback', data, 'POST', function (data) {
+                    elParent.find('.fc-loading').addClass('fc-hide');
+
+                    // On successful request, load a dialog to input the code
+                    if (typeof data === "object" && data.success !== undefined && data.success) {
+                        showSmsVerificationModal(fieldId);
+                        waitForVerification(fieldId);
+                    }
+                });
+
+                return false;
+            });
+
+            // Open the modal
+            $(fc.jQueryContainer).on('click', '.fc-sms-verification-modal', function () {
+                var dataId = $(this).attr('data-for');
+                showSmsVerificationModal(dataId);
+
+                return false;
+            });
+
+            fc.processedActions[fc.processes.emailListeners] = true;
+        },
+
+        /**
+         * Render the sms verification field
+         * @param field
+         * @returns {string}
+         */
+        renderSmsVerification = function (field) {
+            // Register the email verification event listeners if required
+            if (!processed(fc.processes.smsListeners)) {
+                registerSmsVerificationListeners();
+            }
+
+            /// Start formatting the html to output
+            var html = '',
+                fieldValue = fc.fields[getId(field)],
+                verified = fieldValue !== undefined && fieldValue === '1';
+
+            // If not verified, show the form to verify
+            if (!verified) {
+                html += '<div class="fc-sms-verification" fc-belongs-to="' + getId(field) + '">';
+
+                html += '<div class="fc-send-sms">';
+                html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
+                html += '<div class="fc-clear fc-verification-options">';
+                html += '<p><small>Already have a verification code? Click <a href="#" class="fc-sms-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
                 html += '</div></div>';
 
                 html += '</div>';
@@ -1934,6 +2032,9 @@ var fc = (function ($) {
                 break;
             case 'emailVerification':
                 fieldHtml += renderEmailVerification(field, prefix);
+                break;
+            case 'smsVerification':
+                fieldHtml += renderSmsVerification(field, prefix);
                 break;
             default:
                 console.log('Unknown field type: ' + field.type);
@@ -2189,16 +2290,17 @@ var fc = (function ($) {
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
 
         // Often various pages will be loaded at the same time (when no fields on that page are required)
-        if (fc.config.autoLoadPages) {
+        /*if (fc.config.autoLoadPages) {
             //checkAutoLoad();
-        }
+        }*/
     };
 
     /**
      * Render the next page
      * @param shouldRender
      * @param returnPage
-     * @returns {boolean}
+     * @param pageId
+     * @returns {*}
      */
     nextPage = function (shouldRender, returnPage, pageId) {
         if (typeof shouldRender !== 'boolean') {
@@ -2805,6 +2907,9 @@ var fc = (function ($) {
                 case fc.states.EMAIL_VERIFICATION_CODE:
                     verifyEmailAddress();
                     break;
+                case fc.states.SMS_VERIFICATION_CODE:
+                    verifyMobileNumber();
+                    break;
                 }
             }
 
@@ -3089,9 +3194,9 @@ var fc = (function ($) {
             grouplet = getConfig(schema, 'grouplet', {});
             if (grouplet.field !== undefined && typeof grouplet.field === "object" && grouplet.field.length > 0) {
                 for (iterator = 0; iterator < grouplet.field.length; iterator += 1) {
-                    /*jslint nomen: true*/
+                    /*jslint nomen:true*/
                     id = dataId + prefixSeparator + grouplet.field[iterator]._id.$id;
-                    /*jslint nomen: false*/
+                    /*jslint nomen:false*/
                     val = (fc.fields[id] !== undefined) ? fc.fields[id] : "";
                     if (!fieldIsValid(grouplet.field[iterator], val)) {
                         return false;
@@ -3354,12 +3459,13 @@ var fc = (function ($) {
 
             /**
              * Register modal states
-             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string}}
+             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string, SMS_VERIFICATION_CODE: string}}
              */
             this.states = {
                 DELETE_REPEATABLE: 'deleteRepeatable',
                 ADD_REPEATABLE: 'addRepeatableRow',
-                EMAIL_VERIFICATION_CODE: 'emailVerificationCode'
+                EMAIL_VERIFICATION_CODE: 'emailVerificationCode',
+                SMS_VERIFICATION_CODE: 'smsVerificationCode'
             };
 
             /**
@@ -3398,10 +3504,11 @@ var fc = (function ($) {
 
             /**
              * One time processes
-             * @type {{emailListeners: string}}
+             * @type {{emailListeners: string, smsListeners: string}}
              */
             this.processes = {
-                emailListeners: 'emailListeners'
+                emailListeners: 'emailListeners',
+                smsListeners: 'smsListeners'
             };
 
             // Set config if not already done so
@@ -3572,7 +3679,8 @@ var fc = (function ($) {
                 invalidCardFormat: "The credit card you entered could not be recognised",
                 sendEmail: "Send email",
                 fieldValidated: "<p>Successfully verified</p>",
-                fieldMustBeVerified: "You must first complete verification"
+                fieldMustBeVerified: "You must first complete verification",
+                sendSms: "Send SMS"
             };
 
             // Update with client options
