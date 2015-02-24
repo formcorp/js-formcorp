@@ -203,18 +203,57 @@ var fc = (function ($) {
          * @param field
          * @param key
          * @param defaultVal
+         * @param jsonify
          * @returns {*}
          */
-        getConfig = function (field, key, defaultVal) {
+        getConfig = function (field, key, defaultVal, jsonify) {
+            var json;
+
             if (defaultVal === undefined) {
                 defaultVal = '';
             }
 
+            if (jsonify === undefined) {
+                jsonify = false;
+            }
+
             if (typeof field.config === 'object' && field.config[key] !== undefined) {
+                if (jsonify) {
+                    // Attempt to convert to json string
+                    if (typeof field.config[key] === "string" && ['[', '{'].indexOf(field.config[key].substring(0, 1)) > -1) {
+                        try {
+                            json = $.parseJSON(field.config[key]);
+                            field.config[key] = json;
+                        } catch (ignore) {
+                        }
+                    }
+                }
+
                 return field.config[key];
             }
 
             return defaultVal;
+        },
+
+        /**
+         * Retrieve the credit card type from the credit card number
+         * @param number
+         * @returns {string}
+         */
+        getCreditCardType = function (number) {
+            if (/^5[1-5]/.test(number)) {
+                return fc.cardTypes.mastercard;
+            }
+
+            if (/^4/.test(number)) {
+                return fc.cardTypes.visa;
+            }
+
+            if (/^3[47]/.test(number)) {
+                return fc.cardTypes.amex;
+            }
+
+            return "";
         },
 
         /**
@@ -403,7 +442,7 @@ var fc = (function ($) {
                 json;
 
             // If validators is a string (and starts with a json char to speed up), try to typecast to json
-            if (typeof field.config.validators === "string" && ['[', '}'].indexOf(field.config.validators.substring(0, 1)) > -1) {
+            if (typeof field.config.validators === "string" && ['[', '{'].indexOf(field.config.validators.substring(0, 1)) > -1) {
                 try {
                     json = $.parseJSON(field.config.validators);
                     field.config.validators = json;
@@ -1465,6 +1504,136 @@ var fc = (function ($) {
         },
 
         /**
+         * Creates a dynamic form ready to send to a payment gateway
+         * @param gateway
+         * @param data
+         * @returns {*|HTMLElement}
+         */
+        createDynamicFormFromData = function (gateway, data) {
+            var form, input, key;
+
+            // Instantiate the form
+            form = $(document.createElement('form'));
+            $(form).attr("action", gateway.action);
+            $(form).attr("method", gateway.method);
+
+            // Create the form attributes
+            for (key in data) {
+                if (data.hasOwnProperty(key)) {
+                    input = $("<input>").attr("type", "hidden").attr("name", key).val(data[key]);
+                    $(form).append($(input));
+                }
+            }
+
+
+            return $(form);
+        },
+
+        /**
+         * Send the payment request to formcorp
+         * @param rootElement
+         * @param gateway
+         * @returns {boolean}
+         */
+        initPaycorpGateway = function (rootElement, gateway) {
+            var data, form, month, cardType, cardNumber;
+
+            // Ensure the client id is all good
+            if (gateway.vars === undefined || typeof gateway.vars.clientId !== "string" || gateway.vars.clientId.length === 0) {
+                console.log("Malformed paycorp client id");
+            }
+
+            // Format the month
+            month = rootElement.find('.fc-cc-expirydate-month').val();
+            if (month.length === 1) {
+                month = '0' + month;
+            }
+
+            // Retrieve the card number and type
+            cardNumber = rootElement.find('.fc-cc-number input').val().replace(/[^0-9]+/g, "");
+            switch (getCreditCardType(cardNumber)) {
+            case fc.cardTypes.mastercard:
+                cardType = 'MASTERCARD';
+                break;
+            case fc.cardTypes.visa:
+                cardType = 'VISA';
+                break;
+            case fc.cardTypes.amex:
+                cardType = 'AMEX';
+                break;
+            default:
+                cardType = 'MASTERCARD';
+            }
+
+            // Prepare the data to send to paycorp
+            data = {
+                clientIdHash: gateway.vars.clientId,
+                cardType: cardType,
+                cardHolderName: rootElement.find('.fc-cc-name input').val(),
+                cardNo: cardNumber,
+                cardExpiryMM: month,
+                cardExpiryYYYY: rootElement.find('.fc-cc-expirydate-year').val(),
+                cardSecureId: rootElement.find('.fc-cc-ccv input').val().replace(/[^0-9]+/g, ""),
+                paymentAmount: '1.00',
+                metaData1: rootElement.attr('fc-data-group'),
+                metaData2: fc.sessionId
+            };
+
+            // Automatically generate a form
+            form = createDynamicFormFromData(fc.gateways.paycorp, data);
+            form.submit();
+
+            return false;
+        },
+
+        /**
+         * Register the event listeners for processing credit card payments
+         */
+        registerCreditCardListeners = function () {
+            // Button to process a payment
+            $(fc.jQueryContainer).on('click', '.fc-submit-payment .fc-btn', function () {
+                var dataObjectId, rootElement, gateway, schema;
+
+                dataObjectId = $(this).attr('data-for');
+                if (dataObjectId === undefined) {
+                    return false;
+                }
+
+                // Fetch the root credit card instance
+                rootElement = $('[fc-data-group="' + dataObjectId + '"]');
+                if (rootElement.length === 0) {
+                    return false;
+                }
+
+                // Fetch the field schema
+                schema = fc.fieldSchema[dataObjectId];
+                if (schema === undefined) {
+                    return false;
+                }
+
+                // What gateway to use
+                gateway = getConfig(schema, 'paymentGateway', {}, true);
+                if (typeof gateway.gateway !== "string") {
+                    return false;
+                }
+
+                // What to do?
+                switch (gateway.gateway) {
+                case "paycorp":
+                    initPaycorpGateway(rootElement, gateway);
+                    break;
+                default:
+                    console.log("No gateway to use");
+                    break;
+                }
+
+                return false;
+            });
+
+            fc.processedActions[fc.processes.creditCardListeners] = true;
+        },
+
+        /**
          * Render a credit card form
          * @param field
          * @returns {string}
@@ -1474,6 +1643,11 @@ var fc = (function ($) {
                 month,
                 year,
                 currentYear = (new Date()).getFullYear();
+
+            // Register the credit card event listeners if not already done so
+            if (!processed(fc.processes.creditCardListeners)) {
+                registerCreditCardListeners();
+            }
 
             // Initialise basic components
             html += '<div class="fc-payment">';
@@ -1500,6 +1674,11 @@ var fc = (function ($) {
             if (fc.config.cvvImage === null) {
                 html += '<img src="' + cdnUrl + '/img/cvv.gif" alt="cvv">';
             }
+            html += '</div>';
+
+            // Render the pay now button
+            html += '<div class="fc-submit-payment">';
+            html += '<input class="fc-btn" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.payNow + '"><div class="fc-loading fc-hide"></div>';
             html += '</div>';
 
             html += '</div>';
@@ -1686,7 +1865,8 @@ var fc = (function ($) {
             // Success text
             html += '<div class="fc-success' + (verified ? ' fc-force-show' : '') + '">';
             html += fc.lang.fieldValidated;
-            html += '</div>'; /*!fc-success*/
+            html += '</div>';
+            /*!fc-success*/
 
             return html;
         },
@@ -1798,7 +1978,8 @@ var fc = (function ($) {
             // Success text
             html += '<div class="fc-success' + (verified ? ' fc-force-show' : '') + '">';
             html += fc.lang.fieldValidated;
-            html += '</div>'; /*!fc-success*/
+            html += '</div>';
+            /*!fc-success*/
 
             return html;
         },
@@ -2291,8 +2472,8 @@ var fc = (function ($) {
 
         // Often various pages will be loaded at the same time (when no fields on that page are required)
         /*if (fc.config.autoLoadPages) {
-            //checkAutoLoad();
-        }*/
+         //checkAutoLoad();
+         }*/
     };
 
     /**
@@ -3504,11 +3685,33 @@ var fc = (function ($) {
 
             /**
              * One time processes
-             * @type {{emailListeners: string, smsListeners: string}}
+             * @type {{emailListeners: string, smsListeners: string, creditCardListeners: string}}
              */
             this.processes = {
                 emailListeners: 'emailListeners',
-                smsListeners: 'smsListeners'
+                smsListeners: 'smsListeners',
+                creditCardListeners: 'creditCardListeners'
+            };
+
+            /**
+             * Payment gateways
+             * @type {{paycorp: {method: string, action: string}}}
+             */
+            this.gateways = {
+                paycorp: {
+                    method: 'POST',
+                    action: 'https://test-merchants.paycorp.com.au/paycentre3/makeEntry'
+                }
+            };
+
+            /**
+             * Credit card types
+             * @type {{visa: string, mastercard: string, amex: string}}
+             */
+            this.cardTypes = {
+                visa: 'visa',
+                mastercard: 'mastercard',
+                amex: 'amex'
             };
 
             // Set config if not already done so
@@ -3680,7 +3883,8 @@ var fc = (function ($) {
                 sendEmail: "Send email",
                 fieldValidated: "<p>Successfully verified</p>",
                 fieldMustBeVerified: "You must first complete verification",
-                sendSms: "Send SMS"
+                sendSms: "Send SMS",
+                payNow: "Pay now"
             };
 
             // Update with client options
