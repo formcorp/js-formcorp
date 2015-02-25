@@ -728,8 +728,7 @@ var fc = (function ($) {
                 cardNumber,
                 expiryMonth,
                 expiryYear,
-                securityCode,
-                cardType;
+                securityCode;
 
             // A value for the credit card indicates its all good (to be verified by server)
             if (value.length > 0) {
@@ -1703,6 +1702,52 @@ var fc = (function ($) {
         },
 
         /**
+         * Render the payment summary table
+         * @param field
+         * @returns {string}
+         */
+        renderPaymentSummary = function (field) {
+            var html, price;
+
+            price = parseFloat(getPaymentAmount(getId(field))).toFixed(2);
+
+            html = "<div class='fc-table-summary'>";
+
+            // Render the payment summary title as required
+            if (getConfig(field, 'paymentSummaryTitle', '').length > 0) {
+                html += '<label>' + htmlEncode(getConfig(field, 'paymentSummaryTitle', '')) + '</label>';
+            }
+
+            // Render the payment summary description as required
+            if (getConfig(field, 'paymentSummaryDescription', '').length > 0) {
+                html += '<label>' + getConfig(field, 'paymentSummaryDescription', '') + '</label>';
+            }
+
+            html += '<table class="fc-table fc-summary"><thead><tr>';
+            html += '<th>' + fc.lang.description + '</th><th class="fc-total">' + fc.lang.total + '</th></tr></thead>';
+
+            // Table body
+            html += '<tbody>';
+            html += '<tr><td>' + fc.lang.paymentDescription + '<em class="fc-text-right fc-right">' + fc.lang.paymentSubTotal + '</em>';
+            html += '</td><td>' + fc.lang.currencySymbol.concat(parseFloat(price / 11 * 10).toFixed(2)) + '</td></tr>';
+
+            // Include the gst?
+            if (getConfig(field, 'includeGST', false)) {
+                html += '<tr><td class="fc-text-right"><em>' + fc.lang.paymentGst + '</em></td><td>';
+                html += fc.lang.currencySymbol.concat(parseFloat(price / 11).toFixed(2)) + '</td></tr>';
+            }
+
+            html += '<tr><td class="fc-text-right"><em>' + fc.lang.paymentTotal + '</em></td><td>' + fc.lang.currencySymbol.concat(price) + '</td></tr>';
+            html += '</tbody>';
+
+            html += '</table>';
+            html += '</div>';
+            /*!fc-table-summary*/
+
+            return html;
+        },
+
+        /**
          * Render a credit card form
          * @param field
          * @returns {string}
@@ -1714,6 +1759,27 @@ var fc = (function ($) {
                 currentYear = (new Date()).getFullYear(),
                 fieldValue,
                 error;
+
+            // Render the payment summary
+            if (getConfig(field, 'showPaymentSummary', false)) {
+                html += renderPaymentSummary(field);
+            }
+
+            // Render the label
+            html += '<div class="fc-creditCard-header">';
+            if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
+                // Show the label
+                html += '<label>' + htmlEncode(getConfig(field, 'label')) + '</label>';
+            }
+
+            if (getConfig(field, 'label', '').length > 0) {
+                // Show the description
+                html += getConfig(field, 'description');
+            }
+
+            html += '</div>';
+            /*!fc-creditCard-header*/
+
 
             // Retrieve the field value and check to see if it's completed
             fieldValue = fc.fields[getId(field)];
@@ -2245,21 +2311,25 @@ var fc = (function ($) {
                 fc.fieldSchema[dataId] = field;
             }
 
-            // Description text - show before the label
-            if (fc.config.descriptionBeforeLabel === true && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
-                fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
+            // Description text - show before the label (for certain fields)
+            if (["creditCard"].indexOf(field.type) === -1) {
+                if (fc.config.descriptionBeforeLabel === true && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
+                    fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
+                }
             }
 
             fieldHtml += '<div class="fc-fieldcontainer">';
 
-            // Field label
-            if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
-                fieldHtml += '<label>' + field.config.label + '</label>';
-            }
+            // Field label - don't show in this position for certain fields
+            if (["creditCard"].indexOf(field.type) === -1) {
+                if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
+                    fieldHtml += '<label>' + field.config.label + '</label>';
+                }
 
-            // Show the description after the label
-            if (fc.config.descriptionBeforeLabel === false && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
-                fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
+                // Show the description after the label
+                if (fc.config.descriptionBeforeLabel === false && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
+                    fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
+                }
             }
 
             // Output a repeatable field
@@ -3987,7 +4057,14 @@ var fc = (function ($) {
                 sendSms: "Send SMS",
                 payNow: "Pay now",
                 creditCardSuccess: "<p>Your payment has successfully been processed.</p>",
-                paymentRequired: "Payment is required before proceeding."
+                paymentRequired: "Payment is required before proceeding.",
+                paymentGst: "GST:",
+                paymentSubTotal: "Sub-total:",
+                paymentTotal: "Total:",
+                currencySymbol: "$",
+                total: "Total",
+                description: "Description",
+                paymentDescription: "Application completion"
             };
 
             // Update with client options

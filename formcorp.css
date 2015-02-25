@@ -400,3 +400,37 @@ div.fc-pagination {
 .fc-field-creditCard .fc-error {
     padding: 0 0 18px 0;
 }
+
+.fc-table-summary table.fc-summary {
+    width: 100%;
+}
+
+.fc-table-summary table.fc-summary .fc-total {
+    width:20%;
+}
+
+.fc-table {
+    border: 1px solid #f1f1f1;
+}
+
+.fc-table thead th {
+    background: #f1f1f1;
+    padding: 6px;
+}
+
+.fc-table thead th, .fc-table tbody td {
+    padding: 8px 24px 8px 8px;
+    line-height: 10px;
+}
+
+.fc-text-right {
+    text-align: right;
+}
+
+.fc-right {
+    float: right;
+}
+
+.fc-table-summary {
+    margin-bottom: 45px;
+}
