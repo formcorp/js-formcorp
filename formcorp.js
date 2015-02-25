@@ -2289,7 +2289,7 @@ var fc = (function ($) {
             var html = "", json, iterator, val;
 
             // Do not render for particular types
-            if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
+            if (["emailVerification", "smsVerification", "signature", "creditCard"].indexOf(field.type) > -1) {
                 return '';
             }
 
@@ -3337,9 +3337,6 @@ var fc = (function ($) {
             fieldId = $(this).attr('formcorp-data-id');
             value = getFieldValue($(this));
             field = fc.fieldSchema[fieldId];
-
-            console.log(fieldId);
-            console.log(value);
 
             // If custom errors exist, return false
             customErrors = getCustomErrors(field, value);
