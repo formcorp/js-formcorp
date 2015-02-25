@@ -1554,16 +1554,26 @@ var fc = (function ($) {
 
         /**
          * Creates a dynamic form ready to send to a payment gateway
+         * @param dataId
          * @param gateway
          * @param data
          * @returns {*|HTMLElement}
          */
-        createDynamicFormFromData = function (gateway, data) {
-            var form, input, key;
+        createDynamicFormFromData = function (dataId, gateway, data) {
+            var form, input, key, schema, url;
+
+            // Fetch the field schema
+            schema = fc.fieldSchema[dataId];
+            if (schema === undefined) {
+                return;
+            }
+
+            // Check to see if should use the live or sandbox url
+            url = getConfig(schema, 'environment', fc.environments.sandbox) === fc.environments.sandbox ? gateway.action.sandbox : gateway.action.live;
 
             // Instantiate the form
             form = $(document.createElement('form'));
-            $(form).attr("action", gateway.action);
+            $(form).attr("action", url);
             $(form).attr("method", gateway.method);
 
             // Create the form attributes
@@ -1631,7 +1641,7 @@ var fc = (function ($) {
             console.log(data);
 
             // Automatically generate a form
-            form = createDynamicFormFromData(fc.gateways.paycorp, data);
+            form = createDynamicFormFromData(rootElement.attr('fc-data-group'), fc.gateways.paycorp, data);
             form.submit();
 
             return false;
@@ -3852,13 +3862,25 @@ var fc = (function ($) {
             };
 
             /**
+             * Payment environments
+             * @type {{live: string, sandbox: string}}
+             */
+            this.environments = {
+                live: "Live",
+                sandbox: "Sandbox"
+            };
+
+            /**
              * Payment gateways
              * @type {{paycorp: {method: string, action: string}}}
              */
             this.gateways = {
                 paycorp: {
                     method: 'POST',
-                    action: 'https://test-merchants.paycorp.com.au/paycentre3/makeEntry'
+                    action: {
+                        sandbox: 'https://test-merchants.paycorp.com.au/paycentre3/makeEntry',
+                        live: 'https://merchants.paycorp.com.au/paycentre3/makeEntry'
+                    }
                 }
             };
 
