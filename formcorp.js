@@ -236,6 +236,15 @@ var fc = (function ($) {
         },
 
         /**
+         * Fields optionally have a shortened label for use in summary tables/pdfs.
+         * @param field
+         * @returns {*}
+         */
+        getShortLabel = function (field) {
+            return getConfig(field, 'shortLabel', '').length > 0 ? getConfig(field, 'shortLabel') : getConfig(field, 'label');
+        },
+
+        /**
          * Retrieve the credit card type from the credit card number
          * @param number
          * @returns {string}
@@ -945,6 +954,30 @@ var fc = (function ($) {
         },
 
         /**
+         * Creates a dictionary of values for a grouplet against the original id.
+         *
+         * @param key
+         * @param value
+         */
+        saveOriginalGroupletValue = function (key, value) {
+            var parts, groupletId, fieldId;
+
+            if (key.indexOf(prefixSeparator) > -1) {
+                parts = key.split(prefixSeparator);
+                if (parts.length > 1) {
+                    // Retrieve the grouplet id second from the end
+                    groupletId = parts[parts.length - 2];
+                    fieldId = parts[parts.length - 1];
+
+                    if (fc.fields[groupletId] === undefined) {
+                        fc.fields[groupletId] = {};
+                    }
+                    fc.fields[groupletId][fieldId] = value;
+                }
+            }
+        },
+
+        /**
          * Converts an object to a literal boolean object string.
          * @param obj
          * @returns {*}
@@ -1411,13 +1444,22 @@ var fc = (function ($) {
             if (prefix === undefined) {
                 prefix = "";
             }
-
-            /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-                fieldId = prefix + field._id.$id,
-                html = '<textarea class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '"></textarea>';
-            /*jslint nomen: false*/
+                fieldId = prefix + getId(field),
+                html,
+                value;
 
+            // Default value
+            value = getConfig(field, 'defaultValue', '').length > 0 ? getConfig(field, 'defaultValue') : '';
+            html = '<textarea';
+
+            // Whether or not the field is read only
+            console.log(getConfig(field, 'readOnly', false));
+            if (getConfig(field, 'readOnly', false)) {
+                html += ' readonly';
+            }
+
+            html += ' class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '">' + htmlEncode(value) + '</textarea>';
             return html;
         },
 
@@ -2149,6 +2191,150 @@ var fc = (function ($) {
         },
 
         /**
+         * Render a string on the review table
+         *
+         * @param field
+         * @param value
+         * @returns {string}
+         */
+        renderReviewTableString = function (field, value) {
+            var html = "", json, iterator, val;
+
+            // Do not render for particular types
+            if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
+                return '';
+            }
+
+            // Do not render for readonly fields
+            if (getConfig(field, 'readOnly', false)) {
+                return '';
+            }
+
+            html += "<tr><td>" + getShortLabel(field) + "</td><td>";
+
+            // If a string, output safely
+            if (['[', '{'].indexOf(value.substring(0, 1)) > -1) {
+                try {
+                    json = $.parseJSON(value);
+                    value = json;
+                } catch (ignore) {
+                }
+            }
+
+            // If string, output
+            if (typeof value === "string") {
+                html += htmlEncode(value);
+            } else if (typeof value === "object") {
+                html += "<ul class='fc-list'>";
+                for (iterator = 0; iterator < value.length; iterator += 1) {
+                    val = value[iterator];
+                    html += "<li>" + htmlEncode(val) + "</li>";
+                }
+                html += "</ul>";
+            }
+
+            html += "</td></tr>";
+
+            return html;
+        },
+
+        /**
+         * Render an array'd value for the review table
+         *
+         * @param field
+         * @param value
+         */
+        renderReviewTableArray = function (field, value) {
+            var html = "", iterator, parts, key;
+
+            // Array - repeatable grouplet
+            for (iterator = 0; iterator < value.length; iterator += 1) {
+                if (typeof value[iterator] === "object") {
+                    html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + " #" + (iterator + 1) + "</th></tr>";
+
+                    for (key in value[iterator]) {
+                        if (value[iterator].hasOwnProperty(key)) {
+                            if (value[iterator][key].length > 0) {
+                                if (key.indexOf(prefixSeparator) > -1) {
+                                    parts = key.split(prefixSeparator);
+                                    html += "<tr><td>" + getShortLabel(fc.fieldSchema[parts[parts.length - 1]]);
+                                    html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return html;
+        },
+
+        renderReviewTableGrouplet,
+        renderSummaryField,
+
+        /**
+         * Render the review table
+         * @param fieldId
+         * @returns {*}
+         */
+        renderReviewTable = function (fieldId) {
+            var html, stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml;
+
+            html = '<div class="fc-form-summary fc-review-table">';
+            html += '<table class="fc-table"><thead><tr><th class="fc-field-col">Field</th><th>Value</th></tr></thead><tbody>';
+
+            // Loop through every page, output every field that has a value
+            for (stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
+                stage = fc.schema.stage[stageIterator];
+
+                // Confirm the stage has a set of pages
+                if (stage === undefined || stage.page === undefined || typeof stage.page !== "object") {
+                    continue;
+                }
+
+                // Iterate through each page
+                for (pageIterator = 0; pageIterator < stage.page.length; pageIterator += 1) {
+                    page = stage.page[pageIterator];
+
+                    // Confirm the page has a set of sections
+                    if (page === undefined || page.section === undefined || typeof page.section !== "object") {
+                        continue;
+                    }
+
+                    pageHtml = "";
+
+                    // Iterate through each page section
+                    for (sectionIterator = 0; sectionIterator < page.section.length; sectionIterator += 1) {
+                        section = page.section[sectionIterator];
+
+                        // Ensure the section has a set of fields
+                        if (section === undefined || section.field === undefined || typeof section.field !== "object") {
+                            continue;
+                        }
+
+                        // Iterate through each field
+                        for (fieldIterator = 0; fieldIterator < section.field.length; fieldIterator += 1) {
+                            field = section.field[fieldIterator];
+
+                            pageHtml += renderSummaryField(field);
+                        }
+                    }
+
+                    // If the page rendered any fields, display it
+                    if (pageHtml.length > 0) {
+                        html += "<tr><th colspan='2'>" + htmlEncode(page.label) + "</th></tr>";
+                        html += pageHtml;
+                    }
+                }
+            }
+
+            html += '</tbody></table></div>';
+            /*!fc-form-summary*/
+
+            return html;
+        },
+
+        /**
          * Returns true if a page is deemed to be a submission page
          * @param page
          * @returns {boolean}
@@ -2239,6 +2425,63 @@ var fc = (function ($) {
         validateModal,
         orderSchema,
         orderObject;
+
+    /**
+     * Render a grouplet on the review table
+     *
+     * @param field
+     * @param value
+     * @returns {*}
+     */
+    renderReviewTableGrouplet = function (field, value) {
+        var html = "", key;
+
+        // Grouplet, need to recursively output
+        for (key in value) {
+            if (value.hasOwnProperty(key)) {
+                html += renderSummaryField(fc.fieldSchema[key], value[key]);
+            }
+        }
+
+        return html;
+    };
+
+    /**
+     * Render review table field
+     * @param field
+     * @param value
+     * @returns {string}
+     */
+    renderSummaryField = function (field, value) {
+        var html = '', id, isValidObject, isValidString;
+
+        // Retrieve the id of the field and its value
+        id = getId(field);
+        if (value === undefined) {
+            value = fc.fields[id];
+        }
+
+        // If the valid is valid, proceed
+        if (value !== undefined) {
+            isValidObject = typeof value === "object" && (($.isArray(value) && value.length > 0) || !$.isEmptyObject(value));
+            isValidString = typeof value === "string" && value.length > 0;
+
+            // If object with enumerable keys or string with length greater than 0
+            if (isValidObject || isValidString) {
+                if (isValidString) {
+                    html += renderReviewTableString(field, value);
+                } else if (isValidObject) {
+                    if ($.isArray(value)) {
+                        html += renderReviewTableArray(field, value);
+                    } else {
+                        html += renderReviewTableGrouplet(field, value);
+                    }
+                }
+            }
+        }
+
+        return html;
+    };
 
     /**
      * Render a grouplet.
@@ -2384,6 +2627,9 @@ var fc = (function ($) {
                 break;
             case 'smsVerification':
                 fieldHtml += renderSmsVerification(field, prefix);
+                break;
+            case 'reviewTable':
+                fieldHtml += renderReviewTable(field, prefix);
                 break;
             default:
                 console.log('Unknown field type: ' + field.type);
@@ -2749,8 +2995,11 @@ var fc = (function ($) {
             iterator,
             nextPageObj;
 
+        console.log('changed');
+
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
+            console.log(1);
             return;
         }
 
@@ -2801,6 +3050,11 @@ var fc = (function ($) {
         if (typeof fieldSchema.config.repeatable !== 'boolean' || !fieldSchema.config.repeatable) {
             fc.fields[dataId] = value;
 
+            // If a grouplet, save the original state of the grouplet
+            if (dataId.indexOf(prefixSeparator) > -1) {
+                saveOriginalGroupletValue(dataId, value);
+            }
+
             // Flush the field visibility options
             flushVisibility();
 
@@ -2824,6 +3078,7 @@ var fc = (function ($) {
             if (fc.config.saveInRealTime === true) {
                 fc.saveQueue[dataId] = value;
             }
+
 
             // Register the value changed event
             params = {
@@ -3522,7 +3777,7 @@ var fc = (function ($) {
                 schema = fc.fieldSchema[dataId];
             } else if (typeof dataId === "object") {
                 schema = dataId;
-                dataId = schema._id.$id;
+                dataId = getId(schema);
             }
 
             if (typeof schema !== "object") {
@@ -3656,14 +3911,18 @@ var fc = (function ($) {
                 return;
             }
 
-            var key,
-                firstPageId;
+            var key, firstPageId;
 
             // If data returned by the API server, set locally
             if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
                 for (key in data.data) {
                     if (data.data.hasOwnProperty(key)) {
                         fc.fields[key] = data.data[key];
+
+                        // If a grouplet, also store the entire state
+                        if (key.indexOf(prefixSeparator) > -1) {
+                            saveOriginalGroupletValue(key, data.data[key]);
+                        }
                     }
                 }
             }

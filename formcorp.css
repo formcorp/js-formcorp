@@ -418,7 +418,7 @@ div.fc-pagination {
     padding: 6px;
 }
 
-.fc-table thead th, .fc-table tbody td {
+.fc-table.fc-summary thead th, .fc-table.fc-summary tbody td {
     padding: 8px 24px 8px 8px;
     line-height: 10px;
 }
@@ -433,4 +433,37 @@ div.fc-pagination {
 
 .fc-table-summary {
     margin-bottom: 45px;
+}
+
+.fc-review-table table {
+    width: 100%;
+}
+
+.fc-review-table thead th {
+    border-bottom: 1px solid #DFE0E5;
+}
+
+.fc-review-table table .fc-field-col {
+    width: 45%;
+}
+
+.fc-review-table td, .fc-review-table tbody th {
+    color: #6E6E6E;
+    padding: 16px 12px;
+    font-size: 15px;
+    border-bottom: 1px solid #DFE0E5;
+}
+
+.fc-review-table table {
+    border: #DFE0E5 1px solid;
+}
+
+.fc-review-table tr:nth-child(odd) td, .fc-review-table tr:nth-child(odd) th {
+    background: #f7f7f7;
+}
+
+.fc-list {
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
 }
