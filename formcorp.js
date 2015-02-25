@@ -184,6 +184,46 @@ var fc = (function ($) {
         },
 
         /**
+         * Load a css file on to the page
+         *
+         * @param file
+         * @param media
+         * @param cssId
+         */
+        loadCssFile = function (file, media, cssId) {
+            var head, link;
+
+            if (media === undefined) {
+                media = 'all';
+            }
+
+            head = document.getElementsByTagName('head')[0];
+            link = document.createElement('link');
+
+            if (cssId !== undefined) {
+                link.id = cssId;
+            }
+
+            link.rel = 'stylesheet';
+            link.href = htmlEncode(file);
+            link.media = media;
+            head.appendChild(link);
+        },
+
+        /**
+         * Load a javascript file
+         * @param file
+         */
+        loadJsFile = function (filePath) {
+            var file = document.createElement('script');
+
+            file.setAttribute("type", "text/javascript");
+            file.setAttribute("src", htmlEncode(filePath));
+
+            $('body').append(file);
+        },
+
+        /**
          * Return the mongo id of an object instance.
          * @param obj
          * @returns {*}
@@ -387,7 +427,13 @@ var fc = (function ($) {
          */
         getFieldValue = function (field) {
             var selector,
-                values = [];
+                values = [],
+                dataId;
+
+            // If not defined, return nothing
+            if (field.length === 0) {
+                return;
+            }
 
             if (field.is('input') || field.is('textarea')) {
                 if (field.attr('type') === 'radio') {
@@ -411,12 +457,29 @@ var fc = (function ($) {
                     return JSON.stringify(values);
                 }
 
-                return field.val();
+                dataId = $(field).attr('formcorp-data-id');
+                if (fc.fieldSchema[dataId] !== undefined) {
+                    // If read-only, do not record a value
+                    return getConfig(fc.fieldSchema[dataId], 'readOnly', false) ? '' : field.val();
+                }
 
             }
 
             if (field.is('select')) {
                 return $(field).find('option:selected').text();
+            }
+
+            // If a signature, set a string as the json value of the signature
+            dataId = field.attr('fc-data-group');
+            if ((fc.renderedSignatures !== undefined && fc.renderedSignatures[dataId] !== undefined) || field.hasClass(fc.config.signatureClass)) {
+                if (dataId === undefined) {
+                    // Attempt to load secondary data id if undefined (can run on parent and child element)
+                    dataId = $(field).attr('formcorp-data-id');
+                }
+
+                if (fc.renderedSignatures !== undefined && fc.renderedSignatures[dataId] !== undefined) {
+                    return fc.renderedSignatures[dataId].getSignatureString();
+                }
             }
 
             return '';
@@ -429,6 +492,10 @@ var fc = (function ($) {
          */
         fieldIsEmpty = function (field) {
             var value = getFieldValue(field);
+            if (value === undefined) {
+                return;
+            }
+
             return !value || value.length === 0;
         },
 
@@ -847,7 +914,7 @@ var fc = (function ($) {
                     skipCheck = false;
 
                 // If not required, do nothing
-                if (getConfig(field, 'required', false) === false) {
+                if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
                     return;
                 }
 
@@ -875,6 +942,22 @@ var fc = (function ($) {
                         // Successfully verified
                         skipCheck = true;
                     }
+                } else if (field.type === "signature") {
+                    // Signature fields need to be uniquely validated
+                    if (fc.renderedSignatures === undefined || fc.renderedSignatures[dataId] === undefined) {
+                        // Signature hasn't been initialised
+                        localErrors.push("Field has not been initialised");
+                    } else {
+                        if (fc.renderedSignatures[dataId].validateForm() === false) {
+                            // Attempt to validate the field
+                            localErrors.push(fc.lang.emptyFieldError);
+                        } else {
+                            // Store the value
+                            fc.fields[dataId] = fc.renderedSignatures[dataId].getSignatureString();
+                        }
+                    }
+                    skipCheck = true;
+
                 } else if (field.type === "grouplet") {
                     // Grouplet field as a whole doesn't need to be validated
                     return;
@@ -1345,6 +1428,11 @@ var fc = (function ($) {
                     fieldGroup = $(this).find('.fc-fieldgroup');
                     value = fc.fields[fieldId];
                     schema = fc.fieldSchema[fieldId];
+
+                    // If read-only and a default value set, use it
+                    if (getConfig(schema, 'readOnly', false)) {
+                        value = getConfig(schema, 'defaultValue', '');
+                    }
 
                     if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
                         // Restore a repeatable value
@@ -2424,7 +2512,82 @@ var fc = (function ($) {
         registerAnalyticsEventListeners,
         validateModal,
         orderSchema,
+        renderSignature,
+        loadSignatureLibs,
         orderObject;
+
+    /**
+     * Load the libraries required for signature fields
+     */
+    loadSignatureLibs = function () {
+        var iterator, sigBlock;
+
+        // Load the required css files
+        for (iterator = 0; iterator < fc.config.signatureLibCss.length; iterator += 1) {
+            loadCssFile(fc.config.signatureLibCss[iterator]);
+        }
+
+        // Load the required js files
+        for (iterator = 0; iterator < fc.config.signatureLibJs.length; iterator += 1) {
+            loadJsFile(fc.config.signatureLibJs[iterator]);
+        }
+
+        fc.renderedSignatures = {};
+
+        // Event listener for initialising the signature
+        $(fc.jQueryContainer).on(fc.jsEvents.onFinishRender, function () {
+            var dataId;
+
+            sigBlock = $(fc.jQueryContainer).find('.' + fc.config.signatureClass);
+            if (sigBlock.length > 0) {
+                sigBlock.each(function () {
+                    dataId = sigBlock.attr('data-for');
+                    fc.renderedSignatures[dataId] = sigBlock.signaturePad({
+                        drawOnly: true,
+                        onDrawEnd: function () {
+                            var key, signature;
+
+                            // Update and queue the signature for saving
+                            for (key in fc.renderedSignatures) {
+                                if (fc.renderedSignatures.hasOwnProperty(key)) {
+                                    signature = fc.renderedSignatures[key].getSignatureString();
+                                    if (fc.fields[key] === undefined || fc.fields[key] !== signature) {
+                                        valueChanged(key, signature);
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // If a value has been set, restore it
+                    if (fc.fields[dataId] !== undefined && fc.fields[dataId].length > 0) {
+                        fc.renderedSignatures[dataId].regenerate(fc.fields[dataId]);
+                    }
+                });
+
+            }
+        });
+
+        fc.processedActions[fc.processes.loadSignatureLibs] = true;
+    };
+
+    /**
+     * Render the signature field
+     * @param field
+     * @returns {string}
+     */
+    renderSignature = function (field) {
+        var html = '';
+
+        // Initialise the signature libraries if required
+        if (!processed(fc.processes.loadSignatureLibs)) {
+            loadSignatureLibs();
+        }
+
+        html = '<div class="' + fc.config.signatureClass + '" formcorp-data-id="' + getId(field) + '" data-for="' + getId(field) + '"> <ul class="sigNav"> <li class="clearButton"><a href="#clear">Clear</a></li> </ul> <div class="sig sigWrapper"> <div class="typed"></div> <canvas class="pad" width="400" height="75"></canvas> <input type="hidden" name="output" class="output"> </div></div>';
+
+        return html;
+    };
 
     /**
      * Render a grouplet on the review table
@@ -2630,6 +2793,9 @@ var fc = (function ($) {
                 break;
             case 'reviewTable':
                 fieldHtml += renderReviewTable(field, prefix);
+                break;
+            case 'signature':
+                fieldHtml += renderSignature(field, prefix);
                 break;
             default:
                 console.log('Unknown field type: ' + field.type);
@@ -2967,7 +3133,6 @@ var fc = (function ($) {
      * Auto loads the next page
      */
     checkAutoLoad = function () {
-        console.log("check autoload");
         if (!fc.config.autoLoadPages) {
             return;
         }
@@ -2995,11 +3160,8 @@ var fc = (function ($) {
             iterator,
             nextPageObj;
 
-        console.log('changed');
-
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
-            console.log(1);
             return;
         }
 
@@ -3061,7 +3223,7 @@ var fc = (function ($) {
             // Check real time validation
             if (fc.config.realTimeValidation === true) {
                 errors = fieldErrors(dataId);
-                if (errors.length > 0) {
+                if (errors !== undefined && errors.length > 0) {
                     // Log the error event
                     logEvent(fc.eventTypes.onFieldError, {
                         fieldId: dataId,
@@ -3078,7 +3240,6 @@ var fc = (function ($) {
             if (fc.config.saveInRealTime === true) {
                 fc.saveQueue[dataId] = value;
             }
-
 
             // Register the value changed event
             params = {
@@ -3177,9 +3338,13 @@ var fc = (function ($) {
             value = getFieldValue($(this));
             field = fc.fieldSchema[fieldId];
 
+            console.log(fieldId);
+            console.log(value);
+
             // If custom errors exist, return false
             customErrors = getCustomErrors(field, value);
             if (customErrors.length > 0) {
+                console.log('errors');
                 valid = false;
                 return;
             }
@@ -3551,18 +3716,10 @@ var fc = (function ($) {
      */
     loadCssFiles = function () {
         var cssId = 'formcorp-css',
-            cssUri = 'formcorp.css',
-            head,
-            link;
+            cssUri = 'formcorp.css';
 
         if ($('#' + cssId).length === 0) {
-            head = document.getElementsByTagName('head')[0];
-            link = document.createElement('link');
-            link.id = cssId;
-            link.rel = 'stylesheet';
-            link.href = cdnUrl + cssUri;
-            link.media = 'all';
-            head.appendChild(link);
+            loadCssFile(cdnUrl + cssUri);
         }
 
         $(fc.jQueryContainer).addClass('fc-container');
@@ -4117,7 +4274,8 @@ var fc = (function ($) {
             this.processes = {
                 emailListeners: 'emailListeners',
                 smsListeners: 'smsListeners',
-                creditCardListeners: 'creditCardListeners'
+                creditCardListeners: 'creditCardListeners',
+                loadSignatureLibs: 'loadSignatureLibs'
             };
 
             /**
@@ -4272,7 +4430,16 @@ var fc = (function ($) {
                 creditCardNumberLimits: [16, 16],
                 maxCreditCardCodeLength: 4,
                 descriptionBeforeLabel: true,
-                creditCardErrorUrlParam: 'creditCardError'
+                creditCardErrorUrlParam: 'creditCardError',
+                signatureLibCss: [
+                    cdnUrl + 'dist/signaturepad/assets/jquery.signaturepad.css'
+                ],
+                signatureLibJs: [
+                    cdnUrl + 'dist/signaturepad/jquery.signaturepad.min.js',
+                    cdnUrl + 'dist/signaturepad/assets/flashcanvas.js',
+                    cdnUrl + 'dist/signaturepad/assets/json2.min.js'
+                ],
+                signatureClass: 'sigPad'
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)

@@ -406,7 +406,7 @@ div.fc-pagination {
 }
 
 .fc-table-summary table.fc-summary .fc-total {
-    width:20%;
+    width: 20%;
 }
 
 .fc-table {
@@ -466,4 +466,28 @@ div.fc-pagination {
     padding: 0;
     margin: 0;
     list-style-type: none;
+}
+
+.fc-container .sig {
+    display: block;
+    height: 80px;
+    width: 405px;
+}
+
+.fc-container .sigPad {
+    width: 405px;
+}
+
+.fc-container .clearButton, .fc-container .sigNav {
+    display: block !important;
+}
+
+.fc-container .sigNav a, .fc-container .sigNav {
+    line-height: 1.25em !important;
+    max-height: 1.25em !important;
+}
+
+.fc-field-signature {
+    margin-top: 0;
+    padding-top: 0;
 }
