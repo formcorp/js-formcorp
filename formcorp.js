@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//192.168.247.129:9001/',
-        cdnUrl = '//192.168.247.129:9004/',
+    var apiUrl = '//192.168.1.115:9001/',
+        cdnUrl = '//192.168.1.115:9004/',
         prefixSeparator = "_",
 
         /**
