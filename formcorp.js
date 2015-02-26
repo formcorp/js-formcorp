@@ -170,8 +170,8 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//192.168.1.115:9001/',
-        cdnUrl = '//192.168.1.115:9004/',
+    var apiUrl = '//api.formcorp.com.au/',
+        cdnUrl = '//cdn.formcorp.com.au/js/',
         prefixSeparator = "_",
 
         /**
