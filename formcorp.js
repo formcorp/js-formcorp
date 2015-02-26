@@ -3457,6 +3457,7 @@ var fc = (function ($) {
             } else {
                 // Regular fields can be added to the flat dictionary
                 formData[dataId] = getFieldValue($(this));
+                fc.fields[dataId] = formData[dataId];
             }
         });
 
