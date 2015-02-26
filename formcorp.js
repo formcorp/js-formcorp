@@ -2520,19 +2520,7 @@ var fc = (function ($) {
      * Load the libraries required for signature fields
      */
     loadSignatureLibs = function () {
-        var iterator, sigBlock;
-
-        // Load the required css files
-        for (iterator = 0; iterator < fc.config.signatureLibCss.length; iterator += 1) {
-            loadCssFile(fc.config.signatureLibCss[iterator]);
-        }
-
-        // Load the required js files
-        for (iterator = 0; iterator < fc.config.signatureLibJs.length; iterator += 1) {
-            loadJsFile(fc.config.signatureLibJs[iterator]);
-        }
-
-        fc.renderedSignatures = {};
+        var sigBlock;
 
         // Event listener for initialising the signature
         $(fc.jQueryContainer).on(fc.jsEvents.onFinishRender, function () {
@@ -3714,7 +3702,8 @@ var fc = (function ($) {
      */
     loadCssFiles = function () {
         var cssId = 'formcorp-css',
-            cssUri = 'formcorp.css';
+            cssUri = 'formcorp.css',
+            iterator;
 
         if ($('#' + cssId).length === 0) {
             loadCssFile(cdnUrl + cssUri);
@@ -3723,6 +3712,18 @@ var fc = (function ($) {
         $(fc.jQueryContainer).addClass('fc-container');
         addModalWindow();
         $(fc.jQueryContainer).prepend('<div class="fc-loading-screen"><div class="fc-loading-halo"></div></div>');
+
+        // Load the required css files
+        for (iterator = 0; iterator < fc.config.signatureLibCss.length; iterator += 1) {
+            loadCssFile(fc.config.signatureLibCss[iterator]);
+        }
+
+        // Load the required js files
+        for (iterator = 0; iterator < fc.config.signatureLibJs.length; iterator += 1) {
+            loadJsFile(fc.config.signatureLibJs[iterator]);
+        }
+
+        fc.renderedSignatures = {};
     };
 
     /**
