@@ -170,8 +170,28 @@
 var fc = (function ($) {
     'use strict';
 
-    var apiUrl = '//api.formcorp.com.au/',
-        cdnUrl = '//cdn.formcorp.com.au/js/',
+    /**
+     * Internal development occurs locally between ports 9000 and 9010
+     * @type {boolean}
+     */
+    var isDev = window.location.hostname.indexOf('192.168.') === 0 && window.location.port >= 9000 && window.location.port <= 9010,
+
+        /**
+         * The URL to query the API on (local dev defaults to port 9001)
+         * @type {string}
+         */
+        apiUrl = !isDev ? '//api.formcorp.com.au/' : '//' + window.location.hostName + ':9001/',
+
+        /**
+         * The URL to query the CDN on (local dev defaults to port 9004)
+         * @type {string}
+         */
+        cdnUrl = !isDev ? '//cdn.formcorp.com.au/js/' : window.location.hostName + ':9004/',
+
+        /**
+         * Separator for recursive grouplets
+         * @type {string}
+         */
         prefixSeparator = "_",
 
         /**
