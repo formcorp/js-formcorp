@@ -180,13 +180,13 @@ var fc = (function ($) {
          * The URL to query the API on (local dev defaults to port 9001)
          * @type {string}
          */
-        apiUrl = !isDev ? '//api.formcorp.com.au/' : '//' + window.location.hostName + ':9001/',
+        apiUrl = !isDev ? '//api.formcorp.com.au/' : '//' + window.location.hostname + ':9001/',
 
         /**
          * The URL to query the CDN on (local dev defaults to port 9004)
          * @type {string}
          */
-        cdnUrl = !isDev ? '//cdn.formcorp.com.au/js/' : window.location.hostName + ':9004/',
+        cdnUrl = !isDev ? '//cdn.formcorp.com.au/js/' : '//' + window.location.hostname + ':9004/',
 
         /**
          * Separator for recursive grouplets
