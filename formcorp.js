@@ -174,7 +174,8 @@ var fc = (function ($) {
      * Internal development occurs locally between ports 9000 and 9010
      * @type {boolean}
      */
-    var isDev = window.location.hostname.indexOf('192.168.') === 0 && window.location.port >= 9000 && window.location.port <= 9010,
+    var isDev = window.location.hostname.indexOf('192.168.') === 0 && window.location.port >= 9000 &&
+            window.location.port <= 9010,
 
         /**
          * The URL to query the API on (local dev defaults to port 9001)
