@@ -6,7 +6,7 @@
  * Ability to embed a JS client side form on to an external webpage.
  */
 
-/*global define,exports,require,jQuery,document,console,window,setInterval*/
+/*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics*/
 
 
 /**
@@ -188,6 +188,12 @@ var fc = (function ($) {
          * @type {string}
          */
         cdnUrl = !isDev ? '//cdn.formcorp.com.au/js/' : '//' + window.location.hostname + ':9004/',
+
+        /**
+         * The URL of the Analytics javaqscript file
+         * @type {string}
+         */
+        analyticsUrl = cdnUrl + 'analytics.js',
 
         /**
          * Separator for recursive grouplets
@@ -652,18 +658,9 @@ var fc = (function ($) {
                 return;
             }
 
-            // Default params
-            if (params === undefined) {
-                params = {};
+            if (fc.analytics && fc.analytics.logEvent) {
+                fc.analytics.logEvent(event, params);
             }
-
-            var eventObject = {
-                'event': event,
-                'params': params,
-                'time': (new Date()).getTime()
-            };
-
-            fc.events.push(eventObject);
         },
 
         /**
@@ -1192,6 +1189,15 @@ var fc = (function ($) {
                     updateFieldSchemas(grouplet.field);
                 }
             }
+        },
+
+        /**
+         * Initialise data analytics
+         */
+        initAnalytics = function () {
+            loadJsFile(analyticsUrl);
+            fc.analytics = fcAnalytics;
+            fc.analytics.init();
         },
 
         /**
@@ -2514,7 +2520,6 @@ var fc = (function ($) {
         loadSchema,
         hasNextPage,
         loadNextPage,
-        processEventQueue,
         processSaveQueue,
         showDeleteDialog,
         addRepeatableRow,
@@ -2530,7 +2535,6 @@ var fc = (function ($) {
         flushFieldVisibility,
         registerValueChangedListeners,
         valueChanged,
-        registerAnalyticsEventListeners,
         validateModal,
         orderSchema,
         renderSignature,
@@ -2822,7 +2826,7 @@ var fc = (function ($) {
             }
 
 
-            fieldHtml += '</div>';
+            fieldHtml += '<div class="fc-empty"></div></div>';
             fieldHtml += '</div></div>';
             html += fieldHtml;
         }
@@ -3287,40 +3291,6 @@ var fc = (function ($) {
     };
 
     /**
-     * Register the listeners to handle analytic events
-     */
-    registerAnalyticsEventListeners = function () {
-        // Text value focused
-        $(fc.jQueryContainer).on('focus', '.fc-fieldinput', function () {
-            var dataId = $(this).attr('formcorp-data-id'),
-                params = {
-                    dataId: dataId
-                };
-            logEvent(fc.eventTypes.onFocus, params);
-        });
-
-        // Text value focused
-        $(fc.jQueryContainer).on('blur', '.fc-fieldinput', function () {
-            var dataId = $(this).attr('formcorp-data-id'),
-                params = {
-                    dataId: dataId
-                };
-            logEvent(fc.eventTypes.onBlur, params);
-        });
-
-        // Mouse down event
-        $(fc.jQueryContainer).on('mousedown', function (e) {
-            var x = parseInt(e.pageX - fc.formPosition.left, 10),
-                y = parseInt(e.pageY - fc.formPosition.top, 10);
-
-            logEvent(fc.eventTypes.onMouseDown, {
-                x: x,
-                y: y
-            });
-        });
-    };
-
-    /**
      * Attempts to validate the modal used for adding multi-value attributes.
      * @returns {boolean}
      */
@@ -3692,7 +3662,6 @@ var fc = (function ($) {
             return false;
         });
 
-        registerAnalyticsEventListeners();
         registerRepeatableGroupletListeners();
 
         if (fc.config.onePage) {
@@ -4122,51 +4091,6 @@ var fc = (function ($) {
     };
 
     /**
-     * Process the event queue
-     */
-    processEventQueue = function () {
-        // If the event queue isn't running, default it to false
-        if (fc.eventQueueRunning === undefined) {
-            fc.eventQueueRunning = false;
-        }
-
-        // If already running, do nothing
-        if (fc.eventQueueRunning) {
-            console.log('[FC] The event queue is already running (slow server?)');
-            return;
-        }
-
-        // If no events, do nothing
-        if (fc.events.length === 0) {
-            return;
-        }
-
-        // Mark the event queue as running, move events to the queue
-        fc.eventQueueRunning = true;
-        fc.queuedEvents = fc.events;
-        fc.events = [];
-
-        // Format the data to send with the request
-        var data = {
-            events: fc.queuedEvents
-        };
-
-        // Fire off the API call
-        api('analytics/log', data, 'post', function (data) {
-            // There was an error processing the update, move the queued events back in to the queue
-            if (typeof data !== 'object' || typeof data.success !== 'boolean' || !data.success) {
-                console.log('[FC] Error processing the analytics queue');
-                var queue = fc.queuedEvents.concat(fc.events);
-                fc.events = queue;
-            }
-
-            // Reset the queue
-            fc.queuedEvents = [];
-            fc.eventQueueRunning = false;
-        });
-    };
-
-    /**
      * Process the save queue
      */
     processSaveQueue = function () {
@@ -4232,7 +4156,6 @@ var fc = (function ($) {
             this.fieldSchema = {};
             this.sections = {};
             this.pages = {};
-            this.events = [];
             this.saveQueueRunning = false;
             this.saveQueue = {};
             this.prevPages = {};
@@ -4241,6 +4164,7 @@ var fc = (function ($) {
             this.pageOrders = [];
             this.activeScroll = "";
             this.processedActions = {};
+            this.analytics = false;
 
             /**
              * Register modal states
@@ -4344,6 +4268,11 @@ var fc = (function ($) {
             // Set the session id
             this.initSession();
 
+            // Analyse analytics if required
+            if (fc.config.analytics === true || (typeof fc.config.analytics === "string" && fc.config.analytics.length > 0)) {
+                initAnalytics();
+            }
+
             // Check to make sure container exists
             $(document).ready(function () {
                 if ($(fc.jQueryContainer).length === 0) {
@@ -4367,14 +4296,6 @@ var fc = (function ($) {
                 logEvent(fc.eventTypes.onFormInit);
                 $(fc.jQueryContainer).trigger(fc.jsEvents.onFormInit);
 
-                // Send events off to the server
-                setInterval(function () {
-                    if (fc.expired === true) {
-                        return;
-                    }
-                    processEventQueue();
-                }, fc.config.eventQueueInterval);
-
                 // Save form fields intermittently
                 if (fc.config.saveInRealTime === true) {
                     setInterval(function () {
@@ -4394,6 +4315,19 @@ var fc = (function ($) {
                 }
             });
         },
+
+        /**
+         * Return the CDN url
+         * @returns {string}
+         */
+        getCdnUrl: function () {
+            return cdnUrl;
+        },
+
+        /**
+         * Return the API function
+         */
+        api: api,
 
         /**
          * Retrieve a URL parameter by name
