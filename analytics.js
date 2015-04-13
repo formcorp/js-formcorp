@@ -6,6 +6,13 @@
 
 /*global jQuery,fc*/
 
+if (!Date.now) {
+    Date.now = function () {
+        "use strict";
+        return new Date().getTime();
+    };
+}
+
 var fcAnalytics = (function ($) {
     "use strict";
 
@@ -24,8 +31,22 @@ var fcAnalytics = (function ($) {
                 var dataId = $(this).attr('formcorp-data-id'),
                     params = {
                         dataId: dataId
-                    };
+                    },
+                    initParams = {};
                 fcAnalytics.logEvent(fc.eventTypes.onFocus, params);
+
+                // Mark field as having been initialised
+                initParams = {
+                    dataId: dataId
+                };
+
+                // Log the hesitation time
+                if (fc.lastCompletedTimestamp > 0) {
+                    initParams.hesitationTime = (Date.now() - fc.lastCompletedTimestamp) / 1000;
+                    fc.lastHesitationTime = initParams.hesitationTime;
+                }
+
+                fcAnalytics.logEvent(fc.eventTypes.onFieldInit, initParams);
             });
 
             // Text value focused

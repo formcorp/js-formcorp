@@ -9,6 +9,13 @@
 /*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics*/
 
 
+if (!Date.now) {
+    Date.now = function () {
+        "use strict";
+        return new Date().getTime();
+    };
+}
+
 /**
  * Set up
  */
@@ -2504,6 +2511,45 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Given an input field, will traverse through the DOM to find the next form element
+         *
+         * @param currentField
+         * @param mustBeEmpty
+         * @returns {*}
+         */
+        nextVisibleField = function (currentField, mustBeEmpty) {
+            var foundField = false,
+                foundFieldId;
+
+            // Only return fields whose value isnt empty
+            if (!mustBeEmpty) {
+                mustBeEmpty = true;
+            }
+
+            // Iterate through visible fields
+            $('.fc-section:not(.fc-hide) div.fc-field:not(.fc-hide)').each(function () {
+                var id = $(this).attr('fc-data-group');
+                if (id === currentField) {
+                    foundField = true;
+                    return;
+                }
+
+                // If the field has been found, return the next
+                if (foundField && !foundFieldId) {
+                    if (mustBeEmpty && !fc.fields[id]) {
+                        // If the field must be empty, only return if no value is found
+                        foundFieldId = id;
+                    } else if (!mustBeEmpty) {
+                        // Otherwise, return the first field
+                        foundFieldId = id;
+                    }
+                }
+            });
+
+            return foundFieldId;
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3171,7 +3217,8 @@ var fc = (function ($) {
             pageId,
             pagesAfter,
             iterator,
-            nextPageObj;
+            nextPageObj,
+            nextField;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -3234,8 +3281,8 @@ var fc = (function ($) {
             flushVisibility();
 
             // Check real time validation
+            errors = fieldErrors(dataId);
             if (fc.config.realTimeValidation === true) {
-                errors = fieldErrors(dataId);
                 if (errors !== undefined && errors.length > 0) {
                     // Log the error event
                     logEvent(fc.eventTypes.onFieldError, {
@@ -3254,10 +3301,33 @@ var fc = (function ($) {
                 fc.saveQueue[dataId] = value;
             }
 
+            // Need to get the next value field
+            nextField = nextVisibleField(dataId);
+
             // Register the value changed event
             params = {
-                fieldId: dataId
+                fieldId: dataId,
+                success: !errors || errors.length === 0
             };
+
+            if (nextField) {
+                params.nextField = nextField;
+            }
+
+            // If success, update the completion time
+            if (params.success) {
+                params.completionTime = (Date.now() - fc.lastCompletedTimestamp) / 1000;
+
+                // If a hesitation time has been recorded, subtract it from the completion time
+                if (fc.lastHesitationTime > 0) {
+                    params.completionTime -= fc.lastHesitationTime;
+                }
+
+                // Update timestamps and mark the field as completed
+                fc.lastCompletedField = dataId;
+                fc.lastCompletedTimestamp = Date.now();
+            }
+
             logEvent(fc.eventTypes.onValueChange, params);
         }
 
@@ -3497,7 +3567,10 @@ var fc = (function ($) {
                     // Trigger the newpage event
                     $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
                     $(fc.jQueryContainer).trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
-                    logEvent(fc.eventTypes.onNextPageSuccess);
+                    logEvent(fc.eventTypes.onNextPageSuccess, {
+                        from: oldPage,
+                        to: newPage
+                    });
 
                     // If the application is complete, raise completion event
                     if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -3574,6 +3647,8 @@ var fc = (function ($) {
         $(window).on('hashchange', function () {
             var pageId = window.location.hash.substr(1),
                 pageDiv;
+
+            console.log("page id: " + pageId);
             if (fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
                 render(pageId);
             }
@@ -4165,6 +4240,9 @@ var fc = (function ($) {
             this.activeScroll = "";
             this.processedActions = {};
             this.analytics = false;
+            this.lastCompletedField = '';
+            this.lastCompletedTimestamp = Date.now();
+            this.lastHesitationTime = -1;
 
             /**
              * Register modal states
@@ -4182,6 +4260,7 @@ var fc = (function ($) {
              * @type {{onFocus: string, onBlur: string, onValueChange: string, onNextStage: string, onFormInit: string, onMouseDown: string, onFieldError: string, onNextPageClick: string, onNextPageSuccess: string, onNextPageError: string, onFormComplete: string}}
              */
             this.eventTypes = {
+                onFieldInit: 'onFieldInit',
                 onFocus: 'onFocus',
                 onBlur: 'onBlur',
                 onValueChange: 'onValueChange',
