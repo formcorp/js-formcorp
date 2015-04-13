@@ -3345,8 +3345,14 @@ var fc = (function ($) {
      */
     registerValueChangedListeners = function () {
         // Input types text changed
-        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
-            valueChanged($(this).attr('formcorp-data-id'), $(this).val());
+        $(fc.jQueryContainer).on('change paste blur', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
+            var val = $(this).val(),
+                id = $(this).attr('formcorp-data-id');
+
+            if (val !== fc.fields[id]) {
+                // Only trigger when the value has truly changed
+                valueChanged(id, val);
+            }
         });
 
         // Dropdown box change
