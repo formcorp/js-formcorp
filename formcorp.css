@@ -524,3 +524,72 @@ div.fc-pagination {
 .fc-button.checked {
     border-color: #669933;
 }
+
+.fc-content-radio-item {
+    float: left;
+    border: 1px solid #aeaeae;
+    background: #fff;
+    margin: 0 1% 15px 0;
+    text-align: center;
+    border-radius: 5px;
+}
+
+.fc-content-radio-item .fc-content-title {
+    background: #EFEBEF;
+    padding: 15px 0;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 6px 6px 0 0;
+}
+
+.fc-content-radio-item .fc-content-desc {
+    height: 60px;
+}
+
+.fc-content-radio-item .fc-content-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: #666;
+}
+
+.fc-content-radio-item .fc-content-content {
+    padding: 15px;
+}
+
+
+.fc-field-contentRadioList .fc-empty {
+    clear: both;
+}
+
+.fc-field-contentRadioList > .fc-fieldcontainer > .fc-fieldgroup {
+    margin-top: 25px;
+}
+
+.fc-content-radio-item .fc-button {
+    width: 90%;
+}
+
+/**
+ * 4 column
+ */
+.fc-col-4 > div {
+    width: 23%;
+    margin-right: 2%;
+}
+
+.fc-col-4 .fc-col:nth-child(4n+1) {
+    clear: both;
+}
+
+/**
+ * 3 column
+ */
+.fc-col-3 > div {
+    width: 31%;
+    margin-right: 2%;
+}
+
+.fc-col-3 .fc-col:nth-child(3n+1) {
+    clear: both;
+}
