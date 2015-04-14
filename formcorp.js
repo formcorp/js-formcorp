@@ -496,11 +496,18 @@ var fc = (function ($) {
                     // If read-only, do not record a value
                     return getConfig(fc.fieldSchema[dataId], 'readOnly', false) ? '' : field.val();
                 }
-
             }
 
             if (field.is('select')) {
                 return $(field).find('option:selected').text();
+            }
+
+            // Return the value for rendered buttons
+            if (field.is('button')) {
+                dataId = field.attr('formcorp-data-id');
+                if (dataId) {
+                    return $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').text();
+                }
             }
 
             // If a signature, set a string as the json value of the signature
@@ -680,6 +687,9 @@ var fc = (function ($) {
                 x,
                 msg = '';
 
+            // Trigger an event
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldError, [dataId, errors]);
+
             dataGroup.addClass('fc-error');
 
             // If inline validation enabled, output error message(s)
@@ -784,6 +794,7 @@ var fc = (function ($) {
          * @param dataId
          */
         removeFieldError = function (dataId) {
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldSuccess, [dataId]);
             $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
         },
 
@@ -1456,7 +1467,8 @@ var fc = (function ($) {
                 var fieldId = $(this).attr('fc-data-group'),
                     fieldGroup,
                     value,
-                    schema;
+                    schema,
+                    selector;
 
                 if (fc.fields[fieldId] !== undefined) {
                     fieldGroup = $(this).find('.fc-fieldgroup');
@@ -1482,6 +1494,8 @@ var fc = (function ($) {
                     } else if (fieldGroup.find('input[type=radio]').length > 0) {
                         // Radio options
                         fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
+                    } else if ((selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + escape(value) + '"]')).length > 0) {
+                        selector.addClass('checked');
                     }
                 }
             });
@@ -1610,17 +1624,37 @@ var fc = (function ($) {
             if (options.length > 0) {
                 options = options.split("\n");
                 cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
-                for (x = 0; x < options.length; x += 1) {
-                    option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-                    /*jslint nomen: true*/
-                    id = field._id.$id + '_' + x;
-                    /*jslint nomen: false*/
-                    checked = getConfig(field, 'default') === option ? ' checked' : '';
 
-                    html += '<div class="' + cssClass + '">';
-                    html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
-                    html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                if (getConfig(field, 'asButton', false)) {
+                    html += '<div class="fc-radio-option-buttons">';
+
+                    // Display as buttons
+                    for (x = 0; x < options.length; x += 1) {
+                        option = options[x].replace(/(\r\n|\n|\r)/gm, "");
+
+                        checked = getConfig(field, 'default') === option ? ' checked' : '';
+
+                        html += '<div class="fc-option-buttons ' + cssClass + '">';
+                        html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + escape(option) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option) + '</button>';
+                        html += '</div>';
+                    }
                     html += '</div>';
+
+                } else {
+                    // Display as standard radio buttons
+
+                    for (x = 0; x < options.length; x += 1) {
+                        option = options[x].replace(/(\r\n|\n|\r)/gm, "");
+                        /*jslint nomen: true*/
+                        id = field._id.$id + '_' + x;
+                        /*jslint nomen: false*/
+                        checked = getConfig(field, 'default') === option ? ' checked' : '';
+
+                        html += '<div class="' + cssClass + '">';
+                        html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
+                        html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                        html += '</div>';
+                    }
                 }
             }
 
@@ -3225,6 +3259,11 @@ var fc = (function ($) {
             return;
         }
 
+        // If the value hasn't actually changed, return
+        if (fc.fields[dataId] && fc.fields[dataId] === value) {
+            return;
+        }
+
         // A change in value represents a change in field state - on a one page form, earlier values can alter the visibility of later rendered pages
         if (fc.config.onePage) {
             pageId = getFieldPageId(dataId);
@@ -3353,6 +3392,23 @@ var fc = (function ($) {
                 // Only trigger when the value has truly changed
                 valueChanged(id, val);
             }
+        });
+
+        // Radio button clicks
+        $(fc.jQueryContainer).on('click', '.fc-fieldinput.fc-button' , function () {
+            var val = $(this).text(),
+                id = $(this).attr('formcorp-data-id'),
+                parent = $(this).parent().parent();
+
+            // Reset the selected
+            if (parent.hasClass('fc-radio-option-buttons')) {
+                parent.find('.checked').removeClass('checked');
+            }
+            $(this).addClass('checked');
+
+            valueChanged(id, val);
+
+            return false;
         });
 
         // Dropdown box change
@@ -3575,8 +3631,11 @@ var fc = (function ($) {
                     $(fc.jQueryContainer).trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
                     logEvent(fc.eventTypes.onNextPageSuccess, {
                         from: oldPage,
-                        to: newPage
+                        to: newPage,
+                        timeSpent: (Date.now() - fc.nextPageLoadedTimestamp) / 1000
                     });
+
+                    fc.nextPageLoadedTimestamp = Date.now();
 
                     // If the application is complete, raise completion event
                     if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -3654,7 +3713,6 @@ var fc = (function ($) {
             var pageId = window.location.hash.substr(1),
                 pageDiv;
 
-            console.log("page id: " + pageId);
             if (fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
                 render(pageId);
             }
@@ -4249,6 +4307,7 @@ var fc = (function ($) {
             this.lastCompletedField = '';
             this.lastCompletedTimestamp = Date.now();
             this.lastHesitationTime = -1;
+            this.nextPageLoadedTimestamp = Date.now();
 
             /**
              * Register modal states
@@ -4293,7 +4352,9 @@ var fc = (function ($) {
                 onPageChange: 'onPageChange',
                 onPrevPage: 'onPrevPage',
                 onConnectionMade: 'onFCConnectionMade',
-                onFinishRender: 'onFinishFormRender'
+                onFinishRender: 'onFinishFormRender',
+                onFieldError: 'onFieldError',
+                onFieldSuccess: 'onFieldSuccess'
             };
 
             /**
@@ -4500,6 +4561,8 @@ var fc = (function ($) {
                 }
             }
         },
+
+        fieldErrors: fieldErrors,
 
         /**
          * Set the language data values
