@@ -464,8 +464,6 @@ var fc = (function ($) {
                 values = [],
                 dataId;
 
-            console.log(field);
-
             // If not defined, return nothing
             if (!field || field.length === 0) {
                 return;
@@ -506,10 +504,8 @@ var fc = (function ($) {
 
             // Return the value for rendered buttons
             if (field.is('button')) {
-                console.log('IS BUTTON');
                 dataId = field.attr('formcorp-data-id');
                 if (dataId) {
-                    console.log(dataId);
                     return $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').text();
                 }
             }
@@ -614,8 +610,6 @@ var fc = (function ($) {
                 parentGroupletId,
                 selector;
 
-            console.log("field errors:" + id);
-
             if (fieldSelector.length === 0) {
                 return [];
             }
@@ -657,8 +651,6 @@ var fc = (function ($) {
 
             // Test required data
             dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
-            console.log(dataField);
-            console.log(dataField.length);
             if (getConfig(field, 'required', false) && fieldIsEmpty(dataField)) {
                 errors.push(fc.lang.emptyFieldError);
                 return errors;
@@ -1600,7 +1592,6 @@ var fc = (function ($) {
             html = '<textarea';
 
             // Whether or not the field is read only
-            console.log(getConfig(field, 'readOnly', false));
             if (getConfig(field, 'readOnly', false)) {
                 html += ' readonly';
             }
@@ -1912,8 +1903,6 @@ var fc = (function ($) {
                 metaData1: rootElement.attr('fc-data-group'),
                 metaData2: fc.sessionId
             };
-
-            console.log(data);
 
             // Automatically generate a form
             form = createDynamicFormFromData(rootElement.attr('fc-data-group'), fc.gateways.paycorp, data);
@@ -3334,9 +3323,6 @@ var fc = (function ($) {
             nextPageObj,
             nextField;
 
-        console.log(dataId);
-        console.log(value);
-
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
             return;
@@ -3404,7 +3390,6 @@ var fc = (function ($) {
 
             // Check real time validation
             errors = fieldErrors(dataId);
-            console.log(errors);
             if (fc.config.realTimeValidation === true) {
                 if (errors !== undefined && errors.length > 0) {
                     // Log the error event
@@ -3487,17 +3472,13 @@ var fc = (function ($) {
 
             // Reset the selected
             if (fc.fieldSchema[id].type === 'contentRadioList') {
-                console.log("content radio list");
-            }
-            else {
-                if (parent.hasClass('fc-radio-option-buttons')) {
-                    parent.find('.checked').removeClass('checked');
-                }
 
-                $(this).addClass('checked');
-
-                valueChanged(id, val);
+            } else if (parent.hasClass('fc-radio-option-buttons')) {
+                parent.find('.checked').removeClass('checked');
             }
+
+            $(this).addClass('checked');
+            valueChanged(id, val);
 
             return false;
         });
@@ -3543,7 +3524,6 @@ var fc = (function ($) {
             // If custom errors exist, return false
             customErrors = getCustomErrors(field, value);
             if (customErrors.length > 0) {
-                console.log('errors');
                 valid = false;
                 return;
             }
