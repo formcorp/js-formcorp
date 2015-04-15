@@ -3321,7 +3321,9 @@ var fc = (function ($) {
             pagesAfter,
             iterator,
             nextPageObj,
-            nextField;
+            nextField,
+            pageDataId,
+            foundPage = false;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -3333,36 +3335,21 @@ var fc = (function ($) {
             return;
         }
 
-        // A change in value represents a change in field state - on a one page form, earlier values can alter the visibility of later rendered pages
-        if (fc.config.onePage) {
-            pageId = getFieldPageId(dataId);
-            if (fc.pageOrders.indexOf(pageId) > -1) {
-                pagesAfter = fc.pageOrders.slice(fc.pageOrders.indexOf(pageId) + 1, fc.pageOrders.length);
-                if (pagesAfter.length > 0) {
-                    // If the form is no longer valid, hide the pages that come after
-                    if (!validForm('.fc-page[data-page-id="' + pageId + '"', false)) {
-                        for (iterator = 0; iterator < pagesAfter.length; iterator += 1) {
-                            $('.fc-page[data-page-id="' + pagesAfter[iterator] + '"').remove();
-                        }
-                        fc.pageOrders.splice(fc.pageOrders.length - pagesAfter.length, pagesAfter.length);
-                        fc.currentPage = pageId;
-                    } else {
-                        // If the next page has changed, hide the pages that come after (these pages should no longer be rendered)
-                        nextPageObj = nextPage(false, true, pageId);
-                        if (typeof nextPageObj === "object" && typeof nextPageObj.page === "object") {
-                            /*jslint nomen: true*/
-                            if (nextPageObj.page._id.$id !== pagesAfter[0]) {
-                                for (iterator = 0; iterator < pagesAfter.length; iterator += 1) {
-                                    $('.fc-page[data-page-id="' + pagesAfter[iterator] + '"').remove();
-                                }
-                                fc.pageOrders.splice(fc.pageOrders.length - pagesAfter.length, pagesAfter.length);
-                                fc.currentPage = pageId;
-                            }
-                            /*jslint nomen: false*/
-                        }
-                    }
-                }
+        // Set the active page id to the page that the field belongs to, delete later pages
+        fc.currentPage = getFieldPageId(dataId);
+        $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
+        $('.fc-page').each(function () {
+            pageDataId = $(this).attr('data-page-id');
+            if (foundPage && pageDataId !== fc.currentPage) {
+                $(this).remove();
+            } else if (pageDataId === fc.currentPage) {
+                foundPage = true;
             }
+        });
+
+        // Update the page orders
+        if (fc.pageOrders.indexOf(fc.currentPage) !== fc.pageOrders.length - 1) {
+            fc.pageOrders = fc.pageOrders.splice(0, fc.pageOrders.indexOf(fc.currentPage) + 1);
         }
 
         // If the item belongs to a repeatable object, do not store the changed value
@@ -3732,19 +3719,22 @@ var fc = (function ($) {
     registerOnePageListeners = function () {
         // When the user scrolls up/down, change the active page state depending on the offset
         $(document).on('scroll', function () {
-            var iterator, offset, page;
+            var iterator, offset, page, el;
 
             for (iterator = 0; iterator < fc.pageOrders.length; iterator += 1) {
                 // Determine the offset of the page
-                offset = parseInt($('[data-page-id="' + fc.pageOrders[iterator] + '"]').offset().top, 10);
-                offset += parseInt(fc.config.scrollOffset, 10) - fc.config.activePageOffset;
+                el = $('[data-page-id="' + fc.pageOrders[iterator] + '"]');
+                if (el.length > 0) {
+                    offset = parseInt($('[data-page-id="' + fc.pageOrders[iterator] + '"]').offset().top, 10);
+                    offset += parseInt(fc.config.scrollOffset, 10) - fc.config.activePageOffset;
 
-                if ($(document).scrollTop() > offset) {
-                    if (fc.activePage === undefined) {
-                        fc.activePage = fc.pageOrders[iterator];
+                    if ($(document).scrollTop() > offset) {
+                        if (fc.activePage === undefined) {
+                            fc.activePage = fc.pageOrders[iterator];
+                        }
+
+                        page = fc.pageOrders[iterator];
                     }
-
-                    page = fc.pageOrders[iterator];
                 }
             }
 
