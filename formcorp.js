@@ -3325,6 +3325,7 @@ var fc = (function ($) {
             pageDataId,
             foundPage = false,
             loadedNextPage = false,
+            topDistance,
             el;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
@@ -3439,11 +3440,18 @@ var fc = (function ($) {
 
         // Scroll to the next field if required
         if (fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
+            console.log(1);
             el = $('.fc-field[fc-data-group="' + nextField + '"]');
+            console.log(2);
             if (el && el.length > 0) {
-                if ($(document).scrollTop() < el.offset().top) {
+                console.log(3);
+                topDistance = parseInt(el.offset().top, 10);
+                console.log(parseInt($(document).scrollTop(), 10));
+                console.log(topDistance);
+                if (parseInt($(document).scrollTop(), 10) < topDistance) {
+                    console.log(4);
                     $('html,body').animate({
-                        scrollTop: (parseInt(el.offset().top)) + "px"
+                        scrollTop: topDistance + "px"
                     }, fc.config.scrollDuration);
                 }
             }
