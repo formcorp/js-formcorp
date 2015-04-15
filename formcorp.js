@@ -4804,6 +4804,24 @@ var fc = (function ($) {
         },
 
         /**
+         * Checks to see if a value against a field has been set
+         * @param field
+         * @returns {boolean}
+         */
+        comparisonIs_not_null: function (field) {
+            return field !== undefined;
+        },
+
+        /**
+         * Checks to see if a value against a field has been set
+         * @param field
+         * @returns {boolean}
+         */
+        comparisonIs_null: function (field) {
+            return field === undefined;
+        },
+
+        /**
          * Converts a string to camel case.
          * @param str
          * @returns {*}
