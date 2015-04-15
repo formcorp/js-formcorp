@@ -1221,9 +1221,11 @@ var fc = (function ($) {
          * Initialise data analytics
          */
         initAnalytics = function () {
+            $(fc.jQueryContainer).on(fc.jsEvents.onAnalyticsLoaded, function () {
+                fc.analytics = fcAnalytics;
+                fc.analytics.init();
+            });
             loadJsFile(analyticsUrl);
-            fc.analytics = fcAnalytics;
-            fc.analytics.init();
         },
 
         /**
@@ -4443,7 +4445,8 @@ var fc = (function ($) {
                 onConnectionMade: 'onFCConnectionMade',
                 onFinishRender: 'onFinishFormRender',
                 onFieldError: 'onFieldError',
-                onFieldSuccess: 'onFieldSuccess'
+                onFieldSuccess: 'onFieldSuccess',
+                onAnalyticsLoaded: 'onAnalyticsLoaded'
             };
 
             /**

@@ -148,9 +148,6 @@ var fcAnalytics = (function ($) {
 
             registerAnalyticsEventListeners();
             initEventQueue();
-
-            console.log('analytics init');
-            console.log(fc.getCdnUrl());
         },
 
         /**
@@ -178,4 +175,9 @@ var fcAnalytics = (function ($) {
         }
     };
 
+}(jQuery));
+
+(function ($) {
+    'use strict';
+    $(fc.jQueryContainer).trigger(fc.jsEvents.onAnalyticsLoaded);
 }(jQuery));
