@@ -3318,12 +3318,10 @@ var fc = (function ($) {
             parentId,
             parentField,
             pageId,
-            pagesAfter,
-            iterator,
-            nextPageObj,
             nextField,
             pageDataId,
-            foundPage = false;
+            foundPage = false,
+            removed = false;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -3342,10 +3340,16 @@ var fc = (function ($) {
             pageDataId = $(this).attr('data-page-id');
             if (foundPage && pageDataId !== fc.currentPage) {
                 $(this).remove();
+                removed = true;
             } else if (pageDataId === fc.currentPage) {
                 foundPage = true;
             }
         });
+
+        // Show the last next
+        if (removed) {
+            $('.fc-page:last-child .fc-submit input').show();
+        }
 
         // Update the page orders
         if (fc.pageOrders.indexOf(fc.currentPage) !== fc.pageOrders.length - 1) {
