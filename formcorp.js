@@ -3326,6 +3326,7 @@ var fc = (function ($) {
             foundPage = false,
             loadedNextPage = false,
             topDistance,
+            sessionId,
             el;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
@@ -3440,19 +3441,23 @@ var fc = (function ($) {
 
         // Scroll to the next field if required
         if (fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
-            console.log(1);
+
+            // If the next field belongs to a different section, scroll to that section
             el = $('.fc-field[fc-data-group="' + nextField + '"]');
-            console.log(2);
+
             if (el && el.length > 0) {
-                console.log(3);
-                topDistance = parseInt(el.offset().top, 10);
-                console.log(parseInt($(document).scrollTop(), 10));
-                console.log(topDistance);
-                if (parseInt($(document).scrollTop(), 10) < topDistance) {
-                    console.log(4);
-                    $('html,body').animate({
-                        scrollTop: topDistance + "px"
-                    }, fc.config.scrollDuration);
+                sessionId = el.attr('fc-belongs-to');
+                if (sessionId !== $('.fc-field[fc-data-group="' + dataId + '"]').attr('fc-belongs-to')) {
+                    el = $('.fc-section[formcorp-data-id="' + sessionId + '"]');
+                }
+
+                if (el && el.length > 0) {
+                    topDistance = parseInt(el.offset().top, 10);
+                    if (parseInt($(document).scrollTop(), 10) < topDistance) {
+                        $('html,body').animate({
+                            scrollTop: topDistance + "px"
+                        }, fc.config.scrollDuration);
+                    }
                 }
             }
         }
