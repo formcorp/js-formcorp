@@ -3302,7 +3302,10 @@ var fc = (function ($) {
         // If a next page exists and the current page is valid, load the next page
         if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
             loadNextPage();
+            return true;
         }
+
+        return false;
     };
 
     /**
@@ -3321,7 +3324,8 @@ var fc = (function ($) {
             nextField,
             pageDataId,
             foundPage = false,
-            removed = false;
+            loadedNextPage = false,
+            el;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -3340,16 +3344,10 @@ var fc = (function ($) {
             pageDataId = $(this).attr('data-page-id');
             if (foundPage && pageDataId !== fc.currentPage) {
                 $(this).remove();
-                removed = true;
             } else if (pageDataId === fc.currentPage) {
                 foundPage = true;
             }
         });
-
-        // Show the last next
-        if (removed) {
-            $('.fc-page:last-child .fc-submit input').show();
-        }
 
         // Update the page orders
         if (fc.pageOrders.indexOf(fc.currentPage) !== fc.pageOrders.length - 1) {
@@ -3390,9 +3388,10 @@ var fc = (function ($) {
                     });
 
                     showFieldError(dataId, errors);
-                } else {
-                    removeFieldError(dataId);
+                    return;
                 }
+
+                removeFieldError(dataId);
             }
 
             // Store the changed value for intermittent saving
@@ -3434,7 +3433,19 @@ var fc = (function ($) {
         if (fc.config.autoLoadPages) {
             pageId = getFieldPageId(dataId);
             if (pageId === fc.currentPage) {
-                checkAutoLoad();
+                loadedNextPage = checkAutoLoad();
+            }
+        }
+
+        // Scroll to the next field if required
+        if (fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
+            el = $('.fc-field[fc-data-group="' + nextField + '"]');
+            if (el && el.length > 0) {
+                if ($(document).scrollTop() < el.offset().top) {
+                    $('html,body').animate({
+                        scrollTop: (parseInt(el.offset().top)) + "px"
+                    }, fc.config.scrollDuration);
+                }
             }
         }
     };
@@ -4592,6 +4603,7 @@ var fc = (function ($) {
                 scrollOffset: 0,
                 conditionalHtmlScrollOffset: {},
                 autoLoadPages: false,
+                autoScrollToNextField: false,
                 activePageOffset: 250,
                 creditCardNumberLimits: [16, 16],
                 maxCreditCardCodeLength: 4,
