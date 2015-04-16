@@ -3864,6 +3864,12 @@ var fc = (function ($) {
             return false;
         });
 
+        // When the form is complete, delete the session
+        $(fc.jQueryContainer).on(fc.jsEvents.onFormComplete, function () {
+            console.log('form complete');
+            deleteSession();
+        });
+
         // Previous page click
         $(fc.jQueryContainer).on('click', '.fc-prev-page', function () {
             if (fc.config.showPrevPageButton !== true) {
