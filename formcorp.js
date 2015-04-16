@@ -3866,8 +3866,9 @@ var fc = (function ($) {
 
         // When the form is complete, delete the session
         $(fc.jQueryContainer).on(fc.jsEvents.onFormComplete, function () {
-            console.log('form complete');
-            deleteSession();
+            setTimeout(function () {
+                deleteSession();
+            }, 1500);
         });
 
         // Previous page click
