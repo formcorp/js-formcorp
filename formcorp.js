@@ -508,6 +508,10 @@ var fc = (function ($) {
                 dataId = field.attr('formcorp-data-id');
                 if (dataId) {
                     if (!getConfig(fc.fieldSchema[dataId], 'allowMultiple', false)) {
+                        if (fc.fieldSchema[dataId].type === 'contentRadioList') {
+                            return decodeURIComponent($('.fc-button.checked[formcorp-data-id="' + dataId + '"]').attr('data-field-value'));
+                        }
+
                         // If a radio, can just get the button text
                         return $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').text();
                     }
@@ -3522,7 +3526,7 @@ var fc = (function ($) {
      */
     registerValueChangedListeners = function () {
         // Input types text changed
-        $(fc.jQueryContainer).on('change paste blur', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
+        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
             var val = $(this).val(),
                 id = $(this).attr('formcorp-data-id');
 
@@ -3567,8 +3571,6 @@ var fc = (function ($) {
             } else if (parent.hasClass('fc-radio-option-buttons')) {
                 parent.find('.checked').removeClass('checked');
             }
-
-            console.log(val);
 
             $(this).toggleClass('checked');
             valueChanged(id, val);

@@ -492,21 +492,21 @@ div.fc-pagination {
     padding-top: 0;
 }
 
-.fc-button {
+.fc-button, .fc-field-grouplet.fc-repeatable-container .fc-link a {
     -ms-border-radius: 6px;
     -moz-border-radius: 6px;
     -webkit-border-radius: 6px;
     border-radius: 6px;
     border: 1px solid #bdbdbd;
-    background: -webkit-linear-gradient(#fff,#e0e1e2);
-    background: linear-gradient(#fff,#e0e1e2);
-    background: -ms-linear-gradient(top,#fff,#e0e1e2);
+    background: -webkit-linear-gradient(#fff, #e0e1e2);
+    background: linear-gradient(#fff, #e0e1e2);
+    background: -ms-linear-gradient(top, #fff, #e0e1e2);
     text-shadow: 0 1px 0 #fff;
     font-size: 16px;
     color: #231f20;
     min-width: 70px;
     text-align: center;
-    text-decoration: none!important;
+    text-decoration: none !important;
     height: 48px;
     line-height: 48px;
     display: inline-block;
@@ -515,10 +515,18 @@ div.fc-pagination {
     padding: 0 22px;
 }
 
-.fc-button:hover, .fc-button:active, .fc-button.checked {
-    background: -webkit-linear-gradient(#fff,#eee);
-    background: linear-gradient(#fff,#eee);
-    background: -ms-linear-gradient(top,#fff,#eee);
+.fc-button:hover,
+.fc-button,
+.fc-field-grouplet.fc-repeatable-container .fc-link a:hover,
+.fc-button:active,
+.fc-button,
+.fc-field-grouplet.fc-repeatable-container .fc-link a:active,
+.fc-button.checked,
+.fc-button,
+.fc-field-grouplet.fc-repeatable-container .fc-link a.checked {
+    background: -webkit-linear-gradient(#fff, #eee);
+    background: linear-gradient(#fff, #eee);
+    background: -ms-linear-gradient(top, #fff, #eee);
 }
 
 .fc-button.checked {
@@ -556,7 +564,6 @@ div.fc-pagination {
 .fc-content-radio-item .fc-content-content {
     padding: 15px;
 }
-
 
 .fc-field-contentRadioList .fc-empty {
     clear: both;
