@@ -6,7 +6,7 @@
  * Ability to embed a JS client side form on to an external webpage.
  */
 
-/*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics*/
+/*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics,escape*/
 
 
 if (!Date.now) {
@@ -462,7 +462,8 @@ var fc = (function ($) {
         getFieldValue = function (field) {
             var selector,
                 values = [],
-                dataId;
+                dataId,
+                val;
 
             // If not defined, return nothing
             if (!field || field.length === 0) {
@@ -506,7 +507,18 @@ var fc = (function ($) {
             if (field.is('button')) {
                 dataId = field.attr('formcorp-data-id');
                 if (dataId) {
-                    return $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').text();
+                    if (!getConfig(fc.fieldSchema[dataId], 'allowMultiple', false)) {
+                        // If a radio, can just get the button text
+                        return $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').text();
+                    }
+
+                    val = [];
+                    // Otherwise if multiple are allowed, have to get all
+                    $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').each(function () {
+                        val.push(decodeURIComponent($(this).attr('data-field-value')));
+                    });
+
+                    return val;
                 }
             }
 
@@ -1496,8 +1508,11 @@ var fc = (function ($) {
                     } else if (fieldGroup.find('input[type=radio]').length > 0) {
                         // Radio options
                         fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
-                    } else if ((selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + escape(value) + '"]')).length > 0) {
-                        selector.addClass('checked');
+                    } else {
+                        selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
+                        if (selector.length > 0) {
+                            selector.addClass('checked');
+                        }
                     }
                 }
             });
@@ -1600,6 +1615,12 @@ var fc = (function ($) {
             return html;
         },
 
+        /**
+         * Render the content radio list
+         * @param field
+         * @param prefix
+         * @returns {string}
+         */
         renderContentRadioList = function (field, prefix) {
             if (!prefix) {
                 prefix = '';
@@ -1613,7 +1634,6 @@ var fc = (function ($) {
                 x,
                 cssClass,
                 option,
-                id,
                 checked,
                 json,
                 value,
@@ -1641,10 +1661,10 @@ var fc = (function ($) {
 
                     // Map to local variables
                     try {
-                        value = json[0] ? json[0] : "";
-                        description = json[1] ? json[1] : "";
-                        icon = json[2] ? json[2] : "";
-                        help = json[3] ? json[3] : "";
+                        value = json[0] || "";
+                        description = json[1] || "";
+                        icon = json[2] || "";
+                        help = json[3] || "";
                     } catch (ignore) {
                     }
                     checked = getConfig(field, 'default') === option ? ' checked' : '';
@@ -1655,7 +1675,12 @@ var fc = (function ($) {
                     html += '<div class="fc-content-desc">' + description + '</div>'; //!fc-content-desc
                     html += '<div class="fc-content-icon"><i class="' + htmlEncode(icon) + '"></i></div>'; //!fc-content-icon
                     html += '<div class="fc-option-buttons ' + cssClass + '">';
-                    html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + escape(option) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(getConfig(field, 'buttonText')) + '</button>';
+                    html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(option) + '" data-field-value="' + encodeURIComponent(value) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(getConfig(field, 'buttonText')) + '</button>';
+
+                    if (help && help.length > 0) {
+                        html += '<div class="fc-help">' + help + '</div>';
+                    }
+
                     html += '</div>'; // !fc-content-content
                     html += '</div>'; //!fc-option-buttons
                     html += '</div>'; //!fc-content-radio-item
@@ -1703,7 +1728,7 @@ var fc = (function ($) {
                         checked = getConfig(field, 'default') === option ? ' checked' : '';
 
                         html += '<div class="fc-option-buttons ' + cssClass + '">';
-                        html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + escape(option) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option) + '</button>';
+                        html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(option) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option) + '</button>';
                         html += '</div>';
                     }
                     html += '</div>';
@@ -3325,6 +3350,8 @@ var fc = (function ($) {
             pageDataId,
             foundPage = false,
             loadedNextPage = false,
+            allowAutoLoad = false,
+            page,
             topDistance,
             sessionId,
             el;
@@ -3432,16 +3459,19 @@ var fc = (function ($) {
         }
 
         // Check to see if the next page should be automatically loaded
+        pageId = getFieldPageId(dataId);
+        page = getPageById(pageId);
+        allowAutoLoad = !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
+
         if (fc.config.autoLoadPages) {
-            pageId = getFieldPageId(dataId);
-            if (pageId === fc.currentPage) {
+            if (pageId === fc.currentPage && allowAutoLoad) {
+                // Pages have the option of opting out of autoloading
                 loadedNextPage = checkAutoLoad();
             }
         }
 
         // Scroll to the next field if required
-        if (fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
-
+        if (getConfig(fc.fieldSchema[dataId], 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
             // If the next field belongs to a different section, scroll to that section
             el = $('.fc-field[fc-data-group="' + nextField + '"]');
 
@@ -3452,7 +3482,7 @@ var fc = (function ($) {
                 }
 
                 if (el && el.length > 0) {
-                    topDistance = parseInt(el.offset().top, 10);
+                    topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
                     if (parseInt($(document).scrollTop(), 10) < topDistance) {
                         $('html,body').animate({
                             scrollTop: topDistance + "px"
@@ -3483,16 +3513,40 @@ var fc = (function ($) {
             var val = $(this).text(),
                 id = $(this).attr('formcorp-data-id'),
                 parent = $(this).parent().parent(),
-                parentField = $('.fc-field[fc-data-group="' + id + '"]');
+                fieldEl = $('.fc-field[fc-data-group="' + id + '"]'),
+                alreadyChecked = $(this).hasClass('checked'),
+                dataArray;
 
             // Reset the selected
             if (fc.fieldSchema[id].type === 'contentRadioList') {
+                val = decodeURIComponent($(this).attr('data-field-value'));
+                // If its a radio list, only allow one to be selected
+                if (!getConfig(fc.fieldSchema[id], 'allowMultiple', false)) {
+                    fieldEl.find('button.checked').removeClass('checked');
+                } else {
+                    // Checkbox list - allows multiple
+                    dataArray = fc.fields[id] || [];
+                    if (dataArray.indexOf(val) < 0) {
+                        if (!alreadyChecked) {
+                            // If the option hasn't been previously selected, add it
+                            dataArray.push(val);
+                        }
+                    } else {
+                        // Remove from element if already checked
+                        if (alreadyChecked) {
+                            delete dataArray[dataArray.indexOf(val)];
+                        }
+                    }
 
+                    val = dataArray;
+                }
             } else if (parent.hasClass('fc-radio-option-buttons')) {
                 parent.find('.checked').removeClass('checked');
             }
 
-            $(this).addClass('checked');
+            console.log(val);
+
+            $(this).toggleClass('checked');
             valueChanged(id, val);
 
             return false;
@@ -3813,6 +3867,11 @@ var fc = (function ($) {
             if (fc.config.smoothScroll) {
                 setTimeout(function (pageId) {
                     var offset;
+
+                    // If the last edited field disables scrolling, do not scroll
+                    if (fc.lastCompletedField && fc.fieldSchema[fc.lastCompletedField] && !getConfig(fc.fieldSchema[fc.lastCompletedField], 'allowAutoScroll', true)) {
+                        return;
+                    }
 
                     // Only want to scroll once
                     if (fc.activeScroll.length > 0) {
