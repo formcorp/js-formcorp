@@ -1477,12 +1477,16 @@ var fc = (function ($) {
          * Set values on DOM from fields in JS
          */
         setFieldValues = function () {
+            var fieldId,
+                fieldGroup,
+                value,
+                schema,
+                selector,
+                iterator,
+                el;
+
             $('div[fc-data-group]').each(function () {
-                var fieldId = $(this).attr('fc-data-group'),
-                    fieldGroup,
-                    value,
-                    schema,
-                    selector;
+                fieldId = $(this).attr('fc-data-group');
 
                 if (fc.fields[fieldId] !== undefined) {
                     fieldGroup = $(this).find('.fc-fieldgroup');
@@ -1509,9 +1513,29 @@ var fc = (function ($) {
                         // Radio options
                         fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
                     } else {
+                        // Set the button
                         selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
                         if (selector.length > 0) {
                             selector.addClass('checked');
+                        }
+                    }
+
+                    // If a content-option group, set the values accordingly
+                    if (schema.type === 'contentRadioList') {
+                        if (typeof value === 'object') {
+                            // Checkbox list allows multiple selections
+                            for (iterator = 0; iterator < value.length; iterator += 1) {
+                                el = $('.fc-button[data-field-value="' + encodeURIComponent(value[iterator]) + '"]');
+                                if (el && el.length > 0) {
+                                    el.addClass('checked');
+                                }
+                            }
+                        } else {
+                            // Radio list allows only one selection
+                            el = $('.fc-button[data-field-value="' + encodeURIComponent(value) + '"]');
+                            if (el && el.length > 0) {
+                                el.addClass('checked');
+                            }
                         }
                     }
                 }
