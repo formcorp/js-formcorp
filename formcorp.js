@@ -2624,11 +2624,19 @@ var fc = (function ($) {
 
         /**
          * Deletes a session and forces the user to fill out a new application.
+         * @param changeDom
          */
-        deleteSession = function () {
+        deleteSession = function (changeDom) {
+            if (typeof changeDom !== 'boolean') {
+                changeDom = true;
+            }
+
             $.removeCookie(fc.config.sessionIdName);
-            $(fc.jQueryContainer + ' .render').html(fc.lang.sessionExpiredHtml);
-            $(fc.jQueryContainer).trigger(fc.jsEvents.onFormExpired);
+
+            if (changeDom) {
+                $(fc.jQueryContainer + ' .render').html(fc.lang.sessionExpiredHtml);
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onFormExpired);
+            }
             fc.expired = true;
         },
 
@@ -3866,9 +3874,8 @@ var fc = (function ($) {
 
         // When the form is complete, delete the session
         $(fc.jQueryContainer).on(fc.jsEvents.onFormComplete, function () {
-            setTimeout(function () {
-                deleteSession();
-            }, 1500);
+            // @todo: rework, no timeout
+            deleteSession(false);
         });
 
         // Previous page click
