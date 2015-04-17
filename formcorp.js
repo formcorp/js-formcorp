@@ -4885,8 +4885,11 @@ var fc = (function ($) {
             } else if (typeof field === "object" && typeof comparisonValue === "object") {
                 // Check an array of values against an array of values
                 for (x = 0; x < comparisonValue.length; x += 1) {
-                    if (field.indexOf(comparisonValue[x]) === -1) {
-                        return false;
+                    try {
+                        if (field && field.indexOf(comparisonValue[x]) === -1) {
+                            return false;
+                        }
+                    } catch (ignore) {
                     }
                 }
 
