@@ -1746,6 +1746,95 @@ var fc = (function ($) {
         },
 
         /**
+         * Render an option table
+         *
+         * @param field
+         * @param prefix
+         * @returns {string}
+         */
+        renderOptionTable = function (field, prefix) {
+            /*jslint nomen: true*/
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                definition = getConfig(field, 'jsonOptions', '[]'),
+                fieldId = prefix + field._id.$id,
+                checked,
+                html = '',
+                rowIterator,
+                columnIterator,
+                row,
+                col;
+            /*jslint nomen: false*/
+
+            // Attempt to decode to JSON object
+            if (typeof definition === 'string') {
+                definition = $.parseJSON(definition);
+            }
+
+            if (!definition || !definition.rows) {
+                return '';
+            }
+
+            html += '<table class="fc-table"';
+            if (definition.cellspacing) {
+                html += ' cellspacing="' + htmlEncode(definition.cellspacing) + '"';
+            }
+
+            if (definition.cellpadding) {
+                html += ' cellpadding="' + htmlEncode(definition.cellpadding) + '"';
+            }
+            html += '>';
+
+            // Iterate through and output the rows
+            for (rowIterator = 0; rowIterator < definition.rows.length; rowIterator += 1) {
+                row = definition.rows[rowIterator];
+                html += '<tr>';
+
+                if (typeof row === 'object' && row.length > 0) {
+                    for (columnIterator = 0; columnIterator < row.length; columnIterator += 1) {
+                        col = row[columnIterator];
+
+                        // Th or td element?
+                        html += col.head ? '<th' : '<td';
+
+                        // Append class as required
+                        if (col.class && col.class.length > 0) {
+                            html += ' class="' + htmlEncode(col.class) + '"';
+                        }
+
+                        // Colspan
+                        if (col.colspan) {
+                            html += 'colspan="' + htmlEncode(col.colspan) + '"';
+                        }
+
+                        html += '>';
+
+                        // Append label
+                        if (col.label) {
+                            html += '<span class="fc-table-label">' + col.label + '</span>';
+                        }
+
+                        // Render option button
+                        if (col.option) {
+                            checked = getConfig(field, 'default') === col.option.value ? ' checked' : '';
+
+                            html += '<div class="fc-option-buttons">';
+                            html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + rowIterator + '_' + columnIterator + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(col.option.value) + '" data-field-value="' + encodeURIComponent(col.option.value) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(col.option.text) + '</button>';
+                            html += '</div>';
+                        }
+
+                        html += col.head ? '</th>' : '</td>';
+                    }
+                }
+
+                html += '</tr>';
+            }
+
+            html += '</table>';
+
+            return html;
+        },
+
+        /**
          * Render a radio list.
          * @param field
          * @returns {string}
@@ -3045,6 +3134,9 @@ var fc = (function ($) {
             case 'contentRadioList':
                 fieldHtml += renderContentRadioList(field, prefix);
                 break;
+            case 'optionTable':
+                fieldHtml += renderOptionTable(field, prefix);
+                break;
             default:
                 console.log('Unknown field type: ' + field.type);
             }
@@ -3083,7 +3175,7 @@ var fc = (function ($) {
         for (x = 0; x < sections.length; x += 1) {
             section = sections[x];
             /*jslint nomen: true*/
-            sectionHtml = '<div class="fc-section" formcorp-data-id="' + section._id.$id + '">';
+            sectionHtml = '<div class="fc-section fc-section-' + section._id.$id + '" formcorp-data-id="' + section._id.$id + '">';
             /*jslint nomen: false*/
 
             if (typeof section.label === 'string' && section.label.length > 0) {
@@ -3578,6 +3670,11 @@ var fc = (function ($) {
                 alreadyChecked = $(this).hasClass('checked'),
                 dataArray;
 
+            // If the button has a data-field-value field, use it as the value
+            if ($(this).attr('data-field-value')) {
+                val = decodeURIComponent($(this).attr('data-field-value'));
+            }
+
             // Reset the selected
             if (fc.fieldSchema[id].type === 'contentRadioList') {
                 val = decodeURIComponent($(this).attr('data-field-value'));
@@ -3925,11 +4022,8 @@ var fc = (function ($) {
                 render(pageId);
             }
 
-            fc.oldHash = pageId;
-            fc.ignoreHashChangeEvent = false;
-
             // Smooth scroll
-            if (fc.config.smoothScroll) {
+            if (fc.config.smoothScroll && fc.oldHash) {
                 setTimeout(function (pageId) {
                     var offset;
 
@@ -3969,6 +4063,9 @@ var fc = (function ($) {
 
                 }.bind(this, pageId), fc.config.scrollWait);
             }
+
+            fc.oldHash = pageId;
+            fc.ignoreHashChangeEvent = false;
         });
 
         // Add value for a repeatable group
@@ -4903,9 +5000,13 @@ var fc = (function ($) {
                         }
                     }
                 }
-            } else if (typeof field === "object" && typeof comparisonValue === "object") {
+            } else if (field && comparisonValue && typeof field === "object" && typeof comparisonValue === "object") {
                 // Check an array of values against an array of values
                 for (x = 0; x < comparisonValue.length; x += 1) {
+                    console.log(typeof field);
+                    console.log(field);
+                    console.log(comparisonValue[x]);
+                    console.log('aaaay');
                     try {
                         if (field && field.indexOf(comparisonValue[x]) === -1) {
                             return false;
