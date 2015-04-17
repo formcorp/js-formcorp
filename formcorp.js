@@ -4699,6 +4699,7 @@ var fc = (function ($) {
 
             // Default values
             this.config = {
+                analytics: true,
                 realTimeValidation: true,
                 inlineValidation: true,
                 sessionKeyLength: 40,
