@@ -182,19 +182,40 @@ var fc = (function ($) {
      * @type {boolean}
      */
     var scriptUrl = document.getElementById('fc-js-include').getAttribute('src'),
+
         isDev = scriptUrl.indexOf('192.168.') > -1,
+
+        /**
+         * Returns the base URL from the script path (host with optional port). Requires host to be an IP.
+         * @param withPort
+         * @returns {*}
+         */
+        baseUrl = function (withPort) {
+            if (isDev) {
+                if (withPort === undefined) {
+                    withPort = true;
+                }
+
+                var re = withPort ? /\d+\.\d+\.\d+\.\d+[\:]{1}\d+/ : /\d+\.\d+\.\d+\.\d+/,
+                    match = scriptUrl.match(re);
+
+                if (match && match.length > 0) {
+                    return match[0];
+                }
+            }
+        },
 
         /**
          * The URL to query the API on (local dev defaults to port 9001)
          * @type {string}
          */
-        apiUrl = !isDev ? '//api.formcorp.com.au/' : '//' + window.location.hostname + ':9001/',
+        apiUrl = !isDev ? '//api.formcorp.com.au/' : '//' + baseUrl(false) + ':9001/',
 
         /**
          * The URL to query the CDN on (local dev defaults to port 9004)
          * @type {string}
          */
-        cdnUrl = !isDev ? '//cdn.formcorp.com.au/js/' : '//' + window.location.hostname + ':9004/',
+        cdnUrl = !isDev ? '//cdn.formcorp.com.au/js/' : '//' + baseUrl(false) + ':9004/',
 
         /**
          * The URL of the Analytics javaqscript file
