@@ -1125,6 +1125,10 @@ var fc = (function ($) {
                 compare = '',
                 json;
 
+            if (!obj) {
+                return;
+            }
+
             if (obj.condition !== undefined) {
                 compare = obj.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
             }
