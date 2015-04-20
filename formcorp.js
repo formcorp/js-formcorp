@@ -484,7 +484,8 @@ var fc = (function ($) {
             var selector,
                 values = [],
                 dataId,
-                val;
+                val,
+                dataValue;
 
             // If not defined, return nothing
             if (!field || field.length === 0) {
@@ -529,8 +530,9 @@ var fc = (function ($) {
                 dataId = field.attr('formcorp-data-id');
                 if (dataId) {
                     if (!getConfig(fc.fieldSchema[dataId], 'allowMultiple', false)) {
-                        if (fc.fieldSchema[dataId].type === 'contentRadioList') {
-                            return decodeURIComponent($('.fc-button.checked[formcorp-data-id="' + dataId + '"]').attr('data-field-value'));
+                        dataValue = $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').attr('data-field-value');
+                        if (dataValue) {
+                            return decodeURIComponent(dataValue);
                         }
 
                         // If a radio, can just get the button text
@@ -3676,8 +3678,9 @@ var fc = (function ($) {
             }
 
             // Reset the selected
-            if (fc.fieldSchema[id].type === 'contentRadioList') {
+            if (['contentRadioList', 'optionTable'].indexOf(fc.fieldSchema[id].type) > -1) {
                 val = decodeURIComponent($(this).attr('data-field-value'));
+
                 // If its a radio list, only allow one to be selected
                 if (!getConfig(fc.fieldSchema[id], 'allowMultiple', false)) {
                     fieldEl.find('button.checked').removeClass('checked');
@@ -5003,10 +5006,6 @@ var fc = (function ($) {
             } else if (field && comparisonValue && typeof field === "object" && typeof comparisonValue === "object") {
                 // Check an array of values against an array of values
                 for (x = 0; x < comparisonValue.length; x += 1) {
-                    console.log(typeof field);
-                    console.log(field);
-                    console.log(comparisonValue[x]);
-                    console.log('aaaay');
                     try {
                         if (field && field.indexOf(comparisonValue[x]) === -1) {
                             return false;
