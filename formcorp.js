@@ -1529,7 +1529,9 @@ var fc = (function ($) {
                         value = getConfig(schema, 'defaultValue', '');
                     }
 
-                    if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
+                    if (schema.type === 'grouplet') {
+                        console.log('restore grouplet');
+                    } else if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
                         // Restore a repeatable value
                         if (typeof value === 'object') {
                             $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
