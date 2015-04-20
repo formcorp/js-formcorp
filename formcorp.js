@@ -3521,6 +3521,8 @@ var fc = (function ($) {
             return;
         }
 
+        $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange);
+
         // Set the active page id to the page that the field belongs to, delete later pages
         fc.currentPage = getFieldPageId(dataId);
         $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
@@ -3886,6 +3888,9 @@ var fc = (function ($) {
         // Submit the form fields
         $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
         api('page/submit', data, 'put', function (data) {
+            var lastPage,
+                offset;
+
             if (typeof data.success === 'boolean' && data.success) {
                 // Update activity (server last active timestamp updated)
                 fc.lastActivity = (new Date()).getTime();
@@ -3941,6 +3946,36 @@ var fc = (function ($) {
                         $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
                         logEvent(fc.eventTypes.onFormComplete);
                     }
+
+                    console.log('page loaded');
+                    if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
+                        console.log('smooth scroll to the next page');
+                        lastPage = $('.fc-page:last');
+                        if (lastPage && lastPage.length > 0) {
+                            offset = parseInt(lastPage.offset().top, 10) + parseInt(fc.config.scrollOffset, 10);
+
+                            // If at the top of the page, apply the initial offset
+                            if ($(document).scrollTop() === 0) {
+                                offset += fc.config.initialScrollOffset;
+                            }
+
+                            // Apply a conditional offset
+                            if (fc.config.conditionalHtmlScrollOffset.class !== undefined) {
+                                if ($('html').hasClass(fc.config.conditionalHtmlScrollOffset.class)) {
+                                    offset += fc.config.conditionalHtmlScrollOffset.offset;
+                                }
+                            }
+
+                            $('html,body').animate({
+                                scrollTop: offset + "px"
+                            }, fc.config.scrollDuration, function () {
+                                fc.activeScroll = "";
+                            });
+
+                            fc.nextPageButtonClicked = false;
+                        }
+                    }
+
                     return;
                 }
 
@@ -3993,6 +4028,9 @@ var fc = (function ($) {
     registerEventListeners = function () {
         // Submit a form page
         $(fc.jQueryContainer).on('click', 'div.fc-submit input[type=submit]', function () {
+            // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
+            fc.nextPageButtonClicked = true;
+
             loadNextPage();
             return false;
         });
@@ -4621,6 +4659,7 @@ var fc = (function ($) {
             this.lastCompletedTimestamp = Date.now();
             this.lastHesitationTime = -1;
             this.nextPageLoadedTimestamp = Date.now();
+            this.nextPageButtonClicked = false;
 
             /**
              * Register modal states
@@ -4668,7 +4707,8 @@ var fc = (function ($) {
                 onFinishRender: 'onFinishFormRender',
                 onFieldError: 'onFieldError',
                 onFieldSuccess: 'onFieldSuccess',
-                onAnalyticsLoaded: 'onAnalyticsLoaded'
+                onAnalyticsLoaded: 'onAnalyticsLoaded',
+                onFieldValueChange: 'onFieldValueChange'
             };
 
             /**
@@ -4955,6 +4995,20 @@ var fc = (function ($) {
                 this.sessionId = $.cookie(this.config.sessionIdName);
             }
         },
+
+        /**
+         * Returns true if a page is valid, false if not
+         * @param pageId
+         * @returns {boolean}
+         */
+        pageIsValid: function (pageId) {
+            var selector = $('.fc-page[data-page-id="' + pageId + '"]');
+            if (selector && selector.length > 0) {
+                return validForm(selector, false);
+            }
+        },
+
+        getPageById: getPageById,
 
         /**
          * Returns whether two values are equal.
