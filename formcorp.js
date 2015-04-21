@@ -2829,6 +2829,49 @@ var fc = (function ($) {
             return foundFieldId;
         },
 
+        /**
+         * Sooth scroll to a page
+         * @param pageId
+         */
+        smoothScrollToPage = function (pageId) {
+            var offset,
+                pageDiv;
+
+            // If the last edited field disables scrolling, do not scroll
+            if (fc.lastCompletedField && fc.fieldSchema[fc.lastCompletedField] && !getConfig(fc.fieldSchema[fc.lastCompletedField], 'allowAutoScroll', true)) {
+                return;
+            }
+
+            // Only want to scroll once
+            if (fc.activeScroll.length > 0) {
+                return;
+            }
+            fc.activeScroll = pageId;
+
+            pageDiv = $('.fc-page:last');
+            if (pageDiv.length > 0 && pageDiv.attr('data-page-id') === pageId) {
+                offset = parseInt(pageDiv.offset().top, 10) + parseInt(fc.config.scrollOffset, 10);
+
+                // If at the top of the page, apply the initial offset
+                if ($(document).scrollTop() === 0) {
+                    offset += fc.config.initialScrollOffset;
+                }
+
+                // Apply a conditional offset
+                if (fc.config.conditionalHtmlScrollOffset.class !== undefined) {
+                    if ($('html').hasClass(fc.config.conditionalHtmlScrollOffset.class)) {
+                        offset += fc.config.conditionalHtmlScrollOffset.offset;
+                    }
+                }
+
+                $('html,body').animate({
+                    scrollTop: offset + "px"
+                }, fc.config.scrollDuration, function () {
+                    fc.activeScroll = "";
+                });
+            }
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3022,7 +3065,13 @@ var fc = (function ($) {
             required,
             fieldHtml,
             dataId,
-            fieldId;
+            fieldId,
+            groupletId,
+            visibility,
+            matches,
+            iterator,
+            match,
+            re;
 
         // Field id prefix (for grouplet fields that may be shown multiple times)
         if (prefix === undefined) {
@@ -3031,6 +3080,22 @@ var fc = (function ($) {
             prefix = prefix.join(prefixSeparator) + prefixSeparator;
         }
 
+        // Populate the grouplet array first
+        if (prefix.length > 0) {
+            groupletId = (prefix.substr(-1) === prefixSeparator) ? prefix.substr(0, prefix.length - 1) : prefix;
+            for (y = 0; y < fields.length; y += 1) {
+                field = fields[y];
+                if (!fc.fieldGrouplets[groupletId]) {
+                    fc.fieldGrouplets[groupletId] = [];
+                }
+
+                if (fc.fieldGrouplets[groupletId].indexOf(getId(field)) === -1) {
+                    fc.fieldGrouplets[groupletId].push(getId(field));
+                }
+            }
+        }
+
+        // Iterate through and render fields
         for (y = 0; y < fields.length; y += 1) {
             field = fields[y];
             required = getConfig(field, 'required', false);
@@ -3057,6 +3122,21 @@ var fc = (function ($) {
 
 
             fieldHtml += '>';
+
+            // Fields that belong to a grouplet who have a visibility toggle need updating
+            if (prefix && prefix.length > 0 && getConfig(field, 'visibility', '').length > 0) {
+                visibility = getConfig(field, 'visibility');
+                matches = visibility.match(/"([a-zA-Z0-9]{24})"/g);
+                if (matches && matches.length > 0) {
+                    for (iterator = 0; iterator < matches.length; iterator += 1) {
+                        match = matches[iterator].replace(/"/g, "");
+                        if (fc.fieldGrouplets[groupletId].indexOf(match) > 0) {
+                            re = new RegExp(match, 'g');
+                            field.config.visibility = field.config.visibility.replace(re, prefix + match);
+                        }
+                    }
+                }
+            }
 
             // Add to field class variable if doesnt exist
             dataId = fieldId;
@@ -3515,13 +3595,18 @@ var fc = (function ($) {
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
+            console.log(1);
             return;
         }
 
         // If the value hasn't actually changed, return
         if (fc.fields[dataId] && fc.fields[dataId] === value) {
+            console.log(2);
             return;
         }
+
+        console.log(dataId);
+        console.log(value);
 
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange);
 
@@ -3548,12 +3633,37 @@ var fc = (function ($) {
             parentId = dataParams[0];
             parentField = fc.fieldSchema[parentId];
 
+            console.log('parent field');
+
             if (parentField !== undefined && getConfig(parentField, 'repeatable', false) === true) {
+                errors = fieldErrors(dataId);
+                if (fc.config.realTimeValidation === true) {
+                    if (errors !== undefined && errors.length > 0) {
+                        // Log the error event
+                        logEvent(fc.eventTypes.onFieldError, {
+                            fieldId: dataId,
+                            errors: errors
+                        });
+
+                        console.log('ERROR');
+
+                        showFieldError(dataId, errors);
+                        return;
+                    }
+
+                    removeFieldError(dataId);
+                }
+
+                // Store the changed value for intermittent saving
+                if (fc.config.saveInRealTime === true) {
+                    fc.saveQueue[dataId] = value;
+                }
                 return;
             }
         }
 
         // Don't perform operations on repeatable fields
+        console.log(fieldSchema);
         if (typeof fieldSchema.config.repeatable !== 'boolean' || !fieldSchema.config.repeatable) {
             fc.fields[dataId] = value;
 
@@ -3949,9 +4059,7 @@ var fc = (function ($) {
                         logEvent(fc.eventTypes.onFormComplete);
                     }
 
-                    console.log('page loaded');
                     if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
-                        console.log('smooth scroll to the next page');
                         lastPage = $('.fc-page:last');
                         if (lastPage && lastPage.length > 0) {
                             offset = parseInt(lastPage.offset().top, 10) + parseInt(fc.config.scrollOffset, 10);
@@ -4059,51 +4167,16 @@ var fc = (function ($) {
         // When the hash changes - navigate forward/backwards
         $(window).on('hashchange', function () {
             var pageId = window.location.hash.substr(1),
-                pageDiv;
+                page = $(fc.jQueryContainer).find('.fc-page[data-page-id="' + pageId + '"]');
 
-            if (fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
+            if (page.length === 0 && fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
                 render(pageId);
             }
 
             // Smooth scroll
             if (fc.config.smoothScroll && fc.oldHash) {
                 setTimeout(function (pageId) {
-                    var offset;
-
-                    // If the last edited field disables scrolling, do not scroll
-                    if (fc.lastCompletedField && fc.fieldSchema[fc.lastCompletedField] && !getConfig(fc.fieldSchema[fc.lastCompletedField], 'allowAutoScroll', true)) {
-                        return;
-                    }
-
-                    // Only want to scroll once
-                    if (fc.activeScroll.length > 0) {
-                        return;
-                    }
-                    fc.activeScroll = pageId;
-
-                    pageDiv = $('.fc-page:last');
-                    if (pageDiv.length > 0 && pageDiv.attr('data-page-id') === pageId) {
-                        offset = parseInt(pageDiv.offset().top, 10) + parseInt(fc.config.scrollOffset, 10);
-
-                        // If at the top of the page, apply the initial offset
-                        if ($(document).scrollTop() === 0) {
-                            offset += fc.config.initialScrollOffset;
-                        }
-
-                        // Apply a conditional offset
-                        if (fc.config.conditionalHtmlScrollOffset.class !== undefined) {
-                            if ($('html').hasClass(fc.config.conditionalHtmlScrollOffset.class)) {
-                                offset += fc.config.conditionalHtmlScrollOffset.offset;
-                            }
-                        }
-
-                        $('html,body').animate({
-                            scrollTop: offset + "px"
-                        }, fc.config.scrollDuration, function () {
-                            fc.activeScroll = "";
-                        });
-                    }
-
+                    smoothScrollToPage(pageId);
                 }.bind(this, pageId), fc.config.scrollWait);
             }
 
@@ -4662,6 +4735,9 @@ var fc = (function ($) {
             this.lastHesitationTime = -1;
             this.nextPageLoadedTimestamp = Date.now();
             this.nextPageButtonClicked = false;
+
+            // Track which fields belong to which grouplets
+            this.fieldGrouplets = {};
 
             /**
              * Register modal states
