@@ -3469,7 +3469,9 @@ var fc = (function ($) {
 
         // Update the hash, and ignore the hash change event
         fc.ignoreHashChangeEvent = true;
-        window.location.hash = pageId;
+        if (fc.config.updateHash) {
+            window.location.hash = pageId;
+        }
 
         // Fire the event to signal form finished rendering
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
@@ -4580,7 +4582,10 @@ var fc = (function ($) {
                 break;
             }
             fc.currentPage = id;
-            window.location.hash = id;
+
+            if (fc.config.updateHash) {
+                window.location.hash = id;
+            }
 
             // Store field schema locally
             updateFieldSchema(page.stage);
@@ -4973,7 +4978,8 @@ var fc = (function ($) {
                     cdnUrl + 'dist/signaturepad/assets/flashcanvas.js',
                     cdnUrl + 'dist/signaturepad/assets/json2.min.js'
                 ],
-                signatureClass: 'sigPad'
+                signatureClass: 'sigPad',
+                updateHash: true
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
