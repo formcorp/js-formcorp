@@ -17,6 +17,22 @@ if (!Date.now) {
 }
 
 /**
+ * Returns whether or not a string is valid json
+ * @returns {boolean}
+ */
+String.prototype.isJson = function () {
+    "use strict";
+
+    try {
+        jQuery.parseJSON(this);
+        return true;
+    } catch (ignore) {
+    }
+
+    return false;
+};
+
+/**
  * Set up
  */
 (function (factory) {
@@ -688,11 +704,19 @@ var fc = (function ($) {
                 }
             } while (parentGroupletId !== undefined);
 
-            // Test required data
-            dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
-            if (getConfig(field, 'required', false) && fieldIsEmpty(dataField)) {
-                errors.push(fc.lang.emptyFieldError);
-                return errors;
+            // If abn field, check to see if valid
+            if (field.type === 'abnVerification') {
+                if (fc.validAbns.indexOf(value) < 0) {
+                    errors.push(fc.lang.validAbnRequired);
+                    return errors;
+                }
+            } else {
+                // Test required data
+                dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
+                if (getConfig(field, 'required', false) && fieldIsEmpty(dataField)) {
+                    errors.push(fc.lang.emptyFieldError);
+                    return errors;
+                }
             }
 
             // Custom validators
@@ -1150,6 +1174,16 @@ var fc = (function ($) {
 
             if (!obj) {
                 return;
+            }
+
+            // If its a string, attempt to convert to json and return
+            if (typeof obj === "string") {
+                if (obj.isJson()) {
+                    return toBooleanLogic($.parseJSON(obj));
+                }
+
+                // Assume already boolean logic
+                return obj;
             }
 
             if (obj.condition !== undefined) {
@@ -2048,17 +2082,17 @@ var fc = (function ($) {
             // Retrieve the card number and type
             cardNumber = rootElement.find('.fc-cc-number input').val().replace(/[^0-9]+/g, "");
             switch (getCreditCardType(cardNumber)) {
-            case fc.cardTypes.mastercard:
-                cardType = 'MASTERCARD';
-                break;
-            case fc.cardTypes.visa:
-                cardType = 'VISA';
-                break;
-            case fc.cardTypes.amex:
-                cardType = 'AMEX';
-                break;
-            default:
-                cardType = 'MASTERCARD';
+                case fc.cardTypes.mastercard:
+                    cardType = 'MASTERCARD';
+                    break;
+                case fc.cardTypes.visa:
+                    cardType = 'VISA';
+                    break;
+                case fc.cardTypes.amex:
+                    cardType = 'AMEX';
+                    break;
+                default:
+                    cardType = 'MASTERCARD';
             }
 
             // Prepare the data to send to paycorp
@@ -2132,12 +2166,12 @@ var fc = (function ($) {
 
                 // What to do?
                 switch (gateway.gateway) {
-                case "paycorp":
-                    initPaycorpGateway(rootElement, gateway);
-                    break;
-                default:
-                    console.log("No gateway to use");
-                    break;
+                    case "paycorp":
+                        initPaycorpGateway(rootElement, gateway);
+                        break;
+                    default:
+                        console.log("No gateway to use");
+                        break;
                 }
 
                 return false;
@@ -2282,6 +2316,34 @@ var fc = (function ($) {
 
             html += '</div>';
             /*!fc-payment*/
+            return html;
+        },
+
+        /**
+         * Render an ABN field
+         * @returns {string}
+         */
+        renderAbnField = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
+            /*jslint nomen: true*/
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                fieldId = prefix + field._id.$id,
+                buttonClass = 'fc-button',
+                html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            /*jslint nomen: false*/
+
+            // If there exists a valid saved value, hide the button
+            if (fc.fields[fieldId] && fc.fields[fieldId].length > 0 && fc.validAbns.indexOf(fc.fields[fieldId]) > -1) {
+                buttonClass += ' fc-hide';
+            }
+
+            // Button to validate
+            html += '<a class="' + buttonClass + '">' + fc.lang.validate + '</a>';
+            html += '<div class="fc-loading fc-hide"></div>';
+
             return html;
         },
 
@@ -2872,6 +2934,69 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Validate an ABN
+         *
+         * @param dataId
+         * @param abn
+         * @param callback
+         */
+        validateAbn = function (dataId, abn, callback) {
+            var
+                /**
+                 * Initialise the ajax callback
+                 * @param data
+                 */
+                initCallback = function (data) {
+                    if (typeof data === 'string') {
+                        try {
+                            data = $.parseJSON(data);
+                        } catch (ignore) {
+                        }
+                    }
+
+                    if (callback && typeof callback === 'function') {
+                        callback(data);
+                    }
+                };
+
+            // Send the API call
+            api('verification/abn', {
+                abn: abn
+            }, 'POST', initCallback);
+        },
+
+        /**
+         * Set the field schemas on initial schema load
+         * @param fields
+         */
+        setFieldSchemas = function (fields) {
+            var iterator, value;
+
+            if (typeof fields !== "object") {
+                return;
+            }
+
+            // If a field is detected, add it
+            /*jslint nomen: true*/
+            if (fields.config && fields.type && fields._id && fields._id.$id) {
+                fc.fieldSchema[fields._id.$id] = fields;
+                return;
+            }
+            /*jslint nomen: false*/
+
+            if (typeof fields === 'object') {
+                for (iterator in fields) {
+                    if (fields.hasOwnProperty(iterator)) {
+                        value = fields[iterator];
+                        if (typeof value === "object") {
+                            setFieldSchemas(value);
+                        }
+                    }
+                }
+            }
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3176,53 +3301,56 @@ var fc = (function ($) {
             fieldHtml += '<div class="fc-fieldgroup">';
 
             switch (field.type) {
-            case 'text':
-                fieldHtml += renderTextfield(field, prefix);
-                break;
-            case 'dropdown':
-                fieldHtml += renderDropdown(field, prefix);
-                break;
-            case 'textarea':
-                fieldHtml += renderTextarea(field, prefix);
-                break;
-            case 'radioList':
-                fieldHtml += renderRadioList(field, prefix);
-                break;
-            case 'checkboxList':
-                fieldHtml += renderCheckboxList(field, prefix);
-                break;
-            case 'hidden':
-                fieldHtml += renderHiddenField(field, prefix);
-                break;
-            case 'richTextArea':
-                fieldHtml += renderRichText(field, prefix);
-                break;
-            case 'grouplet':
-                fieldHtml += renderGrouplet(field, prefix);
-                break;
-            case 'creditCard':
-                fieldHtml += renderCreditCard(field, prefix);
-                break;
-            case 'emailVerification':
-                fieldHtml += renderEmailVerification(field, prefix);
-                break;
-            case 'smsVerification':
-                fieldHtml += renderSmsVerification(field, prefix);
-                break;
-            case 'reviewTable':
-                fieldHtml += renderReviewTable(field, prefix);
-                break;
-            case 'signature':
-                fieldHtml += renderSignature(field, prefix);
-                break;
-            case 'contentRadioList':
-                fieldHtml += renderContentRadioList(field, prefix);
-                break;
-            case 'optionTable':
-                fieldHtml += renderOptionTable(field, prefix);
-                break;
-            default:
-                console.log('Unknown field type: ' + field.type);
+                case 'text':
+                    fieldHtml += renderTextfield(field, prefix);
+                    break;
+                case 'dropdown':
+                    fieldHtml += renderDropdown(field, prefix);
+                    break;
+                case 'textarea':
+                    fieldHtml += renderTextarea(field, prefix);
+                    break;
+                case 'radioList':
+                    fieldHtml += renderRadioList(field, prefix);
+                    break;
+                case 'checkboxList':
+                    fieldHtml += renderCheckboxList(field, prefix);
+                    break;
+                case 'hidden':
+                    fieldHtml += renderHiddenField(field, prefix);
+                    break;
+                case 'richTextArea':
+                    fieldHtml += renderRichText(field, prefix);
+                    break;
+                case 'grouplet':
+                    fieldHtml += renderGrouplet(field, prefix);
+                    break;
+                case 'creditCard':
+                    fieldHtml += renderCreditCard(field, prefix);
+                    break;
+                case 'emailVerification':
+                    fieldHtml += renderEmailVerification(field, prefix);
+                    break;
+                case 'smsVerification':
+                    fieldHtml += renderSmsVerification(field, prefix);
+                    break;
+                case 'reviewTable':
+                    fieldHtml += renderReviewTable(field, prefix);
+                    break;
+                case 'signature':
+                    fieldHtml += renderSignature(field, prefix);
+                    break;
+                case 'contentRadioList':
+                    fieldHtml += renderContentRadioList(field, prefix);
+                    break;
+                case 'optionTable':
+                    fieldHtml += renderOptionTable(field, prefix);
+                    break;
+                case 'abnVerification':
+                    fieldHtml += renderAbnField(field, prefix);
+                    break;
+                default:
+                    console.log('Unknown field type: ' + field.type);
             }
 
             fieldHtml += '<div class="fc-error-text"></div>';
@@ -3398,7 +3526,7 @@ var fc = (function ($) {
             // If field has a visibility configurative set, act on it
             field = fc.fieldSchema[dataId];
             if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                visible = eval(field.config.visibility);
+                visible = eval(toBooleanLogic(field.config.visibility));
                 if (typeof visible === 'boolean') {
                     if (visible) {
                         $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
@@ -3597,18 +3725,13 @@ var fc = (function ($) {
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
-            console.log(1);
             return;
         }
 
         // If the value hasn't actually changed, return
         if (fc.fields[dataId] && fc.fields[dataId] === value) {
-            console.log(2);
             return;
         }
-
-        console.log(dataId);
-        console.log(value);
 
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange);
 
@@ -3635,8 +3758,6 @@ var fc = (function ($) {
             parentId = dataParams[0];
             parentField = fc.fieldSchema[parentId];
 
-            console.log('parent field');
-
             if (parentField !== undefined && getConfig(parentField, 'repeatable', false) === true) {
                 errors = fieldErrors(dataId);
                 if (fc.config.realTimeValidation === true) {
@@ -3646,8 +3767,6 @@ var fc = (function ($) {
                             fieldId: dataId,
                             errors: errors
                         });
-
-                        console.log('ERROR');
 
                         showFieldError(dataId, errors);
                         return;
@@ -3665,7 +3784,6 @@ var fc = (function ($) {
         }
 
         // Don't perform operations on repeatable fields
-        console.log(fieldSchema);
         if (typeof fieldSchema.config.repeatable !== 'boolean' || !fieldSchema.config.repeatable) {
             fc.fields[dataId] = value;
 
@@ -3771,7 +3889,32 @@ var fc = (function ($) {
         // Input types text changed
         $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
             var val = $(this).val(),
-                id = $(this).attr('formcorp-data-id');
+                id = $(this).attr('formcorp-data-id'),
+                schema = fc.fieldSchema[id],
+                el;
+
+            if (schema && schema.type && schema.type === 'abnVerification') {
+                // Do not want to temporarily store ABN
+                el = $(this).parent().find('.fc-button');
+
+                if (val.length === 0 || fc.validAbns.indexOf(val) === -1) {
+                    // If the abn hasn't previously been marked as valid, show the button
+
+                    if (el.hasClass('fc-hide')) {
+                        el.removeClass('fc-hide');
+                    }
+                } else {
+                    // Otherwise ABN is known to be valid, mark as changed and remove possible errors
+                    el.addClass('fc-hide');
+                    valueChanged(id, val);
+                    removeFieldError(id);
+                }
+
+                // Need to update the stored value to ensure proper validation
+                fc.fields[id] = val;
+
+                return;
+            }
 
             if (val !== fc.fields[id]) {
                 // Only trigger when the value has truly changed
@@ -3779,8 +3922,39 @@ var fc = (function ($) {
             }
         });
 
+        // Abn verification lookup
+        $(fc.jQueryContainer).on('click', '.fc-field-abnVerification .fc-button', function () {
+            var abn = $(this).parent().find('input.fc-fieldinput'),
+                dataId = abn.attr('formcorp-data-id'),
+                loading = abn.parent().find('.fc-loading'),
+                btn = this;
+
+            removeFieldError(dataId);
+            if (loading && loading.length > 0) {
+                loading.removeClass('fc-hide');
+            }
+
+            // Validate the ABN
+            validateAbn(dataId, abn.val(), function (result) {
+                if (loading && loading.length > 0) {
+                    loading.addClass('fc-hide');
+                }
+
+                if (typeof result === "object") {
+                    if (result.success && [true, "true"].indexOf(result.success) > -1) {
+                        fc.validAbns.push(abn.val());
+                        $(btn).remove();
+                        valueChanged(dataId, abn.val());
+                    } else {
+                        showFieldError(dataId, [result.message]);
+                    }
+                }
+            });
+            return false;
+        });
+
         // Radio button clicks
-        $(fc.jQueryContainer).on('click', '.fc-fieldinput.fc-button', function () {
+        $(fc.jQueryContainer).on('click', 'button.fc-fieldinput.fc-button', function () {
             var val = $(this).text(),
                 id = $(this).attr('formcorp-data-id'),
                 parent = $(this).parent().parent(),
@@ -4211,18 +4385,18 @@ var fc = (function ($) {
         $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-add', function () {
             if (fc.modalState !== undefined && typeof fc.modalState === "string") {
                 switch (fc.modalState) {
-                case fc.states.DELETE_REPEATABLE:
-                    deleteRepeatableRow();
-                    break;
-                case fc.states.ADD_REPEATABLE:
-                    addRepeatableRow();
-                    break;
-                case fc.states.EMAIL_VERIFICATION_CODE:
-                    verifyEmailAddress();
-                    break;
-                case fc.states.SMS_VERIFICATION_CODE:
-                    verifyMobileNumber();
-                    break;
+                    case fc.states.DELETE_REPEATABLE:
+                        deleteRepeatableRow();
+                        break;
+                    case fc.states.ADD_REPEATABLE:
+                        addRepeatableRow();
+                        break;
+                    case fc.states.EMAIL_VERIFICATION_CODE:
+                        verifyEmailAddress();
+                        break;
+                    case fc.states.SMS_VERIFICATION_CODE:
+                        verifyMobileNumber();
+                        break;
                 }
             }
 
@@ -4448,7 +4622,8 @@ var fc = (function ($) {
      */
     pruneInvisibleFields = function (fields) {
         if (typeof fields === "object") {
-            var dataId, field, visible;
+            var dataId, field, visible, json;
+
             for (dataId in fields) {
                 if (fields.hasOwnProperty(dataId)) {
                     field = fc.fieldSchema[dataId];
@@ -4456,11 +4631,24 @@ var fc = (function ($) {
                         continue;
                     }
                     if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                        visible = eval(field.config.visibility);
-                        if (typeof visible === 'boolean') {
-                            if (!visible) {
-                                delete fields[dataId];
+                        // Attempt to convert to json string
+                        if (['[', '{'].indexOf(field.config.visibility.substring(0, 1)) > -1) {
+                            try {
+                                json = $.parseJSON(field.config.visibility);
+                                field.config.visibility = toBooleanLogic(json);
+                            } catch (ignore) {
                             }
+                        }
+
+                        // Try to evaluate the boolean condition
+                        try {
+                            visible = eval(field.config.visibility);
+                            if (typeof visible === 'boolean') {
+                                if (!visible) {
+                                    delete fields[dataId];
+                                }
+                            }
+                        } catch (ignore) {
                         }
                     }
                 }
@@ -4629,11 +4817,20 @@ var fc = (function ($) {
 
             var key, firstPageId;
 
+            if (data && data.stage) {
+                setFieldSchemas(data.stage);
+            }
+
             // If data returned by the API server, set locally
             if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
                 for (key in data.data) {
                     if (data.data.hasOwnProperty(key)) {
                         fc.fields[key] = data.data[key];
+
+                        // If an ABN field, assume valid if previously set
+                        if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
+                            fc.validAbns.push(fc.fields[key]);
+                        }
 
                         // If a grouplet, also store the entire state
                         if (key.indexOf(prefixSeparator) > -1) {
@@ -4740,6 +4937,7 @@ var fc = (function ($) {
             this.lastHesitationTime = -1;
             this.nextPageLoadedTimestamp = Date.now();
             this.nextPageButtonClicked = false;
+            this.validAbns = [];
 
             // Track which fields belong to which grouplets
             this.fieldGrouplets = {};
@@ -4803,6 +5001,14 @@ var fc = (function ($) {
                 smsListeners: 'smsListeners',
                 creditCardListeners: 'creditCardListeners',
                 loadSignatureLibs: 'loadSignatureLibs'
+            };
+
+            /**
+             * Constant strings
+             * @type {{abnLookupUrl: string}}
+             */
+            this.constants = {
+                abnLookupUrl: 'https://abr.business.gov.au/json/AbnDetails.aspx?callback=abnCallback&abn=%abn%&guid=%guid%'
             };
 
             /**
@@ -5054,7 +5260,9 @@ var fc = (function ($) {
                 currencySymbol: "$",
                 total: "Total",
                 description: "Description",
-                paymentDescription: "Application completion"
+                paymentDescription: "Application completion",
+                validate: 'Validate',
+                validAbnRequired: 'You must enter a valid ABN.'
             };
 
             // Update with client options

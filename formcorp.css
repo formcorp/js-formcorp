@@ -117,7 +117,7 @@ div.fc-pagination {
 }
 
 .fc-hide {
-    display: none;
+    display: none !important;
 }
 
 .fc-clear {
@@ -146,6 +146,7 @@ div.fc-pagination {
     padding-top: 4px;
     font-size: 12px;
     color: #d05128;
+    clear: both;
 }
 
 .fc-field .fc-repeatable .fc-fieldgroup .fc-field, .fc-field .fc-repeatable .fc-fieldgroup .fc-fieldinput {
@@ -347,7 +348,7 @@ div.fc-pagination {
     float: left;
 }
 
-.fc-send-email .fc-loading, .fc-modal .modal-footer .fc-loading {
+.fc-send-email .fc-loading, .fc-modal .modal-footer .fc-loading, .fc-loading {
     float: left;
     background: #fff url(img/loading-small.gif) no-repeat center center;
     height: 36px;
@@ -576,6 +577,25 @@ div.fc-pagination {
 .fc-content-radio-item .fc-button {
     width: 90%;
 }
+
+.fc-field-abnVerification input.fc-fieldinput {
+    width: 80%;
+    float: left;
+}
+
+.fc-field-abnVerification a.fc-button {
+    float: left;
+    margin-left: 10px;
+}
+
+.fc-field-abnVerification .fc-fieldgroup {
+    position: relative;
+}
+
+.fc-field-abnVerification .fc-empty {
+    clear: both;
+}
+
 
 /**
  * 4 column
