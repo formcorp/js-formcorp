@@ -853,6 +853,24 @@ var fc = (function ($) {
         },
 
         /**
+         * Returns a field by tag
+         * @param tag
+         * @returns {*}
+         */
+        getFieldByTag = function (tag) {
+            var iterator, fieldTag;
+
+            for (iterator in fc.fieldSchema) {
+                if (fc.fieldSchema.hasOwnProperty(iterator)) {
+                    fieldTag = getConfig(fc.fieldSchema[iterator], 'tag', '');
+                    if (fieldTag.length > 0 && fieldTag === tag) {
+                        return fc.fieldSchema[iterator];
+                    }
+                }
+            }
+        },
+
+        /**
          * Remove the error on the DOM for a given field.
          * @param dataId
          */
@@ -1539,73 +1557,82 @@ var fc = (function ($) {
         },
 
         /**
-         * Set values on DOM from fields in JS
+         * Set a field in the DOM with value stored in member object
+         * @param obj
+         * @param fieldId
          */
-        setFieldValues = function () {
-            var fieldId,
-                fieldGroup,
+        setFieldValue = function (obj, fieldId) {
+            var fieldGroup,
                 value,
                 schema,
                 selector,
                 iterator,
                 el;
 
-            $('div[fc-data-group]').each(function () {
-                fieldId = $(this).attr('fc-data-group');
+            if (fc.fields[fieldId] !== undefined) {
+                fieldGroup = $(obj).find('.fc-fieldgroup');
+                value = fc.fields[fieldId];
+                schema = fc.fieldSchema[fieldId];
 
-                if (fc.fields[fieldId] !== undefined) {
-                    fieldGroup = $(this).find('.fc-fieldgroup');
-                    value = fc.fields[fieldId];
-                    schema = fc.fieldSchema[fieldId];
+                // If read-only and a default value set, use it
+                if (getConfig(schema, 'readOnly', false)) {
+                    value = getConfig(schema, 'defaultValue', '');
+                }
 
-                    // If read-only and a default value set, use it
-                    if (getConfig(schema, 'readOnly', false)) {
-                        value = getConfig(schema, 'defaultValue', '');
+                if (schema.type === 'grouplet') {
+                    console.log('restore grouplet');
+                } else if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
+                    // Restore a repeatable value
+                    if (typeof value === 'object') {
+                        $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
                     }
-
-                    if (schema.type === 'grouplet') {
-                        console.log('restore grouplet');
-                    } else if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
-                        // Restore a repeatable value
-                        if (typeof value === 'object') {
-                            $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
-                        }
-                    } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
-                        // Input type text
-                        fieldGroup.find('input[type=text],textarea').val(value);
-                    } else if (fieldGroup.find('select').length > 0) {
-                        // Select box
-                        fieldGroup.find('select').val(value);
-                    } else if (fieldGroup.find('input[type=radio]').length > 0) {
-                        // Radio options
-                        fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
-                    } else {
-                        // Set the button
-                        selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
-                        if (selector.length > 0) {
-                            selector.addClass('checked');
-                        }
+                } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
+                    // Input type text
+                    fieldGroup.find('input[type=text],textarea').val(value);
+                } else if (fieldGroup.find('select').length > 0) {
+                    // Select box
+                    fieldGroup.find('select').val(value);
+                } else if (fieldGroup.find('input[type=radio]').length > 0) {
+                    // Radio options
+                    fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
+                } else {
+                    // Set the button
+                    selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
+                    if (selector.length > 0) {
+                        selector.addClass('checked');
                     }
+                }
 
-                    // If a content-option group, set the values accordingly
-                    if (schema.type === 'contentRadioList') {
-                        if (typeof value === 'object') {
-                            // Checkbox list allows multiple selections
-                            for (iterator = 0; iterator < value.length; iterator += 1) {
-                                el = $('.fc-button[data-field-value="' + encodeURIComponent(value[iterator]) + '"]');
-                                if (el && el.length > 0) {
-                                    el.addClass('checked');
-                                }
-                            }
-                        } else {
-                            // Radio list allows only one selection
-                            el = $('.fc-button[data-field-value="' + encodeURIComponent(value) + '"]');
+                // If a content-option group, set the values accordingly
+                if (schema.type === 'contentRadioList') {
+                    if (typeof value === 'object') {
+                        // Checkbox list allows multiple selections
+                        for (iterator = 0; iterator < value.length; iterator += 1) {
+                            el = $('.fc-button[data-field-value="' + encodeURIComponent(value[iterator]) + '"]');
                             if (el && el.length > 0) {
                                 el.addClass('checked');
                             }
                         }
+                    } else {
+                        // Radio list allows only one selection
+                        el = $('.fc-button[data-field-value="' + encodeURIComponent(value) + '"]');
+                        if (el && el.length > 0) {
+                            el.addClass('checked');
+                        }
                     }
                 }
+            }
+        },
+
+        /**
+         * Set values on DOM from fields in JS
+         */
+        setFieldValues = function () {
+            var fieldId;
+
+            $('div[fc-data-group]').each(function () {
+                fieldId = $(this).attr('fc-data-group');
+                setFieldValue(this, fieldId);
             });
         },
 
@@ -3927,7 +3954,8 @@ var fc = (function ($) {
             var abn = $(this).parent().find('input.fc-fieldinput'),
                 dataId = abn.attr('formcorp-data-id'),
                 loading = abn.parent().find('.fc-loading'),
-                btn = this;
+                btn = this,
+                mapField;
 
             removeFieldError(dataId);
             if (loading && loading.length > 0) {
@@ -3936,12 +3964,36 @@ var fc = (function ($) {
 
             // Validate the ABN
             validateAbn(dataId, abn.val(), function (result) {
+                var field, id, entityName, container;
+
                 if (loading && loading.length > 0) {
                     loading.addClass('fc-hide');
                 }
 
                 if (typeof result === "object") {
                     if (result.success && [true, "true"].indexOf(result.success) > -1) {
+                        mapField = getConfig(fc.fieldSchema[dataId], 'mapBusinessName', '');
+
+                        // Set the business/entity name
+                        if (mapField.length > 0 && result.entityName && result.entityName.length > 0) {
+                            field = getFieldByTag(mapField);
+                            if (field && field !== null && typeof field === "object") {
+                                id = getId(field);
+                                if (id.length > 0 && (!fc.fields[id] || (typeof fc.fields[id] === "string" && fc.fields[id].length === 0))) {
+                                    // If an id is set, and the field doesn't exist, or the field is empty, set
+                                    if (typeof result.businessName === "object" && result.businessName.length > 0) {
+                                        entityName = result.businessName[0];
+                                    } else {
+                                        entityName = result.entityName;
+                                    }
+
+                                    fc.fields[id] = entityName;
+                                    container = $('.fc-field[fc-data-group="' + id + '"]');
+                                    setFieldValue(container, id);
+                                }
+                            }
+                        }
+
                         fc.validAbns.push(abn.val());
                         $(btn).remove();
                         valueChanged(dataId, abn.val());
@@ -5262,7 +5314,7 @@ var fc = (function ($) {
                 description: "Description",
                 paymentDescription: "Application completion",
                 validate: 'Validate',
-                validAbnRequired: 'You must enter a valid ABN.'
+                validAbnRequired: 'You must enter and validate a valid ABN.'
             };
 
             // Update with client options
