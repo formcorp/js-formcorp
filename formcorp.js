@@ -4374,10 +4374,11 @@ var fc = (function ($) {
         });
 
         // When the form is complete, delete the session
-        $(fc.jQueryContainer).on(fc.jsEvents.onFormComplete, function () {
-            // @todo: rework, no timeout
-            deleteSession(false);
-        });
+        if (fc.config.deleteSessionOnComplete) {
+            $(fc.jQueryContainer).on(fc.jsEvents.onFormComplete, function () {
+                deleteSession(false);
+            });
+        }
 
         // Previous page click
         $(fc.jQueryContainer).on('click', '.fc-prev-page', function () {
@@ -5237,7 +5238,8 @@ var fc = (function ($) {
                     cdnUrl + 'dist/signaturepad/assets/json2.min.js'
                 ],
                 signatureClass: 'sigPad',
-                updateHash: true
+                updateHash: true,
+                deleteSessionOnComplete: true
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
