@@ -3922,7 +3922,9 @@ var fc = (function ($) {
                     var dataId = $(this).attr('formcorp-data-id'),
                         nextField = nextVisibleField(dataId, false),
                         nextFieldEl,
-                        changedFocus = false;
+                        changedFocus = false,
+                        val = $(this).val(),
+                        id = $(this).attr('formcorp-data-id');
 
                     // If the next field is a text box, shift focus to it
                     if (nextField && nextField.length > 0) {
@@ -3936,6 +3938,12 @@ var fc = (function ($) {
                     // Focus out if not
                     if (!changedFocus) {
                         $(this).blur();
+                    }
+
+                    // Mark the value as changed
+                    if (val !== fc.fields[id]) {
+                        // Only trigger when the value has truly changed
+                        valueChanged(id, val);
                     }
                 }
             });
