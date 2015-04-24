@@ -3949,6 +3949,16 @@ var fc = (function ($) {
             }
         });
 
+        $(fc.jQueryContainer).on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput', function () {
+            var val = $(this).val(),
+                id = $(this).attr('formcorp-data-id');
+
+            if (val !== fc.fields[id]) {
+                // Only trigger when the value has truly changed
+                valueChanged(id, val);
+            }
+        });
+
         // Abn verification lookup
         $(fc.jQueryContainer).on('click', '.fc-field-abnVerification .fc-button', function () {
             var abn = $(this).parent().find('input.fc-fieldinput'),
