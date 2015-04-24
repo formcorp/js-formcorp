@@ -3913,7 +3913,7 @@ var fc = (function ($) {
      * Register event listeners that fire when a form input field's value changes
      */
     registerValueChangedListeners = function () {
-        $(fc.jQueryContainer).on('submit', 'fc-form', function () {
+        $(fc.jQueryContainer).on('submit', '.fc-form', function () {
             console.log('FC form submit');
             return false;
         });
