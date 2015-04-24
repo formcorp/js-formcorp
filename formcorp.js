@@ -3937,6 +3937,11 @@ var fc = (function ($) {
                         val = $(this).val(),
                         id = $(this).attr('formcorp-data-id');
 
+                    // If the field isn't valid, do nothing
+                    if (!fieldIsValid(id, val)) {
+                        return;
+                    }
+
                     // If the next field is a text box, shift focus to it
                     if (nextField && nextField.length > 0) {
                         nextFieldEl = $('.fc-fieldinput[type=text][formcorp-data-id="' + nextField + '"]');
