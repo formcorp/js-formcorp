@@ -4226,6 +4226,7 @@ var fc = (function ($) {
         }
 
         // Submit the form fields
+        $(fc.jQueryContainer).trigger(fc.jsEvents.onLoadingPageStart);
         $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
         api('page/submit', data, 'put', function (data) {
             var lastPage,
@@ -4235,6 +4236,7 @@ var fc = (function ($) {
                 // Update activity (server last active timestamp updated)
                 fc.lastActivity = (new Date()).getTime();
                 $(fc.jQueryContainer).find('.fc-loading-screen').removeClass('show');
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onLoadingPageEnd);
 
                 // If 'critical' errors were returned (validation errors on required fields), need to alert the user
                 if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
@@ -5042,7 +5044,9 @@ var fc = (function ($) {
                 onFieldError: 'onFieldError',
                 onFieldSuccess: 'onFieldSuccess',
                 onAnalyticsLoaded: 'onAnalyticsLoaded',
-                onFieldValueChange: 'onFieldValueChange'
+                onFieldValueChange: 'onFieldValueChange',
+                onLoadingPageStart: 'onLoadingPageStart',
+                onLoadingPageEnd: 'onLoadingPageEnd'
             };
 
             /**
