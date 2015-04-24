@@ -3026,6 +3026,34 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Auto scroll to field.
+         * @param fromFieldId
+         * @param nextField
+         */
+        autoScrollToField = function (fromFieldId, nextField) {
+            var el, topDistance, sessionId;
+
+            // If the next field belongs to a different section, scroll to that section
+            el = $('.fc-field[fc-data-group="' + nextField + '"]');
+
+            if (el && el.length > 0) {
+                sessionId = el.attr('fc-belongs-to');
+                if (sessionId !== $('.fc-field[fc-data-group="' + fromFieldId + '"]').attr('fc-belongs-to')) {
+                    el = $('.fc-section[formcorp-data-id="' + sessionId + '"]');
+                }
+
+                if (el && el.length > 0) {
+                    topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
+                    if (parseInt($(document).scrollTop(), 10) < topDistance) {
+                        $('html,body').animate({
+                            scrollTop: topDistance + "px"
+                        }, fc.config.scrollDuration);
+                    }
+                }
+            }
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3890,24 +3918,7 @@ var fc = (function ($) {
 
         // Scroll to the next field if required
         if (getConfig(fc.fieldSchema[dataId], 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
-            // If the next field belongs to a different section, scroll to that section
-            el = $('.fc-field[fc-data-group="' + nextField + '"]');
-
-            if (el && el.length > 0) {
-                sessionId = el.attr('fc-belongs-to');
-                if (sessionId !== $('.fc-field[fc-data-group="' + dataId + '"]').attr('fc-belongs-to')) {
-                    el = $('.fc-section[formcorp-data-id="' + sessionId + '"]');
-                }
-
-                if (el && el.length > 0) {
-                    topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
-                    if (parseInt($(document).scrollTop(), 10) < topDistance) {
-                        $('html,body').animate({
-                            scrollTop: topDistance + "px"
-                        }, fc.config.scrollDuration);
-                    }
-                }
-            }
+            autoScrollToField(dataId, nextField);
         }
     };
 
@@ -3944,6 +3955,11 @@ var fc = (function ($) {
                     if (val !== fc.fields[id]) {
                         // Only trigger when the value has truly changed
                         valueChanged(id, val);
+                    }
+
+                    // Auto scroll to next field if required
+                    if (nextField && nextField.length > 0 && fc.config.autoScrollToNextField) {
+                        autoScrollToField(dataId, nextField);
                     }
                 }
             });
