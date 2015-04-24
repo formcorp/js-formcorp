@@ -2888,34 +2888,36 @@ var fc = (function ($) {
          */
         nextVisibleField = function (currentField, mustBeEmpty) {
             var foundField = false,
-                foundFieldId;
+                foundId;
 
             // Only return fields whose value isnt empty
-            if (!mustBeEmpty) {
+            if (typeof mustBeEmpty !== 'boolean') {
                 mustBeEmpty = true;
             }
 
             // Iterate through visible fields
             $('.fc-section:not(.fc-hide) div.fc-field:not(.fc-hide)').each(function () {
                 var id = $(this).attr('fc-data-group');
-                if (id === currentField) {
+
+                if (!foundField && id === currentField) {
                     foundField = true;
                     return;
                 }
 
                 // If the field has been found, return the next
-                if (foundField && !foundFieldId) {
+                if (foundField && !foundId) {
                     if (mustBeEmpty && !fc.fields[id]) {
-                        // If the field must be empty, only return if no value is found
-                        foundFieldId = id;
-                    } else if (!mustBeEmpty) {
-                        // Otherwise, return the first field
-                        foundFieldId = id;
+                        foundId = id;
+                        return;
+                    }
+
+                    if (!mustBeEmpty) {
+                        foundId = id;
                     }
                 }
             });
 
-            return foundFieldId;
+            return foundId;
         },
 
         /**
@@ -3913,6 +3915,32 @@ var fc = (function ($) {
      * Register event listeners that fire when a form input field's value changes
      */
     registerValueChangedListeners = function () {
+        // On enter pressed, opt to shift focus
+        if (fc.config.autoShiftFocusOnEnter) {
+            $(fc.jQueryContainer).on('keypress', 'input[type=text].fc-fieldinput', function (e) {
+                if (e.which === fc.constants.enterKey) {
+                    var dataId = $(this).attr('formcorp-data-id'),
+                        nextField = nextVisibleField(dataId, false),
+                        nextFieldEl,
+                        changedFocus = false;
+
+                    // If the next field is a text box, shift focus to it
+                    if (nextField && nextField.length > 0) {
+                        nextFieldEl = $('.fc-fieldinput[type=text][formcorp-data-id="' + nextField + '"]');
+                        if (nextFieldEl.length > 0) {
+                            nextFieldEl.focus();
+                            changedFocus = true;
+                        }
+                    }
+
+                    // Focus out if not
+                    if (!changedFocus) {
+                        $(this).blur();
+                    }
+                }
+            });
+        }
+
         // Input types text changed
         $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
             var val = $(this).val(),
@@ -5075,7 +5103,7 @@ var fc = (function ($) {
              * @type {{abnLookupUrl: string}}
              */
             this.constants = {
-                abnLookupUrl: 'https://abr.business.gov.au/json/AbnDetails.aspx?callback=abnCallback&abn=%abn%&guid=%guid%'
+                enterKey: 13
             };
 
             /**
@@ -5253,7 +5281,8 @@ var fc = (function ($) {
                 ],
                 signatureClass: 'sigPad',
                 updateHash: true,
-                deleteSessionOnComplete: true
+                deleteSessionOnComplete: true,
+                autoShiftFocusOnEnter: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
