@@ -3054,6 +3054,45 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Returns true if a field is repeatable.
+         *
+         * @param dataId
+         * @returns {*|boolean}
+         */
+        fieldIsRepeatable = function (dataId) {
+            var fieldSchema = fc.fieldSchema[dataId];
+
+            return fieldSchema && typeof fieldSchema.config.repeatable === 'boolean' && fieldSchema.config.repeatable;
+        },
+
+        /**
+         * Returns true if a field's parent is repeatable
+         *
+         * @param dataId
+         * @returns {boolean}
+         */
+        fieldParentIsRepeatable = function (dataId) {
+            var parts, parentId;
+
+            parts = dataId.split(fc.constants.prefixSeparator);
+            parts.pop();
+
+            // If no parent, return false
+            if (parts.length === 0) {
+                return false;
+            }
+
+            parentId = parts.join(fc.constants.prefixSeparator);
+
+            // If no schema exists for the parent, return false
+            if (!fc.fieldSchema[parentId]) {
+                return false;
+            }
+
+            return fieldIsRepeatable(parentId);
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3790,7 +3829,20 @@ var fc = (function ($) {
             return;
         }
 
-        $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange);
+        $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
+
+        // Store when not a repeatable value
+        if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
+            fc.fields[dataId] = value;
+
+            // If a grouplet, save the original state of the grouplet
+            if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+                saveOriginalGroupletValue(dataId, value);
+            }
+
+            // Flush the field visibility options
+            flushVisibility();
+        }
 
         // Set the active page id to the page that the field belongs to, delete later pages
         fc.currentPage = getFieldPageId(dataId);
@@ -3841,13 +3893,8 @@ var fc = (function ($) {
         }
 
         // Don't perform operations on repeatable fields
-        if (typeof fieldSchema.config.repeatable !== 'boolean' || !fieldSchema.config.repeatable) {
+        if (!fieldIsRepeatable(dataId)) {
             fc.fields[dataId] = value;
-
-            // If a grouplet, save the original state of the grouplet
-            if (dataId.indexOf(prefixSeparator) > -1) {
-                saveOriginalGroupletValue(dataId, value);
-            }
 
             // Flush the field visibility options
             flushVisibility();
