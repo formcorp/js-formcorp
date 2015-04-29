@@ -1557,6 +1557,45 @@ var fc = (function ($) {
         },
 
         /**
+         * Returns true if a field is repeatable.
+         *
+         * @param dataId
+         * @returns {*|boolean}
+         */
+        fieldIsRepeatable = function (dataId) {
+            var fieldSchema = fc.fieldSchema[dataId];
+
+            return fieldSchema && typeof fieldSchema.config.repeatable === 'boolean' && fieldSchema.config.repeatable;
+        },
+
+        /**
+         * Returns true if a field's parent is repeatable
+         *
+         * @param dataId
+         * @returns {boolean}
+         */
+        fieldParentIsRepeatable = function (dataId) {
+            var parts, parentId;
+
+            parts = dataId.split(fc.constants.prefixSeparator);
+            parts.pop();
+
+            // If no parent, return false
+            if (parts.length === 0) {
+                return false;
+            }
+
+            parentId = parts.join(fc.constants.prefixSeparator);
+
+            // If no schema exists for the parent, return false
+            if (!fc.fieldSchema[parentId]) {
+                return false;
+            }
+
+            return fieldIsRepeatable(parentId);
+        },
+
+        /**
          * Set a field in the DOM with value stored in member object
          * @param obj
          * @param fieldId
@@ -1569,6 +1608,8 @@ var fc = (function ($) {
                 iterator,
                 el;
 
+            console.log('set field value: ' + fieldId);
+
             if (fc.fields[fieldId] !== undefined) {
                 fieldGroup = $(obj).find('.fc-fieldgroup');
                 value = fc.fields[fieldId];
@@ -1579,9 +1620,11 @@ var fc = (function ($) {
                     value = getConfig(schema, 'defaultValue', '');
                 }
 
-                if (schema.type === 'grouplet') {
-                    console.log('restore grouplet');
-                } else if (typeof schema.config.repeatable === 'boolean' && schema.config.repeatable) {
+                if (schema.type === 'grouplet' && !fieldIsRepeatable(fieldId)) {
+                    console.log('restore grouplet that isnt repeatable');
+                } else if (fieldIsRepeatable(fieldId)) {
+                    console.log('restore repeatable field');
+                    console.log(value);
                     // Restore a repeatable value
                     if (typeof value === 'object') {
                         $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
@@ -3052,45 +3095,6 @@ var fc = (function ($) {
                     }
                 }
             }
-        },
-
-        /**
-         * Returns true if a field is repeatable.
-         *
-         * @param dataId
-         * @returns {*|boolean}
-         */
-        fieldIsRepeatable = function (dataId) {
-            var fieldSchema = fc.fieldSchema[dataId];
-
-            return fieldSchema && typeof fieldSchema.config.repeatable === 'boolean' && fieldSchema.config.repeatable;
-        },
-
-        /**
-         * Returns true if a field's parent is repeatable
-         *
-         * @param dataId
-         * @returns {boolean}
-         */
-        fieldParentIsRepeatable = function (dataId) {
-            var parts, parentId;
-
-            parts = dataId.split(fc.constants.prefixSeparator);
-            parts.pop();
-
-            // If no parent, return false
-            if (parts.length === 0) {
-                return false;
-            }
-
-            parentId = parts.join(fc.constants.prefixSeparator);
-
-            // If no schema exists for the parent, return false
-            if (!fc.fieldSchema[parentId]) {
-                return false;
-            }
-
-            return fieldIsRepeatable(parentId);
         },
 
         renderGrouplet,
