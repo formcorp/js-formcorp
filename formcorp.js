@@ -4240,6 +4240,12 @@ var fc = (function ($) {
             showDeleteDialog();
             return false;
         });
+
+        // Show edit dialog
+        $(fc.jQueryContainer).on('click', '.fc-summary-options .fc-edit', function () {
+            console.log('perform edit operation');
+            return false;
+        });
     };
 
     /**
@@ -4280,6 +4286,7 @@ var fc = (function ($) {
      */
     deleteRepeatableRow = function () {
         fc.fields[fc.modalMeta.fieldId].splice(fc.modalMeta.index, 1);
+        fc.saveQueue[fc.modalMeta.fieldId] = fc.fields[fc.modalMeta.fieldId];
 
         // Set the html
         var html = renderRepeatableTable(fc.modalMeta.fieldId, fc.fields[fc.modalMeta.fieldId]);
