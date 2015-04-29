@@ -1590,20 +1590,45 @@ var fc = (function ($) {
         },
 
         /**
+         * Set a value in the DOM
+         *
+         * @param obj
+         * @param value
+         */
+        setDomValue = function (obj, value) {
+            var fieldGroup = $(obj).find('.fc-fieldgroup'),
+                selector;
+
+            if (fieldGroup.find('input[type=text],textarea').length > 0) {
+                // Input type text
+                fieldGroup.find('input[type=text],textarea').val(value);
+            } else if (fieldGroup.find('select').length > 0) {
+                // Select box
+                fieldGroup.find('select').val(value);
+            } else if (fieldGroup.find('input[type=radio]').length > 0) {
+                // Radio options
+                fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
+            } else {
+                // Set the button
+                selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
+                if (selector.length > 0) {
+                    selector.addClass('checked');
+                }
+            }
+        },
+
+        /**
          * Set a field in the DOM with value stored in member object
          * @param obj
          * @param fieldId
          */
         setFieldValue = function (obj, fieldId) {
-            var fieldGroup,
-                value,
+            var value,
                 schema,
-                selector,
                 iterator,
                 el;
 
             if (fc.fields[fieldId] !== undefined) {
-                fieldGroup = $(obj).find('.fc-fieldgroup');
                 value = fc.fields[fieldId];
                 schema = fc.fieldSchema[fieldId];
 
@@ -1615,31 +1640,11 @@ var fc = (function ($) {
                 if (schema.type === 'grouplet' && !fieldIsRepeatable(fieldId)) {
                     console.log('restore grouplet that isnt repeatable');
                 } else if (fieldIsRepeatable(fieldId)) {
-                    console.log('restore repeatable field');
-                    console.log(value);
                     // Restore a repeatable value
                     if (typeof value === 'object') {
                         $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
                     }
-                } else if (fieldGroup.find('input[type=text],textarea').length > 0) {
-                    // Input type text
-                    fieldGroup.find('input[type=text],textarea').val(value);
-                } else if (fieldGroup.find('select').length > 0) {
-                    // Select box
-                    fieldGroup.find('select').val(value);
-                } else if (fieldGroup.find('input[type=radio]').length > 0) {
-                    // Radio options
-                    fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
-                } else {
-                    // Set the button
-                    selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
-                    if (selector.length > 0) {
-                        selector.addClass('checked');
-                    }
-                }
-
-                // If a content-option group, set the values accordingly
-                if (schema.type === 'contentRadioList') {
+                } else if (schema.type === 'contentRadioList') {
                     if (typeof value === 'object') {
                         // Checkbox list allows multiple selections
                         for (iterator = 0; iterator < value.length; iterator += 1) {
@@ -1655,6 +1660,9 @@ var fc = (function ($) {
                             el.addClass('checked');
                         }
                     }
+                } else {
+                    // Otherwise set standard value in the DOM
+                    setDomValue(obj, value);
                 }
             }
         },
@@ -3107,6 +3115,7 @@ var fc = (function ($) {
         loadNextPage,
         processSaveQueue,
         showDeleteDialog,
+        showRepeatableEditDialog,
         addRepeatableRow,
         deleteRepeatableRow,
         registerRepeatableGroupletListeners,
@@ -4218,7 +4227,38 @@ var fc = (function ($) {
      */
     showDeleteDialog = function () {
         $('.fc-modal .modal-header h2').text(fc.lang.deleteDialogHeader);
-        $('.fc-modal .modal-body').html(fc.lang.deleteDigntoaryDialogText);
+        $('.fc-modal .modal-body').html(fc.lang.deleteSignatoryDialogText);
+        $('.fc-modal .modal-footer .fc-btn-add').text(fc.lang.confirm);
+        $('.fc-modal').addClass('fc-show');
+        return false;
+    };
+
+    /**
+     * Show the delete dialog
+     * @returns {boolean}
+     */
+    showRepeatableEditDialog = function () {
+        var html = $("<div />").append($('[fc-data-group="' + fc.modalMeta.fieldId + '"] > .fc-fieldcontainer').clone()),
+            values = {},
+            modalBody = $('.fc-modal .modal-body');
+
+        // If values for this row exist, set
+        if (fc.fields[fc.modalMeta.fieldId] && fc.fields[fc.modalMeta.fieldId][fc.modalMeta.index]) {
+            values = fc.fields[fc.modalMeta.fieldId][fc.modalMeta.index];
+        }
+
+        $('.fc-modal .modal-header h2').text(fc.lang.editDialogHeader);
+
+        // Set the modal body html and update the contents
+        modalBody.html(html.html());
+        modalBody.find('div[fc-data-group]').each(function () {
+            var fieldId = $(this).attr('fc-data-group');
+            if (values[fieldId] !== undefined) {
+                setDomValue(this, values[fieldId]);
+            }
+
+        });
+
         $('.fc-modal .modal-footer .fc-btn-add').text(fc.lang.confirm);
         $('.fc-modal').addClass('fc-show');
         return false;
@@ -4243,7 +4283,15 @@ var fc = (function ($) {
 
         // Show edit dialog
         $(fc.jQueryContainer).on('click', '.fc-summary-options .fc-edit', function () {
-            console.log('perform edit operation');
+            // Set the modal state
+            fc.modalState = fc.states.EDIT_REPEATABLE;
+            fc.modalMeta = {
+                index: $(this).parent().attr('data-index'),
+                fieldId: $(this).parent().attr('data-field-id')
+            };
+
+            showRepeatableEditDialog();
+
             return false;
         });
     };
@@ -5115,19 +5163,20 @@ var fc = (function ($) {
             this.fieldGrouplets = {};
 
             /**
-             * Register modal states
-             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string, SMS_VERIFICATION_CODE: string}}
+             * Modal states
+             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EDIT_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string, SMS_VERIFICATION_CODE: string}}
              */
             this.states = {
                 DELETE_REPEATABLE: 'deleteRepeatable',
                 ADD_REPEATABLE: 'addRepeatableRow',
+                EDIT_REPEATABLE: 'editRepeatableRow',
                 EMAIL_VERIFICATION_CODE: 'emailVerificationCode',
                 SMS_VERIFICATION_CODE: 'smsVerificationCode'
             };
 
             /**
-             * Type of events
-             * @type {{onFocus: string, onBlur: string, onValueChange: string, onNextStage: string, onFormInit: string, onMouseDown: string, onFieldError: string, onNextPageClick: string, onNextPageSuccess: string, onNextPageError: string, onFormComplete: string}}
+             * Event types
+             * @type {{onFieldInit: string, onFocus: string, onBlur: string, onValueChange: string, onNextStage: string, onFormInit: string, onMouseDown: string, onFieldError: string, onNextPageClick: string, onNextPageSuccess: string, onNextPageError: string, onFormComplete: string}}
              */
             this.eventTypes = {
                 onFieldInit: 'onFieldInit',
@@ -5145,8 +5194,8 @@ var fc = (function ($) {
             };
 
             /**
-             * Javascript events to raise
-             * @type {{onFormInit: string, onFormExpired: string, onValidationError: string, onFormComplete: string, onNextPage: string, onPrevPage: string, onConnectionMade: string}}
+             * JS events
+             * @type {{onFormInit: string, onFormExpired: string, onValidationError: string, onFormComplete: string, onNextPage: string, onPageChange: string, onPrevPage: string, onConnectionMade: string, onFinishRender: string, onFieldError: string, onFieldSuccess: string, onAnalyticsLoaded: string, onFieldValueChange: string, onLoadingPageStart: string, onLoadingPageEnd: string}}
              */
             this.jsEvents = {
                 onFormInit: 'OnFcInit',
@@ -5424,7 +5473,9 @@ var fc = (function ($) {
                 edit: "Edit",
                 delete: "Delete",
                 deleteDialogHeader: "Are you sure?",
-                deleteDigntoaryDialogText: "Are you sure you want to delete the selected signatory?",
+                editDialogHeader: "Edit",
+                deleteSignatoryDialogText: "Are you sure you want to delete the selected signatory?",
+                editSignatoryDialogText: "Edit signatory",
                 confirm: "Confirm",
                 invalidCardFormat: "The credit card you entered could not be recognised",
                 sendEmail: "Send email",
