@@ -1144,7 +1144,6 @@ var fc = (function ($) {
                 y,
                 stage,
                 page;
-
             for (x = 0; x < fc.schema.stage.length; x += 1) {
                 stage = fc.schema.stage[x];
                 if (typeof stage.page === 'object' && stage.page.length > 0) {
@@ -1162,7 +1161,9 @@ var fc = (function ($) {
                 }
             }
 
-            return getPageById(pageId);
+            if (fc.pages[pageId]) {
+                return fc.pages[pageId];
+            }
         },
 
         /**
@@ -3127,6 +3128,7 @@ var fc = (function ($) {
         fieldIsValid,
         formFieldsValid,
         checkAutoLoad,
+        getFirstPageId,
         getFirstPage,
         loadSchema,
         hasNextPage,
@@ -3837,8 +3839,8 @@ var fc = (function ($) {
             pageDataId,
             foundPage = false,
             loadedNextPage = false,
+            allowAutoLoad,
             page;
-
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
             return;
@@ -5034,17 +5036,39 @@ var fc = (function ($) {
     };
 
     /**
+     * Get the id of the first page on the form
+     * @returns {*}
+     */
+    getFirstPageId = function () {
+        var iterator;
+
+        // If a channel is supplied, try to load the channel page first
+        if (fc.channel && typeof fc.channel === 'string' && fc.channel.length > 0 && fc.schema.channel && $.isArray(fc.schema.channel) && fc.schema.channel.length > 0) {
+            for (iterator = 0; iterator < fc.schema.channel.length; iterator += 1) {
+                if (fc.schema.channel[iterator].name && fc.schema.channel[iterator].name === fc.channel) {
+                    /*jslint nomen: true*/
+                    return fc.schema.channel[iterator].default;
+                    /*jslint nomen: false*/
+                }
+            }
+        }
+
+        // Default to first page on form
+        /*jslint nomen: true*/
+        return fc.schema.stage[0].page[0]._id.$id;
+        /*jslint nomen: false*/
+    };
+
+    /**
      * Retrieve the first page (if the user has an active session, the opening page might be later on in the process)
      * @returns {*}
      */
     getFirstPage = function () {
-        /*jslint nomen: true*/
-        var id = fc.schema.stage[0].page[0]._id.$id,
+        var id = getFirstPageId(),
             page,
             nextPageObj,
             fields,
             valid;
-        /*jslint nomen: false*/
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
@@ -5431,6 +5455,14 @@ var fc = (function ($) {
          */
         setBranch: function (branch) {
             this.branch = branch;
+        },
+
+        /**
+         * Set the channel
+         * @param channel
+         */
+        setChannel: function (channel) {
+            this.channel = channel;
         },
 
         /**
