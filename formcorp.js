@@ -2744,6 +2744,11 @@ var fc = (function ($) {
         renderReviewTableString = function (field, value) {
             var html = "", json, iterator, val;
 
+            // If field not properly initialised, return nothing
+            if (field === undefined || !field.type) {
+                return '';
+            }
+
             // Do not render for particular types
             if (["emailVerification", "smsVerification", "signature", "creditCard"].indexOf(field.type) > -1) {
                 return '';
@@ -5466,6 +5471,14 @@ var fc = (function ($) {
         },
 
         /**
+         * Set the session id
+         * @param sessionId
+         */
+        setSessionId: function (sessionId) {
+            this.sessionId = sessionId;
+        },
+
+        /**
          * Set class config values.
          * @param data
          */
@@ -5610,6 +5623,12 @@ var fc = (function ($) {
          * Initialise the existing session, or instantiate a new one.
          */
         initSession: function () {
+            // If session id already exists (@todo: and allowed to set sessions), set it
+            if (this.sessionId !== undefined) {
+                $.cookie(this.config.sessionIdName, this.sessionId);
+                return;
+            }
+
             // Initialise a new session
             if (this.sessionId === undefined && $.cookie(this.config.sessionIdName) === undefined) {
                 this.sessionId = generateRandomString(this.config.sessionKeyLength);
