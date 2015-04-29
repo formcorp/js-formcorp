@@ -657,7 +657,9 @@ var fc = (function ($) {
                 belongsTo,
                 parentGrouplet,
                 parentGroupletId,
-                selector;
+                selector,
+                mappedValue,
+                domValue;
 
             if (fieldSelector.length === 0) {
                 return [];
@@ -670,7 +672,26 @@ var fc = (function ($) {
 
             section = fieldSelector.parent();
             field = fc.fieldSchema[dataId];
-            value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId];
+
+            // If value has been mapped, use that
+            if (fc.fields[dataId] !== undefined) {
+                mappedValue = fc.fields[dataId];
+            }
+
+            // Fetch the value on the DOM
+            domValue = getFieldValue(fieldSelector.find('.fc-fieldinput'));
+
+            // Give higher priority to the value in the dom
+            if (domValue !== undefined) {
+                value = domValue;
+            } else {
+                value = mappedValue;
+            }
+
+            // Default value to empty string if unable to retrieve a value
+            if (value === undefined || value === null) {
+                value = '';
+            }
 
             // If section is hidden, return
             if (section.hasClass('fc-hide')) {
@@ -991,8 +1012,6 @@ var fc = (function ($) {
             var errors = {},
                 required;
 
-            console.log('validForm');
-
             if (rootElement === undefined) {
                 rootElement = fc.jQueryContainer;
             }
@@ -1004,22 +1023,18 @@ var fc = (function ($) {
 
             // Test if required fields have a value
             $(rootElement).find('.fc-field[fc-data-group]').each(function () {
-                console.log(1);
                 // If a repeatable field, ignore
                 if ($(this).parent().attr("class").indexOf("repeatable") > -1) {
-                    console.log(2);
                     return;
                 }
 
                 // If the field is hidden, not required to validate
                 if ($(this).hasClass('fc-hide')) {
-                    console.log(3);
                     return;
                 }
 
                 // If in modal, do nothing
                 if (inModal($(this))) {
-                    console.log(4);
                     return;
                 }
 
@@ -3822,11 +3837,7 @@ var fc = (function ($) {
             pageDataId,
             foundPage = false,
             loadedNextPage = false,
-            allowAutoLoad = false,
-            page,
-            topDistance,
-            sessionId,
-            el;
+            page;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -4214,7 +4225,7 @@ var fc = (function ($) {
             // If empty and required, return false
             if (fieldIsEmpty($(this))) {
                 valid = false;
-                return;Id
+                return;
             }
 
             fieldId = $(this).attr('formcorp-data-id');
@@ -4338,6 +4349,11 @@ var fc = (function ($) {
 
         // Add the values to the array
         if (typeof fc.fields[fc.activeModalField] !== 'object') {
+            fc.fields[fc.activeModalField] = [];
+        }
+
+        // If not array, initialise as one
+        if (!$.isArray(fc.fields[fc.activeModalField])) {
             fc.fields[fc.activeModalField] = [];
         }
         fc.fields[fc.activeModalField].push(values);
@@ -4990,11 +5006,7 @@ var fc = (function ($) {
 
         // Check custom validators
         customErrors = getCustomErrors(schema, value);
-        if (customErrors.length > 0) {
-            return false;
-        }
-
-        return true;
+        return customErrors.length === 0;
     };
 
     /**
