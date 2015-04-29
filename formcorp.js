@@ -240,12 +240,6 @@ var fc = (function ($) {
         analyticsUrl = cdnUrl + 'analytics.js',
 
         /**
-         * Separator for recursive grouplets
-         * @type {string}
-         */
-        prefixSeparator = "_",
-
-        /**
          * HTML encode a string.
          * @param html
          * @returns {*}
@@ -468,7 +462,7 @@ var fc = (function ($) {
                 if (fc.fields.hasOwnProperty(key)) {
                     tagParts = [];
                     value = fc.fields[key];
-                    parts = key.split(prefixSeparator);
+                    parts = key.split(fc.constants.prefixSeparator);
 
                     for (iterator = 0; iterator < parts.length; iterator += 1) {
                         field = fc.fieldSchema[parts[iterator]];
@@ -789,7 +783,7 @@ var fc = (function ($) {
                         fields.concat(getGroupletFields(groupletField));
                     } else {
                         /*jslint nomen: true*/
-                        fields.push(fieldId + prefixSeparator + groupletField._id.$id);
+                        fields.push(fieldId + fc.constants.prefixSeparator + groupletField._id.$id);
                         /*jslint nomen: false*/
                     }
                 }
@@ -1162,8 +1156,8 @@ var fc = (function ($) {
         saveOriginalGroupletValue = function (key, value) {
             var parts, groupletId, fieldId;
 
-            if (key.indexOf(prefixSeparator) > -1) {
-                parts = key.split(prefixSeparator);
+            if (key.indexOf(fc.constants.prefixSeparator) > -1) {
+                parts = key.split(fc.constants.prefixSeparator);
                 if (parts.length > 1) {
                     // Retrieve the grouplet id second from the end
                     groupletId = parts[parts.length - 2];
@@ -1434,8 +1428,8 @@ var fc = (function ($) {
                 for (key in row) {
                     if (row.hasOwnProperty(key)) {
                         // If the id is prefixed (i.e. grouplet-id_field-id), retrieve the field id
-                        if (key.indexOf(prefixSeparator) > -1) {
-                            fieldIdParts = key.split(prefixSeparator);
+                        if (key.indexOf(fc.constants.prefixSeparator) > -1) {
+                            fieldIdParts = key.split(fc.constants.prefixSeparator);
                             fieldId = fieldIdParts[fieldIdParts.length - 1];
                         } else {
                             fieldId = key;
@@ -1532,7 +1526,7 @@ var fc = (function ($) {
                 index,
                 tags = getGroupletTags(fieldId),
                 field = fc.fieldSchema[fieldId],
-                layout = getConfig(field, "summaryLayout", "");
+                layout = getConfig(field, fc.constants.configKeys.summaryLayout, "");
 
             // Requires a summary layout to work
             if (layout.length === 0) {
@@ -1545,7 +1539,7 @@ var fc = (function ($) {
 
             // Iterate through and render each row
             for (index = 0; index < rows.length; index += 1) {
-                html += "<tr><td>opt</td><td>";
+                html += "<tr><td>";
                 html += replaceTokens(layout, getGroupletRowTags(rows[index], tags));
                 html += "<div class='fc-summary-options' data-field-id='" + fieldId + "' data-index='" + index + "'><a href='#' class='fc-edit'>" + fc.lang.edit + "</a> &nbsp; <a href='#' class='fc-delete'>" + fc.lang.delete + "</a></div>";
                 html += "</td></tr>";
@@ -1607,8 +1601,6 @@ var fc = (function ($) {
                 selector,
                 iterator,
                 el;
-
-            console.log('set field value: ' + fieldId);
 
             if (fc.fields[fieldId] !== undefined) {
                 fieldGroup = $(obj).find('.fc-fieldgroup');
@@ -2780,8 +2772,8 @@ var fc = (function ($) {
                     for (key in value[iterator]) {
                         if (value[iterator].hasOwnProperty(key)) {
                             if (value[iterator][key].length > 0) {
-                                if (key.indexOf(prefixSeparator) > -1) {
-                                    parts = key.split(prefixSeparator);
+                                if (key.indexOf(fc.constants.prefixSeparator) > -1) {
+                                    parts = key.split(fc.constants.prefixSeparator);
                                     html += "<tr><td>" + getShortLabel(fc.fieldSchema[parts[parts.length - 1]]);
                                     html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
                                 }
@@ -3302,12 +3294,12 @@ var fc = (function ($) {
         if (prefix === undefined) {
             prefix = "";
         } else if (typeof prefix === "object") {
-            prefix = prefix.join(prefixSeparator) + prefixSeparator;
+            prefix = prefix.join(fc.constants.prefixSeparator) + fc.constants.prefixSeparator;
         }
 
         // Populate the grouplet array first
         if (prefix.length > 0) {
-            groupletId = (prefix.substr(-1) === prefixSeparator) ? prefix.substr(0, prefix.length - 1) : prefix;
+            groupletId = (prefix.substr(-1) === fc.constants.prefixSeparator) ? prefix.substr(0, prefix.length - 1) : prefix;
             for (y = 0; y < fields.length; y += 1) {
                 field = fields[y];
                 if (!fc.fieldGrouplets[groupletId]) {
@@ -3866,8 +3858,8 @@ var fc = (function ($) {
         }
 
         // If the item belongs to a repeatable object, do not store the changed value
-        if (dataId.indexOf(prefixSeparator) > -1) {
-            dataParams = dataId.split(prefixSeparator);
+        if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+            dataParams = dataId.split(fc.constants.prefixSeparator);
             parentId = dataParams[0];
             parentField = fc.fieldSchema[parentId];
 
@@ -4873,7 +4865,7 @@ var fc = (function ($) {
             if (grouplet.field !== undefined && typeof grouplet.field === "object" && grouplet.field.length > 0) {
                 for (iterator = 0; iterator < grouplet.field.length; iterator += 1) {
                     /*jslint nomen:true*/
-                    id = dataId + prefixSeparator + grouplet.field[iterator]._id.$id;
+                    id = dataId + fc.constants.prefixSeparator + grouplet.field[iterator]._id.$id;
                     /*jslint nomen:false*/
                     val = (fc.fields[id] !== undefined) ? fc.fields[id] : "";
                     if (!fieldIsValid(grouplet.field[iterator], val)) {
@@ -5006,7 +4998,7 @@ var fc = (function ($) {
                         }
 
                         // If a grouplet, also store the entire state
-                        if (key.indexOf(prefixSeparator) > -1) {
+                        if (key.indexOf(fc.constants.prefixSeparator) > -1) {
                             saveOriginalGroupletValue(key, data.data[key]);
                         }
                     }
@@ -5179,11 +5171,15 @@ var fc = (function ($) {
             };
 
             /**
-             * Constant strings
-             * @type {{abnLookupUrl: string}}
+             * Constants
+             * @type {{enterKey: number, prefixSeparator: string, configKeys: {summaryLayout: string}}}
              */
             this.constants = {
-                enterKey: 13
+                enterKey: 13,
+                prefixSeparator: '_',
+                configKeys: {
+                    summaryLayout: 'summaryLayout'
+                }
             };
 
             /**
