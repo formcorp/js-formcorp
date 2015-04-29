@@ -991,6 +991,8 @@ var fc = (function ($) {
             var errors = {},
                 required;
 
+            console.log('validForm');
+
             if (rootElement === undefined) {
                 rootElement = fc.jQueryContainer;
             }
@@ -1002,18 +1004,22 @@ var fc = (function ($) {
 
             // Test if required fields have a value
             $(rootElement).find('.fc-field[fc-data-group]').each(function () {
+                console.log(1);
                 // If a repeatable field, ignore
                 if ($(this).parent().attr("class").indexOf("repeatable") > -1) {
+                    console.log(2);
                     return;
                 }
 
                 // If the field is hidden, not required to validate
                 if ($(this).hasClass('fc-hide')) {
+                    console.log(3);
                     return;
                 }
 
                 // If in modal, do nothing
                 if (inModal($(this))) {
+                    console.log(4);
                     return;
                 }
 
@@ -1022,7 +1028,8 @@ var fc = (function ($) {
                     field = fc.fieldSchema[dataId],
                     value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                     localErrors = [],
-                    skipCheck = false;
+                    skipCheck = false,
+                    customErrors;
 
                 // If not required, do nothing
                 if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
@@ -1105,11 +1112,7 @@ var fc = (function ($) {
                 }
             });
 
-            // Terminate when errors exist
-            if (Object.keys(errors).length > 0) {
-                return false;
-            }
-            return true;
+            return Object.keys(errors).length === 0;
         },
 
         /**
@@ -3117,6 +3120,7 @@ var fc = (function ($) {
         showDeleteDialog,
         showRepeatableEditDialog,
         addRepeatableRow,
+        editRepeatableRow,
         deleteRepeatableRow,
         registerRepeatableGroupletListeners,
         registerOnePageListeners,
@@ -4187,13 +4191,20 @@ var fc = (function ($) {
      * Attempts to validate the modal used for adding multi-value attributes.
      * @returns {boolean}
      */
-    validateModal = function () {
+    validateModal = function (showErrors) {
         var valid = true,
             fieldId,
             value,
             field,
-            customErrors;
+            customErrors,
+            errors = {};
 
+        // Default to not show errors
+        if (typeof showErrors !== 'boolean') {
+            showErrors = false;
+        }
+
+        // Iterate through each field and validate
         $('.fc-modal [formcorp-data-id]').each(function () {
             // If field is not required, no need to run any validations on it
             if ($(this).attr('data-required') !== 'true') {
@@ -4203,7 +4214,7 @@ var fc = (function ($) {
             // If empty and required, return false
             if (fieldIsEmpty($(this))) {
                 valid = false;
-                return;
+                return;Id
             }
 
             fieldId = $(this).attr('formcorp-data-id');
@@ -4214,7 +4225,11 @@ var fc = (function ($) {
             customErrors = getCustomErrors(field, value);
             if (customErrors.length > 0) {
                 valid = false;
-                return;
+
+                errors[fieldId] = customErrors;
+                if (showErrors) {
+                    showFieldError(fieldId, customErrors);
+                }
             }
         });
 
@@ -4241,6 +4256,9 @@ var fc = (function ($) {
         var html = $("<div />").append($('[fc-data-group="' + fc.modalMeta.fieldId + '"] > .fc-fieldcontainer').clone()),
             values = {},
             modalBody = $('.fc-modal .modal-body');
+
+        // Remove repeatable classes (for validation purposes)
+        html.find('.fc-data-repeatable-grouplet').removeClass('fc-data-repeatable-grouplet');
 
         // If values for this row exist, set
         if (fc.fields[fc.modalMeta.fieldId] && fc.fields[fc.modalMeta.fieldId][fc.modalMeta.index]) {
@@ -4302,14 +4320,15 @@ var fc = (function ($) {
      */
     addRepeatableRow = function () {
         var validModal = validateModal(),
-            values = {};
+            values = {},
+            modalBody = $('.fc-modal .modal-body > div');
 
         if (!validModal) {
-            $('.fc-modal .modal-body > div').addClass('fc-error');
+            modalBody.addClass('fc-error');
             return false;
         }
 
-        $('.fc-modal .modal-body > div').removeClass('fc-error');
+        modalBody.removeClass('fc-error');
 
         // Build array of values
         $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
@@ -4327,6 +4346,40 @@ var fc = (function ($) {
 
         // Set to null to signify no repeatable grouplet is being displayed
         hideModal();
+    };
+
+    /**
+     * Handle the editing of a repeatable row
+     */
+    editRepeatableRow = function () {
+        var selector = $('.fc-modal').find('.modal-body > .fc-fieldcontainer'),
+            values = {},
+            html;
+
+        if (selector && selector.length > 0 && validateModal(true)) {
+            // Build array of values
+            $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
+                var dataId = $(this).attr('formcorp-data-id');
+                values[dataId] = getFieldValue($(this));
+            });
+
+            // Add the values to the array
+            if (typeof fc.fields[fc.activeModalField] !== 'object') {
+                fc.fields[fc.activeModalField] = [];
+            }
+
+            if (fc.fields[fc.modalMeta.fieldId] && fc.fields[fc.modalMeta.fieldId][fc.modalMeta.index]) {
+                fc.fields[fc.modalMeta.fieldId][fc.modalMeta.index] = values;
+
+                // Update the save queue to send up to the server
+                fc.saveQueue[fc.modalMeta.fieldId] = fc.fields[fc.modalMeta.fieldId];
+
+                // Update the summary table and hide the modal
+                html = renderRepeatableTable(fc.modalMeta.fieldId, fc.fields[fc.modalMeta.fieldId]);
+                $('[fc-data-group="' + fc.modalMeta.fieldId + '"] .fc-summary').html(html);
+                hideModal();
+            }
+        }
     };
 
     /**
@@ -4616,6 +4669,9 @@ var fc = (function ($) {
                         break;
                     case fc.states.SMS_VERIFICATION_CODE:
                         verifyMobileNumber();
+                        break;
+                    case fc.states.EDIT_REPEATABLE:
+                        editRepeatableRow();
                         break;
                 }
             }
