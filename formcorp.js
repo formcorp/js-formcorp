@@ -3135,6 +3135,7 @@ var fc = (function ($) {
         checkAutoLoad,
         getFirstPageId,
         getFirstPage,
+        loadSettings,
         loadSchema,
         hasNextPage,
         loadNextPage,
@@ -5122,6 +5123,20 @@ var fc = (function ($) {
     };
 
     /**
+     * Load form settings from the server
+     * @param callback
+     */
+    loadSettings = function (callback) {
+        api('form/settings', {}, 'post', function (data) {
+            if (typeof data === 'object') {
+                fc.settings = data;
+            }
+
+            callback();
+        });
+    };
+
+    /**
      * Load the form schema/definition
      */
     loadSchema = function () {
@@ -5332,7 +5347,8 @@ var fc = (function ($) {
                 prefixSeparator: '_',
                 configKeys: {
                     summaryLayout: 'summaryLayout'
-                }
+                },
+                persistentSessions: 'persistentSessions'
             };
 
             /**
@@ -5378,16 +5394,13 @@ var fc = (function ($) {
                 this.setLanguage();
             }
 
-            // Set the session id
-            this.initSession();
-
-            // Analyse analytics if required
-            if (fc.config.analytics === true || (typeof fc.config.analytics === "string" && fc.config.analytics.length > 0)) {
-                initAnalytics();
-            }
-
             // Check to make sure container exists
             $(document).ready(function () {
+                // Analyse analytics if required
+                if (fc.config.analytics === true || (typeof fc.config.analytics === "string" && fc.config.analytics.length > 0)) {
+                    initAnalytics();
+                }
+
                 if ($(fc.jQueryContainer).length === 0) {
                     return false;
                 }
@@ -5398,34 +5411,40 @@ var fc = (function ($) {
                 }
                 fc.formId = $(fc.jQueryContainer).attr('data-id');
 
-                // Register event listeners and load the form schema
-                $(fc.jQueryContainer).html('<div class="render"></div>');
-                loadCssFiles();
-                registerEventListeners();
-                loadSchema();
+                // Attempt to load the settings from the server
+                loadSettings(function () {
+                    // Set the session id
+                    fc.initSession();
 
-                // Form has been successfully initialised
-                fc.formPosition = $(fc.jQueryContainer).position();
-                logEvent(fc.eventTypes.onFormInit);
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onFormInit);
+                    // Register event listeners and load the form schema
+                    $(fc.jQueryContainer).html('<div class="render"></div>');
+                    loadCssFiles();
+                    registerEventListeners();
+                    loadSchema();
 
-                // Save form fields intermittently
-                if (fc.config.saveInRealTime === true) {
-                    setInterval(function () {
-                        processSaveQueue();
-                    }, fc.config.saveInRealTimeInterval);
-                }
+                    // Form has been successfully initialised
+                    fc.formPosition = $(fc.jQueryContainer).position();
+                    logEvent(fc.eventTypes.onFormInit);
+                    $(fc.jQueryContainer).trigger(fc.jsEvents.onFormInit);
 
-                // Check if the user needs to be timed out
-                if (fc.config.timeUserOut) {
-                    setInterval(function () {
-                        if (fc.expired === true) {
-                            return;
-                        }
+                    // Save form fields intermittently
+                    if (fc.config.saveInRealTime === true) {
+                        setInterval(function () {
+                            processSaveQueue();
+                        }, fc.config.saveInRealTimeInterval);
+                    }
 
-                        timeout();
-                    }, 5000);
-                }
+                    // Check if the user needs to be timed out
+                    if (fc.config.timeUserOut) {
+                        setInterval(function () {
+                            if (fc.expired === true) {
+                                return;
+                            }
+
+                            timeout();
+                        }, 5000);
+                    }
+                });
             });
         },
 
@@ -5620,11 +5639,26 @@ var fc = (function ($) {
         },
 
         /**
+         * Fetches and returns a setting value passed down from the remote server.
+         *
+         * @param settingName
+         * @param defaultValue
+         * @returns {*}
+         */
+        getSetting: function (settingName, defaultValue) {
+            if (fc.settings && fc.settings[settingName] !== undefined) {
+                return fc.settings[settingName];
+            }
+
+            return defaultValue;
+        },
+
+        /**
          * Initialise the existing session, or instantiate a new one.
          */
         initSession: function () {
             // If session id already exists (@todo: and allowed to set sessions), set it
-            if (this.sessionId !== undefined) {
+            if (this.sessionId !== undefined && this.getSetting(this.constants.persistentSessions, false)) {
                 $.cookie(this.config.sessionIdName, this.sessionId);
                 return;
             }
