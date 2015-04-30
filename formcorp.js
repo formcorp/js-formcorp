@@ -33,6 +33,15 @@ String.prototype.isJson = function () {
 };
 
 /**
+ * Escape a string for use in a regular expresion
+ * @returns {*}
+ */
+String.prototype.escapeRegExp = function () {
+    'use strict';
+    return this.replace(/([.*+?\^=!:${}()|\[\]\/\\])/g, "\\$1");
+};
+
+/**
  * Set up
  */
 (function (factory) {
@@ -1043,8 +1052,7 @@ var fc = (function ($) {
                     field = fc.fieldSchema[dataId],
                     value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                     localErrors = [],
-                    skipCheck = false,
-                    customErrors;
+                    skipCheck = false;
 
                 // If not required, do nothing
                 if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
@@ -2469,8 +2477,6 @@ var fc = (function ($) {
                 return '';
             }
 
-            console.log(field);
-
             // Iterate through each value row
             for (iterator = 0; iterator < source.length; iterator += 1) {
                 rowValues = fc.fields[sourceField][iterator];
@@ -3165,6 +3171,43 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Tokenises a string.
+         *
+         * @param raw
+         * @param additionalTokens
+         * @returns {*}
+         */
+        tokenise = function (raw, additionalTokens) {
+            if (!additionalTokens) {
+                additionalTokens = {};
+            }
+
+            var tokenisedString = raw,
+                tokens = raw.match(/\{\{([a-zA-Z0-9-_.]+)\}\}/g),
+                iterator = 0,
+                tags = getFieldTags(),
+                token,
+                replacement = '';
+
+            console.log(tokens);
+
+            // Iterate through each token
+            if (tokens && $.isArray(tokens) && tokens.length > 0) {
+                for (iterator = 0; iterator < tokens.length; iterator += 1) {
+                    token = tokens[iterator].replace(/[\{\}]+/g, '');
+                    replacement = tags[token] !== undefined ? tags[token] : '';
+                    replacement = '<span class="fc-token" data-token="' + htmlEncode(token) + '">' + replacement + '</span>';
+
+                    tokenisedString = tokenisedString.replace(new RegExp(tokens[iterator].escapeRegExp(), 'g'), replacement);
+                }
+            }
+
+            console.log(tokenisedString);
+
+            return tokenisedString;
+        },
+
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3454,12 +3497,12 @@ var fc = (function ($) {
             // Field label - don't show in this position for certain fields
             if (["creditCard"].indexOf(field.type) === -1) {
                 if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
-                    fieldHtml += '<label>' + field.config.label + '</label>';
+                    fieldHtml += '<label>' + tokenise(field.config.label) + '</label>';
                 }
 
                 // Show the description after the label
                 if (fc.config.descriptionBeforeLabel === false && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
-                    fieldHtml += '<div class="fc-desc">' + getConfig(field, 'description') + '</div>';
+                    fieldHtml += '<div class="fc-desc">' + tokenise(getConfig(field, 'description')) + '</div>';
                 }
             }
 
