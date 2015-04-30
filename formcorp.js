@@ -454,44 +454,104 @@ var fc = (function ($) {
         },
 
         /**
-         * Sort fields in to an array with keys based on tags against their values
-         * @returns {Array}
+         * Retrieve tags for a field
+         *
+         * @param field
+         * @param prefix
+         * @param idPrefix
+         * @returns {{}}
          */
-        getFieldTags = function () {
-            var tags = [],
-                key,
-                value,
-                parts,
-                field,
+        getTags = function (field, prefix, idPrefix) {
+            if (field === undefined) {
+                return {};
+            }
+
+            if (prefix === undefined) {
+                prefix = '';
+            }
+
+            if (idPrefix === undefined) {
+                idPrefix = '';
+            }
+
+            var fieldTag = getConfig(field, 'tag', false),
+                tags = {},
+                grouplet,
+                groupletTags,
                 iterator,
-                tag,
-                tagParts;
+                id = idPrefix;
 
-            for (key in fc.fields) {
-                if (fc.fields.hasOwnProperty(key)) {
-                    tagParts = [];
-                    value = fc.fields[key];
-                    parts = key.split(fc.constants.prefixSeparator);
+            if (fieldTag) {
+                id += getId(field);
 
-                    for (iterator = 0; iterator < parts.length; iterator += 1) {
-                        field = fc.fieldSchema[parts[iterator]];
-                        if (field === undefined) {
-                            continue;
+                tags[id] = prefix + fieldTag;
+                grouplet = getConfig(field, 'grouplet', false);
+
+                if (grouplet && grouplet.field && $.isArray(grouplet.field) && grouplet.field.length > 0) {
+                    for (iterator = 0; iterator < grouplet.field.length; iterator += 1) {
+                        groupletTags = getTags(grouplet.field[iterator], tags[id] + fc.constants.tagSeparator, id + fc.constants.prefixSeparator);
+                        if (Object.keys(groupletTags).length > 0) {
+                            $.extend(tags, groupletTags);
                         }
-
-                        tag = getConfig(field, 'tag', "");
-                        if (tag.length === 0) {
-                            tag = getId(field);
-                        }
-                        tagParts.push(tag);
                     }
-
-                    tag = tagParts.join('.');
-                    tags[tag] = value;
                 }
             }
 
             return tags;
+        },
+
+        /**
+         * Retrieve the field tags
+         * @returns {{}}
+         */
+        getFieldTags = function () {
+            var key, fieldId, tags = {}, fieldTags, tagValues;
+
+            for (key in fc.fieldSchema) {
+                if (fc.fieldSchema.hasOwnProperty(key)) {
+                    fieldTags = getTags(fc.fieldSchema[key]);
+                    tagValues = {};
+
+                    if (Object.keys(fieldTags).length > 0) {
+                        for (fieldId in fieldTags) {
+                            if (fieldTags.hasOwnProperty(fieldId) && fc.fields[fieldId] !== undefined) {
+                                tagValues[fieldId] = fieldTags[fieldId];
+                            }
+                        }
+
+                        $.extend(tags, tagValues);
+                    }
+                }
+            }
+
+            return tags;
+        },
+
+        /**
+         * Sort fields in to an array with keys based on tags against their values
+         * @returns {Array}
+         */
+        getFieldTagValues = function () {
+            var key, fieldId, values = {}, fieldTags, tagValues;
+
+            for (key in fc.fieldSchema) {
+                if (fc.fieldSchema.hasOwnProperty(key)) {
+                    fieldTags = getTags(fc.fieldSchema[key]);
+                    tagValues = {};
+
+                    if (Object.keys(fieldTags).length > 0) {
+                        for (fieldId in fieldTags) {
+                            if (fieldTags.hasOwnProperty(fieldId) && fc.fields[fieldId] !== undefined) {
+                                tagValues[fieldTags[fieldId]] = fc.fields[fieldId];
+                            }
+                        }
+
+                        $.extend(values, tagValues);
+                    }
+                }
+            }
+
+            return values;
         },
 
         /**
@@ -2445,48 +2505,6 @@ var fc = (function ($) {
         },
 
         /**
-         * Render repeatable iterator field
-         * @param field
-         * @param prefix
-         * @returns {string}
-         */
-        renderRepeatableIterator = function (field, prefix) {
-            if (prefix === undefined) {
-                prefix = '';
-            }
-
-            // Initialise variables
-            /*jslint nomen: true*/
-            var required = getConfig(field, 'required', false),
-                fieldId = prefix + field._id.$id,
-                html = '',
-                sourceField = getConfig(field, 'sourceField', ''),
-                source,
-                iterator,
-                rowValues;
-            /*jslint nomen: false*/
-
-            // Check to ensure the field exists
-            if (fc.fields[sourceField] === undefined) {
-                return html;
-            }
-
-            // Check to ensure source field values is an array
-            source = fc.fields[sourceField];
-            if (!$.isArray(source) || source.length === 0) {
-                return '';
-            }
-
-            // Iterate through each value row
-            for (iterator = 0; iterator < source.length; iterator += 1) {
-                rowValues = fc.fields[sourceField][iterator];
-                html += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
-            }
-
-            return html;
-        },
-
-        /**
          * Hide and reset a modal
          */
         hideModal = function () {
@@ -3186,11 +3204,9 @@ var fc = (function ($) {
             var tokenisedString = raw,
                 tokens = raw.match(/\{\{([a-zA-Z0-9-_.]+)\}\}/g),
                 iterator = 0,
-                tags = getFieldTags(),
+                tags = getFieldTagValues(),
                 token,
                 replacement = '';
-
-            console.log(tokens);
 
             // Iterate through each token
             if (tokens && $.isArray(tokens) && tokens.length > 0) {
@@ -3247,7 +3263,8 @@ var fc = (function ($) {
         orderSchema,
         renderSignature,
         loadSignatureLibs,
-        orderObject;
+        orderObject,
+        renderRepeatableIterator;
 
     /**
      * Load the libraries required for signature fields
@@ -3587,6 +3604,75 @@ var fc = (function ($) {
             fieldHtml += '</div></div>';
             html += fieldHtml;
         }
+
+        return html;
+    };
+
+    /**
+     * Render repeatable iterator field
+     * @param field
+     * @param prefix
+     * @returns {string}
+     */
+    renderRepeatableIterator = function (field, prefix) {
+        if (prefix === undefined) {
+            prefix = '';
+        }
+
+        // Initialise variables
+        /*jslint nomen: true*/
+        var required = getConfig(field, 'required', false),
+            fieldId = prefix + field._id.$id,
+            html = '',
+            sourceField = getConfig(field, 'sourceField', ''),
+            source,
+            iterator,
+            rowValues,
+            tags,
+            rowFieldId,
+            container;
+        /*jslint nomen: false*/
+
+        // Check to ensure the field exists
+        if (fc.fields[sourceField] === undefined) {
+            return html;
+        }
+
+        // Check to ensure source field values is an array
+        source = fc.fields[sourceField];
+        if (!$.isArray(source) || source.length === 0) {
+            return '';
+        }
+
+        tags = getFieldTags();
+
+        html += '<div class="fc-iterator">';
+
+        // Iterate through each value row
+        for (iterator = 0; iterator < source.length; iterator += 1) {
+            // Map tags against values as well (for token replacement)
+            rowValues = fc.fields[sourceField][iterator];
+            for (rowFieldId in rowValues) {
+                if (rowValues.hasOwnProperty(rowFieldId) && tags[rowFieldId] !== undefined) {
+                    rowValues[tags[rowFieldId]] = rowValues[rowFieldId];
+                }
+            }
+
+            html += '<div class="fc-iterator-row">';
+            html += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
+            html += '</div>';
+        }
+
+        html += '</div>';
+
+        // Token replacements
+        container = $(html);
+        console.log(container);
+        iterator = 0;
+        container.find('div.fc-iterator-row').each(function () {
+           //
+        });
+
 
         return html;
     };
@@ -5435,6 +5521,7 @@ var fc = (function ($) {
             this.constants = {
                 enterKey: 13,
                 prefixSeparator: '_',
+                tagSeparator: '.',
                 configKeys: {
                     summaryLayout: 'summaryLayout'
                 },
