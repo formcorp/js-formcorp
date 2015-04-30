@@ -2437,6 +2437,50 @@ var fc = (function ($) {
         },
 
         /**
+         * Render repeatable iterator field
+         * @param field
+         * @param prefix
+         * @returns {string}
+         */
+        renderRepeatableIterator = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = '';
+            }
+
+            // Initialise variables
+            /*jslint nomen: true*/
+            var required = getConfig(field, 'required', false),
+                fieldId = prefix + field._id.$id,
+                html = '',
+                sourceField = getConfig(field, 'sourceField', ''),
+                source,
+                iterator,
+                rowValues;
+            /*jslint nomen: false*/
+
+            // Check to ensure the field exists
+            if (fc.fields[sourceField] === undefined) {
+                return html;
+            }
+
+            // Check to ensure source field values is an array
+            source = fc.fields[sourceField];
+            if (!$.isArray(source) || source.length === 0) {
+                return '';
+            }
+
+            console.log(field);
+
+            // Iterate through each value row
+            for (iterator = 0; iterator < source.length; iterator += 1) {
+                rowValues = fc.fields[sourceField][iterator];
+                html += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
+            }
+
+            return html;
+        },
+
+        /**
          * Hide and reset a modal
          */
         hideModal = function () {
@@ -3476,6 +3520,9 @@ var fc = (function ($) {
                     break;
                 case 'abnVerification':
                     fieldHtml += renderAbnField(field, prefix);
+                    break;
+                case 'repeatableIterator':
+                    fieldHtml += renderRepeatableIterator(field, prefix);
                     break;
                 default:
                     console.log('Unknown field type: ' + field.type);
