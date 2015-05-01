@@ -3791,21 +3791,24 @@ var fc = (function ($) {
                 submitText = fc.lang.submitFormText;
             }
 
-            pageDiv += '<div class="fc-pagination">';
+            // Only render pagination on non-submission pages
+            if (!isSubmitPage(page)) {
+                pageDiv += '<div class="fc-pagination">';
 
-            // Show the prev stage button
-            if (fc.config.showPrevPageButton === true) {
-                if (typeof fc.prevPages[fc.pageId] === "object") {
-                    pageDiv += '<div class="fc-prev-page">';
-                    pageDiv += '<input type="submit" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
-                    pageDiv += '</div>';
+                // Show the prev stage button
+                if (fc.config.showPrevPageButton === true) {
+                    if (typeof fc.prevPages[fc.pageId] === "object") {
+                        pageDiv += '<div class="fc-prev-page">';
+                        pageDiv += '<input type="submit" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
+                        pageDiv += '</div>';
+                    }
                 }
-            }
 
-            // Output the submit button
-            pageDiv += '<div class="fc-submit">';
-            pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
-            pageDiv += '</div>';
+                // Output the submit button
+                pageDiv += '<div class="fc-submit">';
+                pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
+                pageDiv += '</div>';
+            }
         }
 
         pageDiv += '<div class="fc-break"></div></div>';
@@ -3974,7 +3977,7 @@ var fc = (function ($) {
             condition,
             stage;
 
-        if (!currentPage || ! currentPage.page) {
+        if (!currentPage || !currentPage.page) {
             return;
         }
 
@@ -4053,7 +4056,11 @@ var fc = (function ($) {
             foundPage = false,
             loadedNextPage = false,
             allowAutoLoad,
-            page;
+            page,
+            parts,
+            iterator,
+            field;
+
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
             return;
@@ -4077,6 +4084,30 @@ var fc = (function ($) {
 
             // Flush the field visibility options
             flushVisibility();
+        }
+
+        // Store against array values when sub field (field_1, field_2) for a repeatable iterator
+        if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+            parts = dataId.split(fc.constants.prefixSeparator);
+            if (fc.fieldSchema[parts[0]] && fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
+                // Initialise the base field if required
+                if (fc.fields[parts[0]] === undefined) {
+                    fc.fields[parts[0]] = [];
+                }
+                field = fc.fields[parts[0]];
+
+                for (iterator = 1; iterator < parts.length; iterator += 1) {
+                    if (iterator === parts.length - 1) {
+                        field[parts[iterator]] = value;
+                    } else if (field[parts[iterator]] === undefined) {
+                        field[parts[iterator]] = {};
+                        field = field[parts[iterator]];
+                    }
+                }
+            }
+
+            // Queue to be saved
+            fc.saveQueue[parts[0]] = fc.fields[parts[0]];
         }
 
         // Set the active page id to the page that the field belongs to, delete later pages
