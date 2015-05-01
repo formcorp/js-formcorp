@@ -1565,6 +1565,26 @@ var fc = (function ($) {
             return layout;
         },
 
+        replaceTokensInDom = function (el, data) {
+            if (data === undefined || data === false) {
+                data = getFieldTagValues();
+            }
+
+            if (el === undefined) {
+                el = $(fc.jQueryContainer);
+            }
+
+            // Perform token replacements
+            el.find('span.fc-token').each(function () {
+                var dataToken = $(this).attr('data-token');
+                if (dataToken && dataToken.length > 0 && data[dataToken] !== undefined) {
+                    $(this).html(htmlEncode(data[dataToken]));
+                }
+            });
+
+            return el;
+        },
+
         /**
          * Retrieve the payment amount for a credit card field, based on the default and conditional parameters
          *
@@ -3630,7 +3650,9 @@ var fc = (function ($) {
             rowValues,
             tags,
             rowFieldId,
-            container;
+            data,
+            tagValues,
+            row;
         /*jslint nomen: false*/
 
         // Check to ensure the field exists
@@ -3644,7 +3666,10 @@ var fc = (function ($) {
             return '';
         }
 
+        // Retrieve tag and tag values
         tags = getFieldTags();
+        tagValues = getFieldTagValues();
+        console.log(tagValues);
 
         html += '<div class="fc-iterator">';
 
@@ -3658,20 +3683,20 @@ var fc = (function ($) {
                 }
             }
 
-            html += '<div class="fc-iterator-row">';
-            html += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
-            html += '</div>';
+            // Data to set for token replacement
+            data = $.extend({}, tagValues, rowValues);
+
+            row = '<div class="fc-iterator-row">';
+            row += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
+            row += '</div>';
+
+            row = replaceTokensInDom($(row), data);
+
+            html += row.prop('outerHTML');
+            console.log(row);
         }
 
         html += '</div>';
-
-        // Token replacements
-        container = $(html);
-        console.log(container);
-        iterator = 0;
-        container.find('div.fc-iterator-row').each(function () {
-           //
-        });
 
 
         return html;
