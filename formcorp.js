@@ -1565,6 +1565,13 @@ var fc = (function ($) {
             return layout;
         },
 
+        /**
+         * Replace tokens within a DOM element
+         *
+         * @param el
+         * @param data
+         * @returns {*}
+         */
         replaceTokensInDom = function (el, data) {
             if (data === undefined || data === false) {
                 data = getFieldTagValues();
@@ -3239,8 +3246,6 @@ var fc = (function ($) {
                 }
             }
 
-            console.log(tokenisedString);
-
             return tokenisedString;
         },
 
@@ -3669,7 +3674,6 @@ var fc = (function ($) {
         // Retrieve tag and tag values
         tags = getFieldTags();
         tagValues = getFieldTagValues();
-        console.log(tagValues);
 
         html += '<div class="fc-iterator">';
 
@@ -3686,14 +3690,14 @@ var fc = (function ($) {
             // Data to set for token replacement
             data = $.extend({}, tagValues, rowValues);
 
+            // Build row html
             row = '<div class="fc-iterator-row">';
             row += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
             row += '</div>';
 
+            // Replace tokens and add to html
             row = replaceTokensInDom($(row), data);
-
             html += row.prop('outerHTML');
-            console.log(row);
         }
 
         html += '</div>';
