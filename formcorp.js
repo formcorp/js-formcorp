@@ -3304,8 +3304,8 @@ var fc = (function ($) {
             sigBlock = $(fc.jQueryContainer).find('.' + fc.config.signatureClass);
             if (sigBlock.length > 0) {
                 sigBlock.each(function () {
-                    dataId = sigBlock.attr('data-for');
-                    fc.renderedSignatures[dataId] = sigBlock.signaturePad({
+                    dataId = $(this).attr('data-for');
+                    fc.renderedSignatures[dataId] = $(this).signaturePad({
                         drawOnly: true,
                         onDrawEnd: function () {
                             var key, signature;
@@ -3339,7 +3339,7 @@ var fc = (function ($) {
      * @param field
      * @returns {string}
      */
-    renderSignature = function (field) {
+    renderSignature = function (field, prefix) {
         var html = '';
 
         // Initialise the signature libraries if required
@@ -3347,7 +3347,7 @@ var fc = (function ($) {
             loadSignatureLibs();
         }
 
-        html = '<div class="' + fc.config.signatureClass + '" formcorp-data-id="' + getId(field) + '" data-for="' + getId(field) + '"> <ul class="sigNav"> <li class="clearButton"><a href="#clear">Clear</a></li> </ul> <div class="sig sigWrapper"> <div class="typed"></div> <canvas class="pad" width="400" height="75"></canvas> <input type="hidden" name="output" class="output"> </div></div>';
+        html = '<div class="' + fc.config.signatureClass + '" formcorp-data-id="' + prefix + getId(field) + '" data-for="' + prefix + getId(field) + '"> <ul class="sigNav"> <li class="clearButton"><a href="#clear">Clear</a></li> </ul> <div class="sig sigWrapper"> <div class="typed"></div> <canvas class="pad" width="400" height="75"></canvas> <input type="hidden" name="output" class="output"> </div></div>';
 
         return html;
     };
@@ -3692,7 +3692,7 @@ var fc = (function ($) {
 
             // Build row html
             row = '<div class="fc-iterator-row">';
-            row += renderFields(field.config.targetGrouplet.field, field, [fieldId]);
+            row += renderFields(field.config.targetGrouplet.field, field, [fieldId, iterator]);
             row += '</div>';
 
             // Replace tokens and add to html
@@ -3892,6 +3892,8 @@ var fc = (function ($) {
 
         var page = getPageById(pageId),
             html = '';
+
+        // Ensure returned a valid page
         if (page === undefined) {
             console.log('FC Error: Page not found');
         }
@@ -3972,7 +3974,7 @@ var fc = (function ($) {
             condition,
             stage;
 
-        if (typeof currentPage.page !== 'object') {
+        if (!currentPage || ! currentPage.page) {
             return;
         }
 
@@ -4187,7 +4189,7 @@ var fc = (function ($) {
         // Check to see if the next page should be automatically loaded
         pageId = getFieldPageId(dataId);
         page = getPageById(pageId);
-        allowAutoLoad = !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
+        allowAutoLoad = !page || !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
 
         if (fc.config.autoLoadPages) {
             if (pageId === fc.currentPage && allowAutoLoad) {
@@ -4668,7 +4670,7 @@ var fc = (function ($) {
         };
         // Determine whether the application should be marked as complete
         page = nextPage(false, true);
-        if ((typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
+        if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
             data.complete = true;
         }
 
@@ -5279,7 +5281,9 @@ var fc = (function ($) {
             page,
             nextPageObj,
             fields,
-            valid;
+            valid,
+            allowAutoLoad,
+            continueLoading = false;
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
@@ -5310,7 +5314,11 @@ var fc = (function ($) {
                 render(id);
             }
 
-            if (valid) {
+            // Whether or not to continue auto-loading the next page
+            allowAutoLoad = !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
+            continueLoading = allowAutoLoad && valid;
+
+            if (continueLoading) {
                 nextPageObj = nextPage(false, true);
                 // @todo problem here - why we cant go back
                 if (nextPageObj !== undefined && typeof nextPageObj === "object") {
@@ -5322,7 +5330,7 @@ var fc = (function ($) {
                     valid = false;
                 }
             }
-        } while (valid);
+        } while (continueLoading);
 
         return id;
     };
@@ -5545,7 +5553,7 @@ var fc = (function ($) {
 
             /**
              * Constants
-             * @type {{enterKey: number, prefixSeparator: string, configKeys: {summaryLayout: string}}}
+             * @type {{enterKey: number, prefixSeparator: string, tagSeparator: string, configKeys: {summaryLayout: string}, persistentSessions: string, defaultChannel: string}}
              */
             this.constants = {
                 enterKey: 13,
@@ -5554,7 +5562,8 @@ var fc = (function ($) {
                 configKeys: {
                     summaryLayout: 'summaryLayout'
                 },
-                persistentSessions: 'persistentSessions'
+                persistentSessions: 'persistentSessions',
+                defaultChannel: 'master'
             };
 
             /**
@@ -5600,6 +5609,11 @@ var fc = (function ($) {
                 this.setLanguage();
             }
 
+            // Set the default channel
+            if (fc.channel === undefined) {
+                fc.channel = fc.constants.defaultChannel;
+            }
+
             // Check to make sure container exists
             $(document).ready(function () {
                 // Analyse analytics if required
@@ -5621,6 +5635,11 @@ var fc = (function ($) {
                 loadSettings(function () {
                     // Set the session id
                     fc.initSession();
+
+                    // Initialise the channel on the root element
+                    if (!$(fc.jQueryContainer).hasClass('fc-channel')) {
+                        $(fc.jQueryContainer).addClass('fc-channel fc-channel-' + fc.channel)
+                    }
 
                     // Register event listeners and load the form schema
                     $(fc.jQueryContainer).html('<div class="render"></div>');
