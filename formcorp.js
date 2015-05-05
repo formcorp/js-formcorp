@@ -1341,7 +1341,7 @@ var fc = (function ($) {
                             rule.value = '"' + rule.value + '"';
                         }
 
-                        condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ')';
+                        condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ', "' + rule.field + '")';
                     }
 
                     // If have nested rules, call recursively
@@ -3890,6 +3890,7 @@ var fc = (function ($) {
             // If field has a visibility configurative set, act on it
             field = fc.fieldSchema[dataId];
             if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
+                console.log(field.config.visibility);
                 visible = eval(toBooleanLogic(field.config.visibility));
                 if (typeof visible === 'boolean') {
                     if (visible) {
@@ -6017,14 +6018,23 @@ var fc = (function ($) {
          * @param comparisonValue
          * @returns {boolean}
          */
-        comparisonIn: function (field, comparisonValue) {
+        comparisonIn: function (field, comparisonValue, dataId) {
             if (field === undefined) {
                 return false;
             }
 
             var x,
                 value,
-                json;
+                json,
+                el;
+
+            // If the field is hidden, should ALWAYS return false (otherwise returns false positives)
+            if (typeof dataId === 'string' && dataId.length > 0) {
+                el = $('.fc-field[fc-data-group="' + dataId + '"]');
+                if (el.length > 0 && el.hasClass('fc-hide')) {
+                    return false;
+                }
+            }
 
             // Attempt to typecast string to json
             try {
