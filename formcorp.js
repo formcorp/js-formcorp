@@ -434,6 +434,14 @@ var fc = (function ($) {
         },
 
         /**
+         * Function to detect if currently mobile
+         * @returns {boolean}
+         */
+        isMobile = function () {
+            return parseInt($(window).width(), 10) < fc.config.minSizeForMobile;
+        },
+
+        /**
          * Checks whether a particular action has been processed (i.e. used for rendering actions only once)
          *
          * @param field
@@ -3249,6 +3257,7 @@ var fc = (function ($) {
             return tokenisedString;
         },
 
+        updateMobileFieldsVisibility,
         renderGrouplet,
         renderFields,
         renderPageSections,
@@ -3495,13 +3504,17 @@ var fc = (function ($) {
                 fieldHtml += 'fc-repeatable-container ';
             }
 
+            // Add condition if mobile only fields
+            if (getConfig(field, 'mobileOnly', false) === true) {
+                fieldHtml += 'fc-mobile-field ';
+            }
+
             fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '"';
 
             // If a section was passed through, track which section the field belongs to
             if (section !== undefined && typeof section === "object") {
                 fieldHtml += ' fc-belongs-to="' + section._id.$id + '"';
             }
-
 
             fieldHtml += '>';
 
@@ -3883,6 +3896,22 @@ var fc = (function ($) {
     };
 
     /**
+     * Update mobile fields
+     */
+    updateMobileFieldsVisibility = function () {
+        $(fc.jQueryContainer).find('.fc-field.fc-mobile-field').each(function () {
+            if (fc.mobileView === true && $(this).hasClass('fc-hide')) {
+                $(this).removeClass('fc-hide');
+            } else if (fc.mobileView === false && !$(this).hasClass('fc-hide')) {
+                $(this).addClass('fc-hide');
+            }
+        });
+
+        flushVisibility();
+        fc.inMobileView = fc.mobileView;
+    },
+
+    /**
      * Render a form stage
      * @param pageId
      * @param isNextPage
@@ -3938,6 +3967,9 @@ var fc = (function ($) {
         if (fc.config.updateHash) {
             window.location.hash = pageId;
         }
+
+        // Update mobile visibility
+        updateMobileFieldsVisibility();
 
         // Fire the event to signal form finished rendering
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
@@ -4946,6 +4978,14 @@ var fc = (function ($) {
         if (fc.config.onePage) {
             registerOnePageListeners();
         }
+
+        // Register mobile browser detection based on screen size
+        $(window).resize(function () {
+            fc.mobileView = isMobile();
+            if (fc.mobileView !== fc.inMobileView) {
+                updateMobileFieldsVisibility();
+            }
+        });
     };
 
     /**
@@ -5514,6 +5554,7 @@ var fc = (function ($) {
             this.nextPageLoadedTimestamp = Date.now();
             this.nextPageButtonClicked = false;
             this.validAbns = [];
+            this.mobileView = isMobile();
 
             // Track which fields belong to which grouplets
             this.fieldGrouplets = {};
@@ -5802,7 +5843,8 @@ var fc = (function ($) {
                 signatureClass: 'sigPad',
                 updateHash: true,
                 deleteSessionOnComplete: true,
-                autoShiftFocusOnEnter: false
+                autoShiftFocusOnEnter: false,
+                minSizeForMobile: 479
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
