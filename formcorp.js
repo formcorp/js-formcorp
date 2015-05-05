@@ -3272,6 +3272,24 @@ var fc = (function ($) {
             return tokenisedString;
         },
 
+        /**
+         * Returns true if a field is visible
+         * @param dataId
+         * @returns {boolean}
+         */
+        fieldIsVisible = function (dataId) {
+            var el;
+
+            if (typeof dataId === 'string' && dataId.length > 0) {
+                el = $('.fc-field[fc-data-group="' + dataId + '"]');
+                if (el.length > 0 && !el.hasClass('fc-hide')) {
+                    return true;
+                }
+            }
+
+            return false;
+        },
+
         updateMobileFieldsVisibility,
         renderGrouplet,
         renderFields,
@@ -3932,69 +3950,69 @@ var fc = (function ($) {
      * @param pageId
      * @param isNextPage
      */
-    render = function (pageId, isNextPage) {
-        // If expired, do not render anything
-        if (fc.expired === true) {
-            return;
-        }
+        render = function (pageId, isNextPage) {
+            // If expired, do not render anything
+            if (fc.expired === true) {
+                return;
+            }
 
-        var page = getPageById(pageId),
-            html = '';
+            var page = getPageById(pageId),
+                html = '';
 
-        // Ensure returned a valid page
-        if (page === undefined) {
-            console.log('FC Error: Page not found');
-        }
+            // Ensure returned a valid page
+            if (page === undefined) {
+                console.log('FC Error: Page not found');
+            }
 
-        if (typeof page.stage !== 'object') {
-            return;
-        }
+            if (typeof page.stage !== 'object') {
+                return;
+            }
 
-        // Store the previous page
-        if (isNextPage === true && fc.currentPage !== undefined) {
-            fc.prevPages[pageId] = getPageById(fc.currentPage);
-        }
+            // Store the previous page
+            if (isNextPage === true && fc.currentPage !== undefined) {
+                fc.prevPages[pageId] = getPageById(fc.currentPage);
+            }
 
-        fc.currentPage = pageId;
+            fc.currentPage = pageId;
 
-        // Store field schema locally
-        updateFieldSchema(page.stage);
+            // Store field schema locally
+            updateFieldSchema(page.stage);
 
-        html += renderPage(page);
+            html += renderPage(page);
 
-        if (!fc.config.onePage) {
-            // Show form in stages
-            $(fc.jQueryContainer + ' .render').html(html);
-        } else {
-            $(fc.jQueryContainer + ' .render').append(html);
-            fc.pageOrders.push(pageId);
-            $(fc.jQueryContainer).find('.fc-pagination').hide();
-            $(fc.jQueryContainer).find('.fc-pagination:last').show();
-        }
+            if (!fc.config.onePage) {
+                // Show form in stages
+                $(fc.jQueryContainer + ' .render').html(html);
+            } else {
+                $(fc.jQueryContainer + ' .render').append(html);
+                fc.pageOrders.push(pageId);
+                $(fc.jQueryContainer).find('.fc-pagination').hide();
+                $(fc.jQueryContainer).find('.fc-pagination:last').show();
+            }
 
-        // Set values from data array
-        setFieldValues();
+            // Set values from data array
+            setFieldValues();
 
-        // Flush the field/section visibility
-        flushVisibility();
+            // Flush the field/section visibility
+            flushVisibility();
 
-        // Update the hash, and ignore the hash change event
-        fc.ignoreHashChangeEvent = true;
-        if (fc.config.updateHash) {
-            window.location.hash = pageId;
-        }
+            // Update the hash, and ignore the hash change event
+            fc.ignoreHashChangeEvent = true;
+            if (fc.config.updateHash) {
+                window.location.hash = pageId;
+            }
 
-        // Update mobile visibility
-        updateMobileFieldsVisibility();
+            // Update mobile visibility
+            updateMobileFieldsVisibility();
 
-        // Fire the event to signal form finished rendering
-        $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
+            // Fire the event to signal form finished rendering
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
 
-        // Often various pages will be loaded at the same time (when no fields on that page are required)
-        /*if (fc.config.autoLoadPages) {
-         //checkAutoLoad();
-         }*/
-    };
+            // Often various pages will be loaded at the same time (when no fields on that page are required)
+            /*if (fc.config.autoLoadPages) {
+             //checkAutoLoad();
+             }*/
+        };
 
     /**
      * Render the next page
@@ -6013,9 +6031,10 @@ var fc = (function ($) {
         },
 
         /**
-         * Returns whether a string exists within an array.
+         * Checks whether a string exists within an array
          * @param field
          * @param comparisonValue
+         * @param dataId
          * @returns {boolean}
          */
         comparisonIn: function (field, comparisonValue, dataId) {
@@ -6030,8 +6049,7 @@ var fc = (function ($) {
 
             // If the field is hidden, should ALWAYS return false (otherwise returns false positives)
             if (typeof dataId === 'string' && dataId.length > 0) {
-                el = $('.fc-field[fc-data-group="' + dataId + '"]');
-                if (el.length > 0 && el.hasClass('fc-hide')) {
+                if (!fieldIsVisible(dataId)) {
                     return false;
                 }
             }
@@ -6071,13 +6089,14 @@ var fc = (function ($) {
         },
 
         /**
-         * Makes sure a value does not exist within a set
+         * Make sure a value does not exist within a set
          * @param field
          * @param comparisonValue
+         * @param dataId
          * @returns {boolean}
          */
-        comparisonNot_in: function (field, comparisonValue) {
-            return !fc.comparisonIn(field, comparisonValue);
+        comparisonNot_in: function (field, comparisonValue, dataId) {
+            return !fc.comparisonIn(field, comparisonValue, dataId);
         },
 
         /**
