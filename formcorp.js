@@ -5287,7 +5287,8 @@ var fc = (function ($) {
             iterator,
             grouplet,
             val,
-            visible;
+            visible,
+            defaultValue;
 
         // Can pass through either an id to retrieve the schema, or the schema itself
         try {
@@ -5321,6 +5322,12 @@ var fc = (function ($) {
         // Return false if required and empty
         if (schema.config !== undefined && schema.config.required !== undefined) {
             if (schema.config.required && value === "") {
+                // Check for a default value - if set, mark as true, since a default indicates true regardless
+                defaultValue = getConfig(schema, 'defaultValue', '');
+                if (typeof defaultValue === 'string' && defaultValue.length > 0) {
+                    return true;
+                }
+
                 return false;
             }
         }
@@ -5433,13 +5440,16 @@ var fc = (function ($) {
             fields = pruneInvisibleFields(fields);
             valid = formFieldsValid(fields);
 
+            // Whether to continue loading or not
+            continueLoading = valid && !isSubmitPage(page.page);
+
             // If using a one page form structure, output
             if (fc.config.onePage) {
                 render(id);
             }
 
             // On page load, ignore the autoLoad flag (if user is directed back to this form, need to continue loading until pretty late)
-            if (valid) {
+            if (continueLoading) {
                 nextPageObj = nextPage(false, true);
                 // @todo problem here - why we cant go back
                 if (nextPageObj !== undefined && typeof nextPageObj === "object") {
@@ -5447,11 +5457,18 @@ var fc = (function ($) {
                     id = nextPageObj.page._id.$id;
                     /*jslint nomen: false*/
                     fc.prevPages[id] = page;
+
+                    // If next page is a submit page, do not render it
+                    if (isSubmitPage(nextPageObj.page) === true) {
+                        valid = false;
+                        break;
+                    }
                 } else {
                     valid = false;
+                    break;
                 }
             }
-        } while (valid);
+        } while (continueLoading);
 
         return id;
     };
