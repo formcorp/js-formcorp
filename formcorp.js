@@ -3908,7 +3908,6 @@ var fc = (function ($) {
             // If field has a visibility configurative set, act on it
             field = fc.fieldSchema[dataId];
             if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                console.log(field.config.visibility);
                 visible = eval(toBooleanLogic(field.config.visibility));
                 if (typeof visible === 'boolean') {
                     if (visible) {
@@ -5239,6 +5238,14 @@ var fc = (function ($) {
                     if (field === undefined) {
                         continue;
                     }
+
+                    // If mobile only field and not mobile
+                    if (getConfig(field, 'mobileOnly', false) && !fc.mobileView) {
+                        delete fields[dataId];
+                        continue;
+                    }
+
+                    // If custom visibility rules
                     if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
                         // Attempt to convert to json string
                         if (['[', '{'].indexOf(field.config.visibility.substring(0, 1)) > -1) {
@@ -5279,7 +5286,8 @@ var fc = (function ($) {
             id,
             iterator,
             grouplet,
-            val;
+            val,
+            visible;
 
         // Can pass through either an id to retrieve the schema, or the schema itself
         try {
@@ -5294,6 +5302,20 @@ var fc = (function ($) {
                 return true;
             }
         } catch (ignore) {
+        }
+
+        // If the field isn't visible, return true - it doesn't matter what the value is
+        if (getConfig(schema, 'visibility', false) !== false) {
+            // Try to evaluate the boolean condition
+            try {
+                visible = eval(schema.config.visibility);
+                if (typeof visible === 'boolean') {
+                    if (!visible) {
+                        return true;
+                    }
+                }
+            } catch (ignore) {
+            }
         }
 
         // Return false if required and empty
@@ -5416,11 +5438,8 @@ var fc = (function ($) {
                 render(id);
             }
 
-            // Whether or not to continue auto-loading the next page
-            allowAutoLoad = !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
-            continueLoading = allowAutoLoad && valid;
-
-            if (continueLoading) {
+            // On page load, ignore the autoLoad flag (if user is directed back to this form, need to continue loading until pretty late)
+            if (valid) {
                 nextPageObj = nextPage(false, true);
                 // @todo problem here - why we cant go back
                 if (nextPageObj !== undefined && typeof nextPageObj === "object") {
@@ -5432,7 +5451,7 @@ var fc = (function ($) {
                     valid = false;
                 }
             }
-        } while (continueLoading);
+        } while (valid);
 
         return id;
     };
