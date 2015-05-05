@@ -1545,6 +1545,26 @@ var fc = (function ($) {
         },
 
         /**
+         * Scroll to an offset on the screen
+         * @param offset
+         */
+        scrollToOffset = function (offset) {
+            // If already scrolling, do nothing
+            if (fc.midScroll !== undefined && fc.midScroll === true) {
+                return;
+            }
+
+            fc.midScroll = true;
+
+            $('html,body').animate({
+                scrollTop: offset + "px"
+            }, fc.config.scrollDuration, function () {
+                fc.midScroll = false;
+                fc.activeScroll = "";
+            });
+        },
+
+        /**
          * Replace tokens with their value, for templating
          * @param layout
          * @param tokens
@@ -3125,11 +3145,8 @@ var fc = (function ($) {
                     }
                 }
 
-                $('html,body').animate({
-                    scrollTop: offset + "px"
-                }, fc.config.scrollDuration, function () {
-                    fc.activeScroll = "";
-                });
+                // Scroll to the offset
+                scrollToOffset(offset);
             }
         },
 
@@ -3216,9 +3233,7 @@ var fc = (function ($) {
                 if (el && el.length > 0) {
                     topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
                     if (parseInt($(document).scrollTop(), 10) < topDistance) {
-                        $('html,body').animate({
-                            scrollTop: topDistance + "px"
-                        }, fc.config.scrollDuration);
+                        scrollToOffset(topDistance);
                     }
                 }
             }
@@ -4818,11 +4833,8 @@ var fc = (function ($) {
                                 }
                             }
 
-                            $('html,body').animate({
-                                scrollTop: offset + "px"
-                            }, fc.config.scrollDuration, function () {
-                                fc.activeScroll = "";
-                            });
+                            // Scroll to offset
+                            scrollToOffset(offset);
 
                             fc.nextPageButtonClicked = false;
                         }
