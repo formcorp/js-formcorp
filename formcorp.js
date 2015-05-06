@@ -3540,6 +3540,8 @@ var fc = (function ($) {
             // Add condition if mobile only fields
             if (getConfig(field, 'mobileOnly', false) === true) {
                 fieldHtml += 'fc-mobile-field ';
+            } else if (getConfig(field, 'desktopOnly', false) === true) {
+                fieldHtml += 'fc-desktop-field ';
             }
 
             fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '"';
@@ -3937,6 +3939,15 @@ var fc = (function ($) {
                 $(this).removeClass('fc-hide');
             } else if (fc.mobileView === false && !$(this).hasClass('fc-hide')) {
                 $(this).addClass('fc-hide');
+            }
+        });
+
+        // Update desktop fields
+        $(fc.jQueryContainer).find('.fc-field.fc-desktop-field').each(function () {
+            if (fc.mobileView === true && !$(this).hasClass('fc-hide')) {
+                $(this).addClass('fc-hide');
+            } else if (fc.mobileView === false && $(this).hasClass('fc-hide')) {
+                $(this).removeClass('fc-hide');
             }
         });
 
@@ -5241,6 +5252,12 @@ var fc = (function ($) {
 
                     // If mobile only field and not mobile
                     if (getConfig(field, 'mobileOnly', false) && !fc.mobileView) {
+                        delete fields[dataId];
+                        continue;
+                    }
+
+                    // If desktop only field and not desktop
+                    if (getConfig(field, 'desktopOnly', false) && fc.mobileView) {
                         delete fields[dataId];
                         continue;
                     }
