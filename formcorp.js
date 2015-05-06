@@ -4135,11 +4135,18 @@ var fc = (function ($) {
             page,
             parts,
             iterator,
-            field;
+            field,
+            linkedTo;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
             return;
+        }
+
+        // If the field is linked to another field, try to update it
+        linkedTo = getConfig(fieldSchema, 'linkedTo', '');
+        if (linkedTo.length > 0 && fc.fieldSchema[linkedTo] !== undefined) {
+            valueChanged(linkedTo, value);
         }
 
         // If the value hasn't actually changed, return
