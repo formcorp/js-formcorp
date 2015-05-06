@@ -639,6 +639,8 @@ var fc = (function ($) {
             // If a signature, set a string as the json value of the signature
             dataId = field.attr('fc-data-group');
             if ((fc.renderedSignatures !== undefined && fc.renderedSignatures[dataId] !== undefined) || field.hasClass(fc.config.signatureClass)) {
+                console.log(1);
+                console.log(dataId);
                 if (dataId === undefined) {
                     // Attempt to load secondary data id if undefined (can run on parent and child element)
                     dataId = $(field).attr('formcorp-data-id');
@@ -1162,6 +1164,7 @@ var fc = (function ($) {
                             localErrors.push(fc.lang.emptyFieldError);
                         } else {
                             // Store the value
+                            console.log(2);
                             fc.fields[dataId] = fc.renderedSignatures[dataId].getSignatureString();
                         }
                     }
@@ -4180,11 +4183,10 @@ var fc = (function ($) {
                 field = fc.fields[parts[0]];
 
                 for (iterator = 1; iterator < parts.length; iterator += 1) {
-                    if (iterator === parts.length - 1) {
+                    if (iterator === (parts.length - 1)) {
                         field[parts[iterator]] = value;
-                    } else if (field[parts[iterator]] === undefined) {
-                        field[parts[iterator]] = {};
-                        field = field[parts[iterator]];
+                    } else {
+                        field = field[iterator];
                     }
                 }
             }
