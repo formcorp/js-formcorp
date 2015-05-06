@@ -4177,22 +4177,27 @@ var fc = (function ($) {
             parts = dataId.split(fc.constants.prefixSeparator);
             if (fc.fieldSchema[parts[0]] && fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
                 // Initialise the base field if required
-                if (fc.fields[parts[0]] === undefined) {
+                if (fc.fields[parts[0]] === undefined || !$.isArray(fc.fields[parts[0]])) {
                     fc.fields[parts[0]] = [];
                 }
+
                 field = fc.fields[parts[0]];
 
                 for (iterator = 1; iterator < parts.length; iterator += 1) {
                     if (iterator === (parts.length - 1)) {
                         field[parts[iterator]] = value;
                     } else {
-                        field = field[iterator];
+                        if (field[parts[iterator]] === undefined) {
+                            field[parts[iterator]] = {};
+                        }
+                        field = field[parts[iterator]];
                     }
                 }
-            }
 
-            // Queue to be saved
-            fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+                // Queue to be saved
+                fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+                console.log(fc.fields[parts[0]]);
+            }
         }
 
         // Set the active page id to the page that the field belongs to, delete later pages
