@@ -639,8 +639,6 @@ var fc = (function ($) {
             // If a signature, set a string as the json value of the signature
             dataId = field.attr('fc-data-group');
             if ((fc.renderedSignatures !== undefined && fc.renderedSignatures[dataId] !== undefined) || field.hasClass(fc.config.signatureClass)) {
-                console.log(1);
-                console.log(dataId);
                 if (dataId === undefined) {
                     // Attempt to load secondary data id if undefined (can run on parent and child element)
                     dataId = $(field).attr('formcorp-data-id');
@@ -1164,7 +1162,6 @@ var fc = (function ($) {
                             localErrors.push(fc.lang.emptyFieldError);
                         } else {
                             // Store the value
-                            console.log(2);
                             fc.fields[dataId] = fc.renderedSignatures[dataId].getSignatureString();
                         }
                     }
@@ -4173,6 +4170,7 @@ var fc = (function ($) {
         }
 
         // Store against array values when sub field (field_1, field_2) for a repeatable iterator
+        console.log('value changed');
         if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
             parts = dataId.split(fc.constants.prefixSeparator);
             if (fc.fieldSchema[parts[0]] && fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
