@@ -1986,8 +1986,10 @@ var fc = (function ($) {
                     html += '<div class="fc-option-buttons ' + cssClass + '">';
                     html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(option) + '" data-field-value="' + encodeURIComponent(value) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(getConfig(field, 'buttonText')) + '</button>';
 
-                    if (help && help.length > 0) {
-                        html += '<div class="fc-help">' + help + '</div>';
+                    if (!fc.config.helpAsModal && help && help.length > 0) {
+                        html += '<div class="fc-help">';
+                        html += help;
+                        html += '</div>';
                     }
 
                     html += '</div>'; // !fc-content-content
@@ -3335,6 +3337,40 @@ var fc = (function ($) {
             }
         },
 
+        /**
+         * Show the modal dialog
+         * @param config
+         */
+        showModal = function (config) {
+            var defaults = {
+                    addButton: true,
+                    body: '',
+                    title: fc.lang.defaultModalTitle
+                },
+                vars = $.extend({}, defaults, config),
+                elements = {
+                    addButton: $(fc.jQueryContainer).find('.fc-modal .modal-footer .fc-btn-add')
+                };
+
+            // Toggle visibility on the add button
+            if (elements.addButton.length > 0) {
+                if (vars.addButton === false) {
+                    elements.addButton.hide();
+                } else {
+                    elements.addButton.show();
+                }
+            }
+
+            // Show the title
+            if (vars.title) {
+                $('.fc-modal .modal-header h2').text(vars.title);
+            }
+
+            // Display the modal
+            $('.fc-modal .modal-body').html(vars.body);
+            $('.fc-modal').addClass('fc-show');
+        },
+
         updateMobileFieldsVisibility,
         renderGrouplet,
         renderFields,
@@ -3632,7 +3668,19 @@ var fc = (function ($) {
             // Field label - don't show in this position for certain fields
             if (["creditCard"].indexOf(field.type) === -1) {
                 if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
-                    fieldHtml += '<label>' + tokenise(field.config.label) + '</label>';
+                    fieldHtml += '<label>';
+                    fieldHtml += tokenise(field.config.label);
+
+                    // If set to open help data in a modal, output the link
+                    if (fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
+                        if (fc.helpData === undefined) {
+                            fc.helpData = [];
+                        }
+                        fc.helpData.push(getConfig(field, 'help'));
+                        fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + fc.lang.helpModalLink + '</a>';
+                    }
+
+                    fieldHtml += '</label>';
                 }
 
                 // Show the description after the label
@@ -3709,14 +3757,13 @@ var fc = (function ($) {
             fieldHtml += '<div class="fc-error-text"></div>';
 
             // Help text
-            if (getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
+            if (!fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
                 fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
 
             if (getConfig(field, 'repeatable', false) === true) {
                 fieldHtml += '</div>';
             }
-
 
             fieldHtml += '<div class="fc-empty"></div></div>';
             fieldHtml += '</div></div>';
@@ -4182,7 +4229,9 @@ var fc = (function ($) {
             parts,
             iterator,
             field,
-            linkedTo;
+            linkedTo,
+            prePopulate,
+            tmp;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -4193,6 +4242,25 @@ var fc = (function ($) {
         linkedTo = getConfig(fieldSchema, 'linkedTo', '');
         if (linkedTo.length > 0 && fc.fieldSchema[linkedTo] !== undefined) {
             valueChanged(linkedTo, value);
+        }
+
+        // If pre-populating other fields, do so now
+        console.log('check prepopulate');
+        if (typeof value === 'string') {
+            console.log(1);
+            prePopulate = getConfig(fieldSchema, 'prePopulate', []);
+            console.log(prePopulate);
+            if ($.isArray(prePopulate) && prePopulate.length > 0) {
+                console.log(2);
+                for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
+                    tmp = prePopulate[iterator]; // The data id to prepopulate
+                    console.log(tmp);
+                    if (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0) {
+                        console.log(3);
+                        fc.fields[tmp] = value;
+                    }
+                }
+            }
         }
 
         // If the value hasn't actually changed, return
@@ -5058,6 +5126,28 @@ var fc = (function ($) {
             return false;
         });
 
+        // Help modal links
+        $(fc.jQueryContainer).on('click', '.fc-help-link', function () {
+            var dataIndex = $(this).attr('data-for');
+            if (fc.helpData && fc.helpData[dataIndex]) {
+                // Set modal information
+                fc.modalState = fc.states.MODAL_TEXT;
+                fc.modalMeta = {
+                    title: 'Test',
+                    body: fc.helpData[dataIndex]
+                };
+
+                // Show the modal
+                showModal({
+                    addButton: false,
+                    body: fc.helpData[dataIndex],
+                    title: fc.lang.helpTitle
+                });
+            }
+
+            return false;
+        });
+
         // Hide fc model
         $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-close', function () {
             $('.fc-modal.fc-show').removeClass('fc-show');
@@ -5720,14 +5810,15 @@ var fc = (function ($) {
 
             /**
              * Modal states
-             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EDIT_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string, SMS_VERIFICATION_CODE: string}}
+             * @type {{DELETE_REPEATABLE: string, ADD_REPEATABLE: string, EDIT_REPEATABLE: string, EMAIL_VERIFICATION_CODE: string, SMS_VERIFICATION_CODE: string, MODAL_TEXT: string}}
              */
             this.states = {
                 DELETE_REPEATABLE: 'deleteRepeatable',
                 ADD_REPEATABLE: 'addRepeatableRow',
                 EDIT_REPEATABLE: 'editRepeatableRow',
                 EMAIL_VERIFICATION_CODE: 'emailVerificationCode',
-                SMS_VERIFICATION_CODE: 'smsVerificationCode'
+                SMS_VERIFICATION_CODE: 'smsVerificationCode',
+                MODAL_TEXT: 'modalText'
             };
 
             /**
@@ -6004,7 +6095,8 @@ var fc = (function ($) {
                 updateHash: true,
                 deleteSessionOnComplete: true,
                 autoShiftFocusOnEnter: false,
-                minSizeForMobile: 479
+                minSizeForMobile: 479,
+                helpAsModal: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
@@ -6062,6 +6154,7 @@ var fc = (function ($) {
                 creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details",
                 edit: "Edit",
                 delete: "Delete",
+                defaultModalTitle: 'Information',
                 deleteDialogHeader: "Are you sure?",
                 editDialogHeader: "Edit",
                 deleteSignatoryDialogText: "Are you sure you want to delete the selected signatory?",
@@ -6083,7 +6176,9 @@ var fc = (function ($) {
                 description: "Description",
                 paymentDescription: "Application completion",
                 validate: 'Validate',
-                validAbnRequired: 'You must enter and validate a valid ABN.'
+                validAbnRequired: 'You must enter and validate a valid ABN.',
+                helpModalLink: 'what is this?',
+                helpTitle: 'What is this?'
             };
 
             // Update with client options
