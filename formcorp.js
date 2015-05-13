@@ -3227,20 +3227,29 @@ var fc = (function ($) {
         autoScrollToField = function (fromFieldId, nextField) {
             var el, topDistance, sessionId;
 
-            // If the next field belongs to a different section, scroll to that section
-            el = $('.fc-field[fc-data-group="' + nextField + '"]');
-
-            if (el && el.length > 0) {
-                sessionId = el.attr('fc-belongs-to');
-                if (sessionId !== $('.fc-field[fc-data-group="' + fromFieldId + '"]').attr('fc-belongs-to')) {
-                    el = $('.fc-section[formcorp-data-id="' + sessionId + '"]');
-                }
+            // Scroll from one field to another section
+            if (nextField !== undefined) {
+                el = $('.fc-field[fc-data-group="' + nextField + '"]');
 
                 if (el && el.length > 0) {
-                    topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
-                    if (parseInt($(document).scrollTop(), 10) < topDistance) {
-                        scrollToOffset(topDistance);
+                    sessionId = el.attr('fc-belongs-to');
+                    if (sessionId !== $('.fc-field[fc-data-group="' + fromFieldId + '"]').attr('fc-belongs-to')) {
+                        el = $('.fc-section[formcorp-data-id="' + sessionId + '"]');
                     }
+
+                    if (el && el.length > 0) {
+                        topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
+                        if (parseInt($(document).scrollTop(), 10) < topDistance) {
+                            scrollToOffset(topDistance);
+                        }
+                    }
+                }
+            } else {
+                // Otherwise just scroll to the field specified in the first parameter
+                el = $('.fc-field[fc-data-group="' + fromFieldId + '"]');
+                if (el && el.length > 0) {
+                    topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
+                    scrollToOffset(topDistance);
                 }
             }
         },
@@ -3294,6 +3303,36 @@ var fc = (function ($) {
             }
 
             return false;
+        },
+
+        /**
+         * Auto scroll to the first visible error on the page
+         */
+        scrollToFirstError = function () {
+            var fieldErrors = $(fc.jQueryContainer).find('.fc-field.fc-error'),
+                dataId,
+                firstError;
+
+            // Find the first error
+            if (fieldErrors.length > 0) {
+                fieldErrors.each(function () {
+                    // If already found an error, do nothing
+                    if (firstError !== undefined) {
+                        return;
+                    }
+                    dataId = $(this).attr('fc-data-group');
+
+                    // If the field is visible, scroll to this field
+                    if (fieldIsVisible(dataId)) {
+                        firstError = dataId;
+                    }
+                });
+            }
+
+            // If an error was found, scroll to it
+            if (firstError !== undefined) {
+                autoScrollToField(firstError);
+            }
         },
 
         updateMobileFieldsVisibility,
@@ -4114,7 +4153,7 @@ var fc = (function ($) {
 
         // If a next page exists and the current page is valid, load the next page
         if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
-            loadNextPage();
+            loadNextPage(false);
             return true;
         }
 
@@ -4753,13 +4792,24 @@ var fc = (function ($) {
 
     /**
      * Load the next page
+     * @param showError
      * @returns {boolean}
      */
-    loadNextPage = function () {
+    loadNextPage = function (showError) {
+        if (showError === undefined) {
+            showError = true;
+        }
+
         logEvent(fc.eventTypes.onNextPageClick);
 
         if (!validForm()) {
             logEvent(fc.eventTypes.onNextPageError);
+
+            // Scroll to first error
+            if (showError && fc.config.scrollOnSubmitError) {
+                scrollToFirstError();
+            }
+
             return false;
         }
 
@@ -4967,7 +5017,7 @@ var fc = (function ($) {
         $(fc.jQueryContainer).on('click', '.fc-desc a', function () {
             var href = $(this).attr('href');
             window.open(href);
-            
+
             return false;
         });
 
@@ -5930,6 +5980,7 @@ var fc = (function ($) {
                 onePage: false,
                 smoothScroll: false,
                 scrollDuration: 1000,
+                scrollOnSubmitError: false,
                 scrollWait: 500,
                 initialScrollOffset: 0,
                 scrollOffset: 0,
