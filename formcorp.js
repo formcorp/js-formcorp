@@ -4963,6 +4963,14 @@ var fc = (function ($) {
             return false;
         });
 
+        // Description link clicks
+        $(fc.jQueryContainer).on('click', '.fc-desc a', function () {
+            var href = $(this).attr('href');
+            window.open(href);
+            
+            return false;
+        });
+
         registerValueChangedListeners();
 
         // When the hash changes - navigate forward/backwards
