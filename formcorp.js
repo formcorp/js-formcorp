@@ -411,6 +411,12 @@ var fc = (function ($) {
                 data.branch = fc.branch;
             }
 
+            // Set the channel information
+            if (fc.channel !== undefined && typeof fc.channel === 'string' && fc.channel.length > 0) {
+                data.channel = fc.channel;
+            }
+
+            // Shoot off the ajax request
             $.ajax({
                 type: type,
                 url: apiUrl + uri,
@@ -3784,6 +3790,7 @@ var fc = (function ($) {
                 sectionHtml += renderFields(section.field, section);
             }
 
+            sectionHtml += '<div class="fc-section-end"></div>';
             sectionHtml += '</div>';
             html += sectionHtml;
         }
@@ -4170,7 +4177,6 @@ var fc = (function ($) {
         }
 
         // Store against array values when sub field (field_1, field_2) for a repeatable iterator
-        console.log('value changed');
         if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
             parts = dataId.split(fc.constants.prefixSeparator);
             if (fc.fieldSchema[parts[0]] && fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
@@ -4194,7 +4200,6 @@ var fc = (function ($) {
 
                 // Queue to be saved
                 fc.saveQueue[parts[0]] = fc.fields[parts[0]];
-                console.log(fc.fields[parts[0]]);
             }
         }
 
