@@ -4239,24 +4239,19 @@ var fc = (function ($) {
         }
 
         // If the field is linked to another field, try to update it
+        // @todo: disable for now
         linkedTo = getConfig(fieldSchema, 'linkedTo', '');
-        if (linkedTo.length > 0 && fc.fieldSchema[linkedTo] !== undefined) {
+        if (false && linkedTo.length > 0 && fc.fieldSchema[linkedTo] !== undefined) {
             valueChanged(linkedTo, value);
         }
 
         // If pre-populating other fields, do so now
-        console.log('check prepopulate');
         if (typeof value === 'string') {
-            console.log(1);
             prePopulate = getConfig(fieldSchema, 'prePopulate', []);
-            console.log(prePopulate);
             if ($.isArray(prePopulate) && prePopulate.length > 0) {
-                console.log(2);
                 for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
                     tmp = prePopulate[iterator]; // The data id to prepopulate
-                    console.log(tmp);
                     if (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0) {
-                        console.log(3);
                         fc.fields[tmp] = value;
                     }
                 }
