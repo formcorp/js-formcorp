@@ -4253,6 +4253,9 @@ var fc = (function ($) {
                     tmp = prePopulate[iterator]; // The data id to prepopulate
                     if (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0) {
                         fc.fields[tmp] = value;
+
+                        // Queue the field to be updated on the serer
+                        fc.saveQueue[tmp] = value;
                     }
                 }
             }
