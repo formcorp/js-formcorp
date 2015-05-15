@@ -1283,7 +1283,8 @@ var fc = (function ($) {
                 rule,
                 comparison,
                 compare = '',
-                json;
+                json,
+                comparisonCondition;
 
             if (!obj) {
                 return;
@@ -1309,18 +1310,18 @@ var fc = (function ($) {
                     rule = obj.rules[x];
 
                     if (rule.condition !== undefined) {
-                        rule.condition = rule.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
+                        comparisonCondition = rule.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
                     } else {
-                        rule.condition = compare;
+                        comparisonCondition = compare;
                     }
 
                     // Optimise the AND/OR clause
-                    if (rule.condition.length === 0) {
+                    if (comparisonCondition === 0) {
                         // Default to AND condition
-                        rule.condition = ' && ';
+                        comparisonCondition = ' && ';
                     }
                     if (x === 0) {
-                        rule.condition = '';
+                        comparisonCondition = '';
                     }
 
                     // If have a comparison, add it to our condition string
@@ -1347,12 +1348,12 @@ var fc = (function ($) {
                             rule.value = '"' + rule.value + '"';
                         }
 
-                        condition += rule.condition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ', "' + rule.field + '")';
+                        condition += comparisonCondition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ', "' + rule.field + '")';
                     }
 
                     // If have nested rules, call recursively
                     if (typeof rule.rules === 'object' && rule.rules.length > 0) {
-                        condition += rule.condition + toBooleanLogic(rule);
+                        condition += (x > 0 ? compare : '') + toBooleanLogic(rule);
                     }
                 }
                 condition += ')';
