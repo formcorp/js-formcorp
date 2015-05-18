@@ -3677,6 +3677,7 @@ var fc = (function ($) {
                     if (fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
                         if (fc.helpData === undefined) {
                             fc.helpData = [];
+                            fc.helpTitle = [];
                         }
                         fc.helpData.push(getConfig(field, 'help'));
 
@@ -3685,6 +3686,7 @@ var fc = (function ($) {
                         if (helpTitle.length === 0) {
                             helpTitle = fc.lang.helpModalLink;
                         }
+                        fc.helpTitle.push(helpTitle);
 
                         fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
                     }
@@ -5140,7 +5142,6 @@ var fc = (function ($) {
                 // Set modal information
                 fc.modalState = fc.states.MODAL_TEXT;
                 fc.modalMeta = {
-                    title: 'Test',
                     body: fc.helpData[dataIndex]
                 };
 
@@ -5148,7 +5149,7 @@ var fc = (function ($) {
                 showModal({
                     addButton: false,
                     body: fc.helpData[dataIndex],
-                    title: fc.lang.helpTitle
+                    title: fc.helpTitle[dataIndex]
                 });
             }
 
