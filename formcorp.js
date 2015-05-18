@@ -3577,7 +3577,8 @@ var fc = (function ($) {
             matches,
             iterator,
             match,
-            re;
+            re,
+            helpTitle;
 
         // Field id prefix (for grouplet fields that may be shown multiple times)
         if (prefix === undefined) {
@@ -3678,7 +3679,14 @@ var fc = (function ($) {
                             fc.helpData = [];
                         }
                         fc.helpData.push(getConfig(field, 'help'));
-                        fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + fc.lang.helpModalLink + '</a>';
+
+                        // The title to use for the help link
+                        helpTitle = getConfig(field, 'helpTitle', '');
+                        if (helpTitle.length === 0) {
+                            helpTitle = fc.lang.helpModalLink;
+                        }
+
+                        fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
                     }
 
                     fieldHtml += '</label>';
