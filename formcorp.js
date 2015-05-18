@@ -615,7 +615,7 @@ var fc = (function ($) {
             }
 
             if (field.is('select')) {
-                return $(field).find('option:selected').text();
+                return $(field).find('option:selected').val();
             }
 
             // Return the value for rendered buttons
