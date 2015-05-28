@@ -5326,7 +5326,9 @@ var fc = (function ($) {
                 value = $(this).val(),
                 apiUrl,
                 requestType,
-                summary = getConfig(schema, 'responseSummary', '');
+                summary = getConfig(schema, 'responseSummary', ''),
+                postData,
+                request = {};
 
             if (summary.length === 0) {
                 removeAutoCompleteWidget(fieldId);
@@ -5352,31 +5354,43 @@ var fc = (function ($) {
                 removeAutoCompleteWidget(fieldId);
                 return;
             }
+            request.type = requestType;
+
+            // Attach post data
+            if (['POST', 'PUT'].indexOf(requestType) >= 0) {
+                postData = getConfig(schema, 'postData', '');
+                if (postData.length > 0) {
+                    postData = postData.replace(/<value>/g, encodeURIComponent(value));
+                    request.data = postData;
+                }
+            }
 
             // Send off the request
             if (apiUrl.indexOf('<value>') >= 0) {
-                apiUrl = apiUrl.replace(/<value>/g, value);
+                apiUrl = apiUrl.replace(/<value>/g, encodeURIComponent(value));
             }
 
-            $.ajax({
-                url: apiUrl,
-                type: requestType,
-                success: function (data) {
-                    if (data.length === 0) {
-                        removeAutoCompleteWidget(fieldId);
-                    } else {
-                        var html = renderAutoCompleteWidget(fieldId, data, summary),
-                            existingAutoSuggest = fieldContainer.find('.fc-auto-suggest');
+            // Format the request
+            request.url = apiUrl;
 
-                        // Delete the existing auto suggest if it exists
-                        if (existingAutoSuggest.length > 0) {
-                            existingAutoSuggest.remove();
-                        }
+            // Success function
+            request.success = function (data) {
+                if (data.length === 0) {
+                    removeAutoCompleteWidget(fieldId);
+                } else {
+                    var html = renderAutoCompleteWidget(fieldId, data, summary),
+                        existingAutoSuggest = fieldContainer.find('.fc-auto-suggest');
 
-                        fieldContainer.find('.fc-fieldgroup').append(html);
+                    // Delete the existing auto suggest if it exists
+                    if (existingAutoSuggest.length > 0) {
+                        existingAutoSuggest.remove();
                     }
+
+                    fieldContainer.find('.fc-fieldgroup').append(html);
                 }
-            });
+            };
+
+            $.ajax(request);
         });
 
         // Close the suggest box
