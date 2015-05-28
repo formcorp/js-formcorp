@@ -518,7 +518,10 @@ var fc = (function ($) {
          * Retrieve the field tags
          * @returns {{}}
          */
-        getFieldTags = function () {
+        getFieldTags = function (reverseOrder) {
+            if (reverseOrder === undefined || typeof reverseOrder !== 'boolean') {
+                reverseOrder = false;
+            }
             var key, fieldId, tags = {}, fieldTags, tagValues;
 
             for (key in fc.fieldSchema) {
@@ -528,8 +531,14 @@ var fc = (function ($) {
 
                     if (Object.keys(fieldTags).length > 0) {
                         for (fieldId in fieldTags) {
-                            if (fieldTags.hasOwnProperty(fieldId) && fc.fields[fieldId] !== undefined) {
-                                tagValues[fieldId] = fieldTags[fieldId];
+                            if (fieldTags.hasOwnProperty(fieldId)) {
+                                if (reverseOrder) {
+                                    tagValues[fieldTags[fieldId]] = fieldId;
+                                } else {
+                                    if (fieldTags.hasOwnProperty(fieldId) && fc.fields[fieldId] !== undefined) {
+                                        tagValues[fieldId] = fieldTags[fieldId];
+                                    }
+                                }
                             }
                         }
 
@@ -3413,7 +3422,11 @@ var fc = (function ($) {
         renderSignature,
         loadSignatureLibs,
         orderObject,
-        renderRepeatableIterator;
+        renderRepeatableIterator,
+        renderApiLookupField,
+        registerApiLookupListener,
+        renderAutoCompleteWidget,
+        removeAutoCompleteWidget;
 
     /**
      * Load the libraries required for signature fields
@@ -3761,6 +3774,9 @@ var fc = (function ($) {
                 case 'repeatableIterator':
                     fieldHtml += renderRepeatableIterator(field, prefix);
                     break;
+                case 'apiLookup':
+                    fieldHtml += renderApiLookupField(field, prefix);
+                    break;
                 default:
                     console.log('Unknown field type: ' + field.type);
             }
@@ -3854,6 +3870,26 @@ var fc = (function ($) {
         html += '</div>';
 
 
+        return html;
+    };
+
+    /**
+     * Render an API look-up field.
+     *
+     * @param field
+     * @param prefix
+     * @returns {string}
+     */
+    renderApiLookupField = function (field, prefix) {
+        if (prefix === undefined) {
+            prefix = "";
+        }
+
+        /*jslint nomen: true*/
+        var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+            fieldId = prefix + field._id.$id,
+            html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+        /*jslint nomen: false*/
         return html;
     };
 
@@ -5188,6 +5224,7 @@ var fc = (function ($) {
         });
 
         registerRepeatableGroupletListeners();
+        registerApiLookupListener();
 
         if (fc.config.onePage) {
             registerOnePageListeners();
@@ -5200,6 +5237,224 @@ var fc = (function ($) {
                 updateMobileFieldsVisibility();
             }
         });
+    };
+
+    /**
+     * Calculates the HTML for the auto suggest functionality.
+     * @param dataId
+     * @param values
+     * @param summaryTemplate
+     * @returns {string}
+     */
+    renderAutoCompleteWidget = function (dataId, values, summaryTemplate) {
+        if (!$.isArray(values)) {
+            return '';
+        }
+
+        // Initialise variables
+        var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]'),
+            html,
+            iterator,
+            counter,
+            summary,
+            tokens,
+            re,
+            templateTokens = summaryTemplate.match(/\{([a-zA-Z0-9\-\_]+)\}/g);
+
+        // Replace the curly braces in the template tokens
+        if (templateTokens.length === 0) {
+            return;
+        }
+
+        for (iterator = 0; iterator < templateTokens.length; iterator += 1) {
+            templateTokens[iterator] = templateTokens[iterator].replace(/[\{\}]/g, '');
+        }
+
+        if (fieldContainer.length === 0) {
+            return '';
+        }
+
+        // Format the html
+        html = '<div class="fc-auto-suggest" data-id="' + dataId + '">';
+        html += '<div class="fc-suggest-close"><a href="#">x</a></div>';
+        for (iterator = 0; iterator < values.length; iterator += 1) {
+            tokens = values[iterator];
+
+            // Replace the tokens in the summary template
+            summary = summaryTemplate.slice(0);
+            for (counter = 0; counter < templateTokens.length; counter += 1) {
+                re = new RegExp('\{' + templateTokens[counter] + '\}', 'g');
+                summary = summary.replace(re, tokens[templateTokens[counter]] !== undefined ? tokens[templateTokens[counter]] : '');
+            }
+
+            // Add to html
+            html += '<div class="fc-suggest-row" data-suggest="' + encodeURI(JSON.stringify(tokens)) + '" data-id="' + dataId + '"><a href="#">' + summary + '</a></div>';
+        }
+        html += '</div>';
+
+        return html;
+    };
+
+    /**
+     * Removes an auto complete widget
+     * @param dataId
+     * @returns {boolean}
+     */
+    removeAutoCompleteWidget = function (dataId) {
+        var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]');
+
+        if (fieldContainer.length === 0) {
+            return false
+        }
+
+        fieldContainer.find('.fc-auto-suggest').remove();
+    };
+
+    /**
+     * Register the API look up
+     */
+    registerApiLookupListener = function () {
+        if (fc.registeredApiLookup === true) {
+            return;
+        }
+
+        // Trigger an API look up
+        $(fc.jQueryContainer).on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput', function (event) {
+            var fieldId = $(this).attr('formcorp-data-id'),
+                fieldContainer = $('.fc-field[fc-data-group="' + fieldId + '"]'),
+                schema = fc.fieldSchema[fieldId],
+                value = $(this).val(),
+                apiUrl,
+                requestType,
+                summary = getConfig(schema, 'responseSummary', '');
+
+            if (summary.length === 0) {
+                removeAutoCompleteWidget(fieldId);
+                return;
+            }
+
+            // Not enough characters to trigger an API lookup
+            if (value.length < parseInt(getConfig(schema, 'minCharsBeforeTrigger', 1))) {
+                removeAutoCompleteWidget(fieldId);
+                return;
+            }
+
+            // Fetch the URL to send the request to
+            apiUrl = getConfig(schema, 'apiUrl', '');
+            if (apiUrl.length <= 0) {
+                removeAutoCompleteWidget(fieldId);
+                return;
+            }
+
+            // Fetch the request type
+            requestType = getConfig(schema, 'requestType', 'GET');
+            if (['GET', 'POST', 'PUT'].indexOf(requestType) < 0) {
+                removeAutoCompleteWidget(fieldId);
+                return;
+            }
+
+            // Send off the request
+            if (apiUrl.indexOf('<value>') >= 0) {
+                apiUrl = apiUrl.replace(/<value>/g, value);
+            }
+
+            $.ajax({
+                url: apiUrl,
+                type: requestType,
+                success: function (data) {
+                    if (data.length === 0) {
+                        removeAutoCompleteWidget(fieldId);
+                    } else {
+                        var html = renderAutoCompleteWidget(fieldId, data, summary),
+                            existingAutoSuggest = fieldContainer.find('.fc-auto-suggest');
+
+                        // Delete the existing auto suggest if it exists
+                        if (existingAutoSuggest.length > 0) {
+                            existingAutoSuggest.remove();
+                        }
+
+                        fieldContainer.find('.fc-fieldgroup').append(html);
+                    }
+                }
+            });
+        });
+
+        // Close the suggest box
+        $(fc.jQueryContainer).on('click', '.fc-suggest-close a', function () {
+            var dataId = $(this).parent().parent().attr('data-id');
+            removeAutoCompleteWidget(dataId);
+
+            return false;
+        });
+
+        // Map the fields on click
+        $(fc.jQueryContainer).on('click', '.fc-suggest-row', function () {
+            var json = JSON.parse(decodeURI($(this).attr('data-suggest'))),
+                dataId = $(this).attr('data-id'),
+                schema = fc.fieldSchema[dataId],
+                map = getConfig(schema, 'mapResponse', '{}'),
+                mapObj,
+                tags,
+                tag,
+                tagId,
+                val,
+                tokens,
+                iterator,
+                token,
+                replacement,
+                re,
+                domObj;
+
+            if (typeof json !== 'object') {
+                return false;
+            }
+
+            // Attempt to decode to JSON object
+            try {
+                mapObj = JSON.parse(map);
+            } catch (ignore) {
+                return false;
+            }
+
+            // Retrieve field tags and perform replacement=
+            tags = getFieldTags(true);
+            for (tag in mapObj) {
+                if (mapObj.hasOwnProperty(tag)) {
+                    if (tags[tag] !== undefined) {
+                        tagId = tags[tag];
+
+                        domObj = $('.fc-field[fc-data-group="' + tagId + '"');
+
+                        if (domObj.length > 0) {
+                            // Perform the token replacement on the mapped value
+                            val = mapObj[tag];
+                            tokens = val.match(/\{([a-zA-Z0-9\-\_]+)\}/g);
+
+                            // Replace each token
+                            if (tokens.length > 0) {
+                                for (iterator = 0; iterator < tokens.length; iterator += 1) {
+                                    token = tokens[iterator].replace(/[\{\}]/g, '');
+                                    re = new RegExp('\{' + token + '\}', 'g');
+                                    replacement = json[token] !== undefined ? json[token] : '';
+                                    val = val.replace(re, replacement);
+                                }
+                            }
+
+                            // Set the field value in the DOM
+                            fc.fields[tagId] = val;
+                            fc.saveQueue[tagId] = val;
+                            setDomValue(domObj, val);
+                        }
+                    }
+                }
+            }
+
+            removeAutoCompleteWidget(dataId);
+
+            return false;
+        });
+
+        fc.registeredApiLookup = true;
     };
 
     /**

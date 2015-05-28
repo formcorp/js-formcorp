@@ -596,7 +596,6 @@ div.fc-pagination {
     clear: both;
 }
 
-
 /**
  * 4 column
  */
@@ -619,4 +618,37 @@ div.fc-pagination {
 
 .fc-col-3 .fc-col:nth-child(3n+1) {
     clear: both;
+}
+
+.fc-field-apiLookup .fc-fieldgroup {
+    position: relative;
+}
+
+.fc-field-apiLookup .fc-auto-suggest {
+    position: absolute;
+    z-index: 9;
+    width: 100%;
+    border: 1px solid #e5e5e5;
+    margin-top: 2px;
+}
+
+.fc-field-apiLookup .fc-auto-suggest a {
+    display: block;
+    line-height: 30px;
+    background: #fff;
+    padding: 0 10px;
+}
+
+.fc-field-apiLookup .fc-auto-suggest .fc-suggest-row a:hover {
+    background: #F6F6F6;
+}
+
+.fc-suggest-close {
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.fc-suggest-close a {
+    padding: 4px;
 }
