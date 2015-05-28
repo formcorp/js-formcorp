@@ -5328,7 +5328,16 @@ var fc = (function ($) {
                 requestType,
                 summary = getConfig(schema, 'responseSummary', ''),
                 postData,
-                request = {};
+                request = {},
+                gracePeriod,
+                obj = this;
+
+            // Fetch the grace period
+            gracePeriod = parseInt(getConfig(schema, 'gracePeriod', -1));
+            if (gracePeriod < 0) {
+                removeAutoCompleteWidget(fieldId);
+                return;
+            }
 
             if (summary.length === 0) {
                 removeAutoCompleteWidget(fieldId);
@@ -5390,7 +5399,15 @@ var fc = (function ($) {
                 }
             };
 
-            $.ajax(request);
+            setTimeout(function () {
+                // If the value has changed inside of the grace period, return
+                var newValue = getFieldValue($(obj));
+                if (newValue !== value) {
+                    return;
+                }
+
+                $.ajax(request);
+            }, gracePeriod);
         });
 
         // Close the suggest box
