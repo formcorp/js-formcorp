@@ -6,7 +6,7 @@
  * Ability to embed a JS client side form on to an external webpage.
  */
 
-/*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics,escape*/
+/*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics,escape,fcGreenID*/
 
 
 if (!Date.now) {
@@ -3381,6 +3381,34 @@ var fc = (function ($) {
             $('.fc-modal').addClass('fc-show');
         },
 
+        initGreenId = function () {
+            var fieldId,
+                hasGreenId = false;
+
+            // Iterate through and check if green id field exists
+            for (fieldId in fc.fieldSchema) {
+                if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.fieldSchema[fieldId].type === 'greenIdVerification') {
+                    hasGreenId = true;
+                    break;
+                }
+            }
+
+            // If the form field has green id verification,
+            if (hasGreenId) {
+                // Initialise the worker and set the event listener
+                $(fc.jQueryContainer).on(fc.jsEvents.onGreenIdLoaded, function () {
+                    fc.greenID = fcGreenID;
+                    fc.greenID.init();
+                });
+
+                loadJsFile(cdnUrl + fc.constants.greenId.scriptPath);
+            }
+        },
+
+        onSchemaLoaded = function () {
+            initGreenId();
+        },
+
         updateMobileFieldsVisibility,
         renderGrouplet,
         renderFields,
@@ -6013,6 +6041,9 @@ var fc = (function ($) {
             }
 
             $(fc.jQueryContainer).trigger(fc.jsEvents.onConnectionMade);
+
+            // Initialise the on schema loaded event
+            onSchemaLoaded();
         });
     };
 
@@ -6153,7 +6184,8 @@ var fc = (function ($) {
                 onAnalyticsLoaded: 'onAnalyticsLoaded',
                 onFieldValueChange: 'onFieldValueChange',
                 onLoadingPageStart: 'onLoadingPageStart',
-                onLoadingPageEnd: 'onLoadingPageEnd'
+                onLoadingPageEnd: 'onLoadingPageEnd',
+                onGreenIdLoaded: 'onGreenIdLoaded',
             };
 
             /**
@@ -6179,7 +6211,10 @@ var fc = (function ($) {
                     summaryLayout: 'summaryLayout'
                 },
                 persistentSessions: 'persistentSessions',
-                defaultChannel: 'master'
+                defaultChannel: 'master',
+                greenId: {
+                    scriptPath: 'lib/green-id.js'
+                }
             };
 
             /**
@@ -6301,6 +6336,16 @@ var fc = (function ($) {
          * Return the API function
          */
         api: api,
+
+        /**
+         * Retrieves the field config for a given key name
+         */
+        getConfig: getConfig,
+
+        /**
+         * Retrieve the id for a form field
+         */
+        getId: getId,
 
         /**
          * Retrieve a URL parameter by name
@@ -6642,7 +6687,7 @@ var fc = (function ($) {
          */
         toCamelCase: function (str) {
             return str.replace(/^([A-Z])|\s(\w)/g, function (match, p1, p2) {
-                if (p2) {
+                if (p2) {getConfig
                     return p2.toUpperCase();
                 }
                 return p1.toLowerCase();
