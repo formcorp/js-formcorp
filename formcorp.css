@@ -675,3 +675,12 @@ div.fc-pagination {
 .green-id-verify {
     margin: 15px 0;
 }
+
+.fc-greenid-options .fc-child-options .address_vic {
+    width: 90%;
+    float: none;
+}
+
+.fc-greenid-options .fc-child-options .address_vic input[type=text] {
+    margin-bottom: 10px;
+}
