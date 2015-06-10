@@ -3959,6 +3959,90 @@ var fc = (function ($) {
                         }
 
                         return obj.html();
+                    },
+
+                    WA: function () {
+                        var fields = {
+                                license: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_license_number'
+                                    },
+                                    config: {}
+                                },
+                                dob: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_dob'
+                                    },
+                                    config: {}
+                                },
+                                expiry: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_dob'
+                                    },
+                                    config: {}
+                                },
+                                tos: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_tos'
+                                    },
+                                    config: {}
+                                }
+                            },
+                            html = '',
+                            updateMap = {
+                                'dob': 'greenIDDOB'
+                            },
+                            key,
+                            obj,
+                            childField,
+                            inputId;
+
+                        // Show the drivers license
+                        html += '<div class="child-temp">';
+                        html += '<div class="drivers-license fc-green-field"><label>WA driver\'s licence number: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.license);
+                        html += '</div>';
+
+                        // Dob
+                        html += '<div class="dob fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.dob);
+                        html += '</div>';
+
+                        // Expiry
+                        html += '<div class="expiry fc-green-field"><label>Expiry (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.expiry);
+                        html += '</div>';
+
+                        html += '<div class="fc-clear"></div>';
+
+                        // Terms of service
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_wa_tos">I have read and accepted <a href="http://www.transport.wa.gov.au/aboutus/our-website.asp">WA Government\'s privacy statement</a>.</label>';
+                        html += '</div>';
+
+                        html += '<div class="fc-clear"></div>';
+
+                        // Button
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+
+                        html += '</div>';
+
+                        obj = $(html);
+
+                        // Update values on the run
+                        for (key in updateMap) {
+                            if (updateMap.hasOwnProperty(key)) {
+                                inputId = getConfig(rootSchema, updateMap[key]);
+                                if (typeof fc.fields[inputId] === 'string') {
+                                    childField = obj.find('.' + key);
+                                    if (childField.length > 0) {
+                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
+                                    }
+                                }
+                            }
+                        }
+
+                        return obj.html();
                     }
                 };
 
