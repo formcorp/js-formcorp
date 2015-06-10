@@ -3388,9 +3388,13 @@ var fc = (function ($) {
             $('.fc-modal').addClass('fc-show');
         },
 
+        /**
+         * Initialise greenID field.
+         */
         initGreenId = function () {
             var fieldId,
-                hasGreenId = false;
+                hasGreenId = false,
+                callbackFunctions = {};
 
             // Iterate through and check if green id field exists
             for (fieldId in fc.fieldSchema) {
@@ -3410,6 +3414,184 @@ var fc = (function ($) {
 
                 loadJsFile(cdnUrl + fc.constants.greenId.scriptPath);
             }
+
+            // Drivers license button clicked
+            callbackFunctions.DriversLicense = function (el) {
+                var id = el.attr('formcorp-data-id'),
+                    rootId = id.split('_')[0],
+                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]'),
+                    rootSchema = fc.fieldSchema[rootId],
+                    optionContainer,
+                    containerHtml = '',
+                    stateOption,
+                    stateCallbacks = {};
+
+                if (rootContainer.length === 0) {
+                    // Ensure a root container exists
+                    console.log('Unable to find root container');
+                    return;
+                }
+
+                optionContainer = rootContainer.find('.fc-greenid-options');
+                if (optionContainer.length === 0) {
+                    // Ensure option container exists
+                    console.log('Options container not found.');
+                    return;
+                }
+
+                // Render the HTML for the drivers license form
+                stateOption = {
+                    '_id': {
+                        '$id': getId(fc.fieldSchema[rootId]) + '_state'
+                    },
+                    config: {
+                        label: 'State',
+                        options: ['ACT', 'NSW', 'QLD', 'SA', 'VIC', 'WA'].join("\n"),
+                        placeholder: 'Please select...'
+                    }
+                };
+
+                containerHtml += '<h3 class="fc-header">Drivers License Verification</h3>';
+                containerHtml += '<p>To verify using your drivers license, please fill out the options below. <strong>Note: </strong>not all states are currently supported.</p>';
+                containerHtml += renderDropdown(stateOption);
+                containerHtml += '<div class="fc-child-options"></div>';
+
+                optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').hide().html(containerHtml).slideDown();
+
+                // State callbacks
+                stateCallbacks = {
+                    // Australian Capital Territory
+                    ACT: function () {
+                        var fields = {
+                                license: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_license_number'
+                                    },
+                                    config: {}
+                                },
+                                firstName: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_first_name'
+                                    },
+                                    config: {}
+                                },
+                                surname: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_surname'
+                                    },
+                                    config: {}
+                                },
+                                dob: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_dob'
+                                    },
+                                    config: {}
+                                },
+                                tos: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_tos'
+                                    },
+                                    config: {}
+                                }
+                            },
+                            html = '',
+                            updateMap = {
+                                'first-name': 'greenIDFirstName',
+                                'surname': 'greenIDSurname',
+                                'dob': 'greenIDDOB'
+                            },
+                            key,
+                            obj,
+                            childField,
+                            inputId;
+
+                        // Show the drivers license
+                        html += '<div class="child-temp">';
+                        html += '<div class="drivers-license fc-green-field"><label>Driver\'s license: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.license);
+                        html += '</div>';
+
+                        // Dob
+                        html += '<div class="dob fc-green-field"><label>Date of birth: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.dob);
+                        html += '</div>';
+
+                        // First name
+                        html += '<div class="first-name fc-green-field"><label>First name (no middle names): <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.firstName);
+                        html += '</div>';
+
+                        // Surname
+                        html += '<div class="surname fc-green-field"><label>Surname: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.surname);
+                        html += '</div>';
+
+                        html += '<div class="fc-clear"></div>';
+
+                        // Terms of service
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_act_tos">I have read and accepted <a href="http://www.rego.act.gov.au/aboutus/?a=527482">ACT Government\'s privacy statement</a>.</label>';
+                        html += '</div>';
+
+                        // Button
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+
+                        html += '</div>';
+
+                        obj = $(html);
+
+                        // Update values on the run
+                        for (key in updateMap) {
+                            if (updateMap.hasOwnProperty(key)) {
+                                inputId = getConfig(rootSchema, updateMap[key]);
+                                if (typeof fc.fields[inputId] === 'string') {
+                                    childField = obj.find('.' + key);
+                                    if (childField.length > 0) {
+                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
+                                    }
+                                }
+                            }
+                        }
+
+                        return obj.html();
+                    }
+                };
+
+                // State on click event
+                $(fc.jQueryContainer).on('change', '.fc-greenid-drivers-license > select', function () {
+                    var selectValue = $(this).val(),
+                        subContainerHtml = '';
+
+                    if (selectValue === null) {
+                        return;
+                    }
+
+                    // If the state has a callback function, trigger it for the HTML and output
+                    if (typeof stateCallbacks[selectValue] === 'function') {
+                        subContainerHtml = stateCallbacks[selectValue]();
+                        if (typeof containerHtml === 'string') {
+                            optionContainer.find('.fc-child-options').hide().html(subContainerHtml).slideDown();
+                        }
+                    }
+
+                    return false;
+                });
+            };
+
+            // Event handler for button click
+            $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
+                var id = el.attr('id'),
+                    value = el.attr('data-field-value'),
+                    verificationTypeClicked = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g) !== null,
+                    verificationFunction = decodeURIComponent(value).replace(/[^a-zA-Z0-9\_]/g, '');
+
+                if (verificationTypeClicked && typeof callbackFunctions[verificationFunction] === 'function') {
+                    // The user selects a verification type
+                    return callbackFunctions[verificationFunction](el);
+                }
+
+                return false;
+            });
         },
 
         onSchemaLoaded = function () {
@@ -3978,6 +4160,7 @@ var fc = (function ($) {
 
         // Form the html
         html += packageHtml;
+        html += '<div class="fc-greenid-options"></div>';
 
         return html;
     };
@@ -4733,38 +4916,45 @@ var fc = (function ($) {
                 val = decodeURIComponent($(this).attr('data-field-value'));
             }
 
-            // Reset the selected
-            if (['contentRadioList', 'optionTable'].indexOf(fc.fieldSchema[id].type) > -1) {
-                val = decodeURIComponent($(this).attr('data-field-value'));
+            if (fc.fieldSchema[id] && fc.fieldSchema[id].type) {
+                // Attempt to map the button to a field and process it
+                if (['contentRadioList', 'optionTable'].indexOf(fc.fieldSchema[id].type) > -1) {
+                    val = decodeURIComponent($(this).attr('data-field-value'));
 
-                // If its a radio list, only allow one to be selected
-                if (!getConfig(fc.fieldSchema[id], 'allowMultiple', false)) {
-                    fieldEl.find('button.checked').removeClass('checked');
-                } else {
-                    // Checkbox list - allows multiple
-                    dataArray = fc.fields[id] || [];
-                    if (dataArray.indexOf(val) < 0) {
-                        if (!alreadyChecked) {
-                            // If the option hasn't been previously selected, add it
-                            dataArray.push(val);
-                        }
+                    // If its a radio list, only allow one to be selected
+                    if (!getConfig(fc.fieldSchema[id], 'allowMultiple', false)) {
+                        fieldEl.find('button.checked').removeClass('checked');
                     } else {
-                        // Remove from element if already checked
-                        if (alreadyChecked) {
-                            delete dataArray[dataArray.indexOf(val)];
+                        // Checkbox list - allows multiple
+                        dataArray = fc.fields[id] || [];
+                        if (dataArray.indexOf(val) < 0) {
+                            if (!alreadyChecked) {
+                                // If the option hasn't been previously selected, add it
+                                dataArray.push(val);
+                            }
+                        } else {
+                            // Remove from element if already checked
+                            if (alreadyChecked) {
+                                delete dataArray[dataArray.indexOf(val)];
+                            }
                         }
-                    }
 
-                    val = dataArray;
+                        val = dataArray;
+                    }
+                } else if (parent.hasClass('fc-radio-option-buttons')) {
+                    parent.find('.checked').removeClass('checked');
                 }
-            } else if (parent.hasClass('fc-radio-option-buttons')) {
-                parent.find('.checked').removeClass('checked');
+
+                $(this).toggleClass('checked');
+                valueChanged(id, val);
+
+                return false;
+            } else {
+                // The button couldn't be mapped to a given field, trigger an error
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onButtonUnknownClick, [$(this)]);
             }
 
-            $(this).toggleClass('checked');
-            valueChanged(id, val);
 
-            return false;
         });
 
         // Dropdown box change
@@ -6247,6 +6437,7 @@ var fc = (function ($) {
                 onLoadingPageStart: 'onLoadingPageStart',
                 onLoadingPageEnd: 'onLoadingPageEnd',
                 onGreenIdLoaded: 'onGreenIdLoaded',
+                onButtonUnknownClick: 'onButtonUnknownClick'
             };
 
             /**
@@ -6749,7 +6940,6 @@ var fc = (function ($) {
         toCamelCase: function (str) {
             return str.replace(/^([A-Z])|\s(\w)/g, function (match, p1, p2) {
                 if (p2) {
-                    getConfig
                     return p2.toUpperCase();
                 }
                 return p1.toLowerCase();
