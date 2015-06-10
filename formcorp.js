@@ -3621,7 +3621,107 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_act_tos">I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
+                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_nsw_tos">I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
+                        html += '</div>';
+
+                        // Button
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+
+                        html += '</div>';
+
+                        obj = $(html);
+
+                        // Update values on the run
+                        for (key in updateMap) {
+                            if (updateMap.hasOwnProperty(key)) {
+                                inputId = getConfig(rootSchema, updateMap[key]);
+                                if (typeof fc.fields[inputId] === 'string') {
+                                    childField = obj.find('.' + key);
+                                    if (childField.length > 0) {
+                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
+                                    }
+                                }
+                            }
+                        }
+
+                        return obj.html();
+                    },
+
+                    /**
+                     * Queensland
+                     * @returns {*}
+                     * @constructor
+                     */
+                    QLD: function () {
+                        var fields = {
+                                license: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_license_number'
+                                    },
+                                    config: {}
+                                },
+                                firstName: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_first_name'
+                                    },
+                                    config: {}
+                                },
+                                surname: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_surname'
+                                    },
+                                    config: {}
+                                },
+                                dob: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_dob'
+                                    },
+                                    config: {}
+                                },
+                                tos: {
+                                    '_id': {
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_tos'
+                                    },
+                                    config: {}
+                                }
+                            },
+                            html = '',
+                            updateMap = {
+                                'first-name': 'greenIDFirstName',
+                                'surname': 'greenIDSurname',
+                                'dob': 'greenIDDOB'
+                            },
+                            key,
+                            obj,
+                            childField,
+                            inputId;
+
+                        // Show the drivers license
+                        html += '<div class="child-temp">';
+                        html += '<div class="drivers-license fc-green-field"><label>Driver\'s licence / customer reference number: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.license);
+                        html += '</div>';
+
+                        // Dob
+                        html += '<div class="dob fc-green-field"><label>Date of birth: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.dob);
+                        html += '</div>';
+
+                        // First name
+                        html += '<div class="first-name fc-green-field"><label>First name (no middle names): <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.firstName);
+                        html += '</div>';
+
+                        // Surname
+                        html += '<div class="surname fc-green-field"><label>Surname: <span class="fc-required-caret">*</span></label>';
+                        html += renderTextfield(fields.surname);
+                        html += '</div>';
+
+                        html += '<div class="fc-clear"></div>';
+
+                        // Terms of service
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_qld_tos">I have read and accepted <a href="http://www.tmr.qld.gov.au/privacy">Queensland Transport\'s terms and conditions</a>.</label>';
                         html += '</div>';
 
                         // Button
