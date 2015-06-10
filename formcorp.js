@@ -1945,10 +1945,9 @@ var fc = (function ($) {
                 prefix = '';
             }
 
-            /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
                 options = getConfig(field, 'options', ''),
-                fieldId = prefix + field._id.$id,
+                fieldId = prefix + getId(field),
                 html = '',
                 x,
                 cssClass,
@@ -1959,7 +1958,6 @@ var fc = (function ($) {
                 description,
                 help,
                 icon;
-            /*jslint nomen: false*/
 
             if (options.length > 0) {
                 options = options.split("\n");
@@ -1970,13 +1968,22 @@ var fc = (function ($) {
                 // Display as buttons
                 for (x = 0; x < options.length; x += 1) {
                     option = options[x].replace(/(\r\n|\n|\r)/gm, "");
+                    if (option.length === 0) {
+                        continue;
+                    }
 
                     // Decode to a json object literal
                     description = "";
                     help = "";
                     value = "";
                     icon = "";
-                    json = $.parseJSON(option);
+
+                    // Attempt to convert to json object, continue if can not
+                    try {
+                        json = $.parseJSON(option);
+                    } catch (ignore) {
+                        continue;
+                    }
 
                     // Map to local variables
                     try {
@@ -3452,6 +3459,7 @@ var fc = (function ($) {
         orderObject,
         renderRepeatableIterator,
         renderApiLookupField,
+        renderGreenIdField,
         registerApiLookupListener,
         renderAutoCompleteWidget,
         removeAutoCompleteWidget;
@@ -3805,6 +3813,9 @@ var fc = (function ($) {
                 case 'apiLookup':
                     fieldHtml += renderApiLookupField(field, prefix);
                     break;
+                case 'greenIdVerification':
+                    fieldHtml += renderGreenIdField(field, prefix);
+                    break;
                 default:
                     console.log('Unknown field type: ' + field.type);
             }
@@ -3918,6 +3929,56 @@ var fc = (function ($) {
             fieldId = prefix + field._id.$id,
             html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
         /*jslint nomen: false*/
+        return html;
+    };
+
+    renderGreenIdField = function (field, prefix) {
+        console.log('render greenID field');
+
+        var html = '',
+            options = [
+                {
+                    title: "Drivers License",
+                    desc: "Use your state issues drivers license to help prove your identity."
+                },
+                {
+                    title: "Passport",
+                    desc: "Do you have an Australian issued passport? If so, whack in the details below."
+                },
+                {
+                    title: "Medibank",
+                    desc: "Do you have a valid Medibank account? Throw your information in and help us out."
+                }
+            ],
+            optionString = '',
+            iterator,
+            contentListField,
+            packageHtml;
+
+        // Generate an options string
+        for (iterator = 0; iterator < options.length; iterator += 1) {
+            optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '",""]' + "\n";
+        }
+
+        // Generate field obj
+        contentListField = {
+            '_id': {
+                '$id': getId(field) + '_rootSelection'
+            },
+            config: field.config
+        };
+
+        // Set default content list field options
+        contentListField.config.options = optionString;
+        contentListField.config.boxesPerRow = options.length;
+        contentListField.config.buttonText = 'Select';
+
+        // Generate html for package selection
+        packageHtml = renderContentRadioList(contentListField);
+
+        // Form the html
+        html += packageHtml;
+
         return html;
     };
 
@@ -6687,7 +6748,8 @@ var fc = (function ($) {
          */
         toCamelCase: function (str) {
             return str.replace(/^([A-Z])|\s(\w)/g, function (match, p1, p2) {
-                if (p2) {getConfig
+                if (p2) {
+                    getConfig
                     return p2.toUpperCase();
                 }
                 return p1.toLowerCase();
