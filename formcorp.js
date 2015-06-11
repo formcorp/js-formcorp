@@ -3432,16 +3432,18 @@ var fc = (function ($) {
         initGreenId = function () {
             var fieldId,
                 hasGreenId = false,
-                callbackFunctions = {};
+                callbackFunctions = {},
+                greenIDFieldId;
 
             // Iterate through and check if green id field exists
             for (fieldId in fc.fieldSchema) {
                 if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.fieldSchema[fieldId].type === 'greenIdVerification') {
+                    greenIDFieldId = fieldId;
                     hasGreenId = true;
                     break;
                 }
             }
-
+            
             // If the form field has green id verification,
             if (hasGreenId) {
                 // Initialise the worker and set the event listener
@@ -3492,7 +3494,7 @@ var fc = (function ($) {
                 containerHtml += '<h3 class="fc-header">Drivers License Verification</h3>';
                 containerHtml += '<p>To verify using your drivers license, please fill out the options below. <strong>Note: </strong>not all states are currently supported.</p>';
                 containerHtml += renderDropdown(stateOption);
-                containerHtml += '<div class="fc-child-options"></div>';
+                containerHtml += '<div class="fc-child-options" data-for="' + rootId + '"></div>';
 
                 optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').hide().html(containerHtml).slideDown();
 
@@ -3576,7 +3578,7 @@ var fc = (function ($) {
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
 
                         html += '</div>';
 
@@ -3646,7 +3648,7 @@ var fc = (function ($) {
                         html += '</div>';
 
                         // Card number
-                        html += '<div class="dob fc-green-field"><label>Licence card number: <span class="fc-required-caret">*</span></label>';
+                        html += '<div class="card-number fc-green-field"><label>Licence card number: <span class="fc-required-caret">*</span></label>';
                         html += renderTextfield(fields.licenseCardNumber);
                         html += '</div>';
 
@@ -3663,7 +3665,7 @@ var fc = (function ($) {
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
 
                         html += '</div>';
 
@@ -3763,7 +3765,7 @@ var fc = (function ($) {
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
 
                         html += '</div>';
 
@@ -3851,7 +3853,7 @@ var fc = (function ($) {
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
 
                         html += '</div>';
 
@@ -3977,7 +3979,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
 
                         html += '</div>';
 
@@ -4061,7 +4063,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
 
                         html += '</div>';
 
@@ -4095,6 +4097,10 @@ var fc = (function ($) {
 
                     // If the state has a callback function, trigger it for the HTML and output
                     if (typeof stateCallbacks[selectValue] === 'function') {
+                        // Set the current state of greenID verification
+                        fc.greenID.currentState = 'state' + selectValue;
+ 
+                        // Update the container HTML
                         subContainerHtml = stateCallbacks[selectValue]();
                         if (typeof containerHtml === 'string') {
                             optionContainer.find('.fc-child-options').hide().html(subContainerHtml).slideDown();
@@ -4641,9 +4647,19 @@ var fc = (function ($) {
         return html;
     };
 
+    /**
+     * Render the Green ID field
+     * @param field
+     * @param prefix
+     * @returns {string}
+     */
     renderGreenIdField = function (field, prefix) {
-        console.log('render greenID field');
-
+        // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
+        if (typeof fc.fields[getId(field)] !== 'object' || fc.fields[getId(field)].result === undefined || fc.fields[getId(field)].result.userId === 'undefined') {
+            console.log('GreenID field not previously initialised. Unable to render.');
+            return;
+        }
+        
         var html = '',
             options = [
                 {
