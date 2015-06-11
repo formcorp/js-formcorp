@@ -246,19 +246,41 @@ var fc = (function ($) {
          * The URL to query the API on (local dev defaults to port 9001)
          * @type {string}
          */
-        apiUrl = !isDev() ? '//api.formcorp.com.au/' : '//' + baseUrl(false) + ':9001/',
+        apiUrl = function() {
+            if (!isDev()) {
+                return '//api.formcorp.com.au/';
+            }
+            
+            // If in development mode, check to see if api URL set
+            if (typeof fc.apiUrl === 'string') {
+                return fc.apiUrl;
+            }
+            
+            return '//' + baseUrl(false) + ':9001/';
+        },
 
         /**
          * The URL to query the CDN on (local dev defaults to port 9004)
          * @type {string}
          */
-        cdnUrl = !isDev() ? '//cdn.formcorp.com.au/js/' : '//' + baseUrl(false) + ':9004/',
+        cdnUrl = function () {
+            if (!isDev()) } {
+                return '//cdn.dormcorp.com.au/js/';
+            }
+            
+            // If manually set, use that value
+            if (typeof fc.cdnUrl === 'string') {
+                return fc.cdnUrl;
+            }
+            
+            return '//' + baseUrl(false) + ':9004/';
+        },
 
         /**
          * The URL of the Analytics javaqscript file
          * @type {string}
          */
-        analyticsUrl = cdnUrl + 'analytics.js',
+        analyticsUrl = cdnUrl() + 'analytics.js',
 
         /**
          * HTML encode a string.
@@ -431,7 +453,7 @@ var fc = (function ($) {
             // Shoot off the ajax request
             $.ajax({
                 type: type,
-                url: apiUrl + uri,
+                url: apiUrl() + uri,
                 data: data,
                 beforeSend: function (request) {
                     request.setRequestHeader('Authorization', 'Bearer ' + fc.publicKey);
@@ -2554,7 +2576,7 @@ var fc = (function ($) {
             html += '<div class="fc-cc-ccv">';
             html += '<label>' + fc.lang.creditCardSecurityCodeText + '</label><input type="text" class="fc-fieldinput">';
             if (fc.config.cvvImage === null) {
-                html += '<img src="' + cdnUrl + '/img/cvv.gif" alt="cvv">';
+                html += '<img src="' + cdnUrl() + '/img/cvv.gif" alt="cvv">';
             }
             html += '</div>';
 
@@ -3424,7 +3446,7 @@ var fc = (function ($) {
                     fc.greenID.init();
                 });
 
-                loadJsFile(cdnUrl + fc.constants.greenId.scriptPath);
+                loadJsFile(cdnUrl() + fc.constants.greenId.scriptPath);
             }
 
             // Drivers license button clicked
@@ -6295,7 +6317,7 @@ var fc = (function ($) {
             iterator;
 
         if ($('#' + cssId).length === 0) {
-            loadCssFile(cdnUrl + cssUri);
+            loadCssFile(cdnUrl() + cssUri);
         }
 
         $(fc.jQueryContainer).addClass('fc-container');
@@ -7136,6 +7158,19 @@ var fc = (function ($) {
 
             this.dev = isDev;
         },
+        
+        /**
+         * Set the API URL
+         * @param url
+         */
+        setApiUrl: function (url) {
+            if (typeof url !== 'string') {
+                return false;
+            }
+            
+            this.apiUrl = url;
+            return true;
+        },
 
         /**
          * Set the channel
@@ -7193,12 +7228,12 @@ var fc = (function ($) {
                 descriptionBeforeLabel: true,
                 creditCardErrorUrlParam: 'creditCardError',
                 signatureLibCss: [
-                    cdnUrl + 'dist/signaturepad/assets/jquery.signaturepad.css'
+                    cdnUrl() + 'dist/signaturepad/assets/jquery.signaturepad.css'
                 ],
                 signatureLibJs: [
-                    cdnUrl + 'dist/signaturepad/jquery.signaturepad.min.js',
-                    cdnUrl + 'dist/signaturepad/assets/flashcanvas.js',
-                    cdnUrl + 'dist/signaturepad/assets/json2.min.js'
+                    cdnUrl() + 'dist/signaturepad/jquery.signaturepad.min.js',
+                    cdnUrl() + 'dist/signaturepad/assets/flashcanvas.js',
+                    cdnUrl() + 'dist/signaturepad/assets/json2.min.js'
                 ],
                 signatureClass: 'sigPad',
                 updateHash: true,
