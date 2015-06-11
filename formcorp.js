@@ -264,9 +264,11 @@ var fc = (function ($) {
          * @type {string}
          */
         cdnUrl = function () {
-            if (!isDev()) } {
-                return '//cdn.dormcorp.com.au/js/';
+            if (!isDev()) {
+                return '//cdn.formcorp.com.au/js/';
             }
+            
+            console.log(fc.cdnUrl);
             
             // If manually set, use that value
             if (typeof fc.cdnUrl === 'string') {
@@ -277,10 +279,12 @@ var fc = (function ($) {
         },
 
         /**
-         * The URL of the Analytics javaqscript file
+         * The URL of the Analytics javascript file
          * @type {string}
          */
-        analyticsUrl = cdnUrl() + 'analytics.js',
+        analyticsUrl = function () {
+            return cdnUrl() + 'analytics.js';
+        },
 
         /**
          * HTML encode a string.
@@ -1451,7 +1455,7 @@ var fc = (function ($) {
                 fc.analytics = fcAnalytics;
                 fc.analytics.init();
             });
-            loadJsFile(analyticsUrl);
+            loadJsFile(analyticsUrl());
         },
 
         /**
@@ -7169,6 +7173,19 @@ var fc = (function ($) {
             }
             
             this.apiUrl = url;
+            return true;
+        },
+        
+        /**
+         * Set the CDN URL
+         * @param url
+         */
+        setCdnUrl: function (url) {
+            if (typeof url !== 'string') {
+                return false;
+            }
+            
+            this.cdnUrl = url;
             return true;
         },
 
