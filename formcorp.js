@@ -3426,6 +3426,44 @@ var fc = (function ($) {
             $('.fc-modal .modal-body').html(vars.body);
             $('.fc-modal').addClass('fc-show');
         },
+        
+        /**
+         * Initialise a greenID field
+         * @param fieldId
+         */
+        initGreenIdField = function (fieldId) {
+            var schema = fc.fieldSchema[fieldId],
+                value = fc.fields[fieldId],
+                percentage;
+                
+            // If schema or value not initialised, do nothing
+            if (schema === undefined || value === undefined) {
+                return;
+            }
+            
+            
+            // Set the progress bar percentage
+            percentage = fc.greenID.getPercentage(fieldId);
+            fc.greenID.setProgress(fieldId, percentage);
+        },
+        
+        /**
+         * Initialise all greenID field DOM elements
+         */
+        initGreenIdFields = function () {
+            if (fc.greenID === undefined) {
+                return;
+            }
+            
+            var greenIdFields = $(fc.jQueryContainer).find('.fc-field-greenIdVerification');
+            
+            if (greenIdFields.length > 0) {
+                greenIdFields.each(function () {
+                    var dataId = $(this).attr('fc-data-group');
+                    initGreenIdField(dataId);
+                });
+            }
+        },
 
         /**
          * Initialise greenID field.
@@ -3434,6 +3472,7 @@ var fc = (function ($) {
             var fieldId,
                 hasGreenId = false,
                 callbackFunctions = {},
+                greenIdFields,
                 greenIDFieldId;
 
             // Iterate through and check if green id field exists
@@ -3451,6 +3490,7 @@ var fc = (function ($) {
                 $(fc.jQueryContainer).on(fc.jsEvents.onGreenIdLoaded, function () {
                     fc.greenID = fcGreenID;
                     fc.greenID.init();
+                    initGreenIdFields();
                 });
 
                 loadJsFile(cdnUrl() + fc.constants.greenId.scriptPath);
@@ -4683,7 +4723,10 @@ var fc = (function ($) {
             iterator,
             contentListField,
             packageHtml,
-            packages;
+            packages,
+            fieldValue = fc.fields[getId(field)],
+            licenseServices = ['nswrego'],
+            licenseType;
 
         // Generate an options string
         for (iterator = 0; iterator < options.length; iterator += 1) {
@@ -4709,9 +4752,24 @@ var fc = (function ($) {
         // Add success messages
         packages = $(packageHtml);
         packages.find('.fc-content-content').append('<div class="fc-successfully-verified"><i class="fa fa-check"></i> Successfully verified</div>');
+        
+        // Iterates through all of the license types to see if that particular instance has been verified
+        if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-drivers-license').length > 0) {
+            for (iterator = 0; iterator < licenseServices.length; iterator += 1) {
+                licenseType = licenseServices[iterator];
+                if (typeof fieldValue.result.sources[licenseType] === 'object' && fieldValue.result.sources[licenseType].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources[licenseType].passed) > -1) {
+                    packages.find('.fc-drivers-license').addClass('fc-verified');
+                }
+            }
+        }
 
         // Form the html
         html += packages.prop('outerHTML');
+        
+        // Render the progress dialog
+        html += '<div class="progress fc-greenid-progress"><div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">0%</div></div>';
+        
+        // Render the options box
         html += '<div class="fc-greenid-options"></div>';
 
         return html;
@@ -4981,6 +5039,9 @@ var fc = (function ($) {
 
         // Fire the event to signal form finished rendering
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
+        
+        // Initialise greenID fields
+        initGreenIdFields();
 
         // Often various pages will be loaded at the same time (when no fields on that page are required)
         /*if (fc.config.autoLoadPages) {

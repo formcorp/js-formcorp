@@ -723,6 +723,15 @@ div.fc-pagination {
     padding-top: 2px;
 }
 
+.fc-greenid-progress {
+    clear: both;
+}
+
+.fc-greenid-progress  .progress-bar-success {
+    background: #85C429;
+    box-shadow: none;
+}
+
 /**
  * FormCorp Loader
  */
