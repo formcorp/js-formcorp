@@ -541,6 +541,7 @@ div.fc-pagination {
     margin: 0 1% 15px 0;
     text-align: center;
     border-radius: 5px;
+    min-height: 220px;
 }
 
 .fc-content-radio-item .fc-content-title {
@@ -594,6 +595,11 @@ div.fc-pagination {
 
 .fc-field-abnVerification .fc-empty {
     clear: both;
+}
+
+.fc-container input[type=checkbox] {
+    width: auto;
+    display: inline;
 }
 
 /**
@@ -653,6 +659,9 @@ div.fc-pagination {
     padding: 4px;
 }
 
+/**
+ * greenID CSS Styling
+ */
 .fc-greenid-options {
     clear: both;
 }
@@ -686,9 +695,32 @@ div.fc-pagination {
     margin-bottom: 10px;
 }
 
-.fc-container input[type=checkbox] {
-    width: auto;
+.fc-field-greenIdVerification .fc-verified  {
+    border-color: #85C429;
+}
+
+.fc-field-greenIdVerification .fc-verified .fc-content-title {
+    background: #85C429;
+    color: #fff;    
+    border-radius: 0;
+}
+
+.fc-field-greenIdVerification .fc-verified .fc-option-buttons {
+    display: none;
+}
+
+.fc-field-greenIdVerification .fc-successfully-verified {
+    display: none;
+}
+
+.fc-field-greenIdVerification .fc-verified .fc-successfully-verified {
+    color: #519024;
+    background: url(img/greenid/tick_24x24.png) no-repeat 0 top;
+    padding-left: 30px;
+    text-align: left;
+    margin: 0 auto;
     display: inline;
+    padding-top: 2px;
 }
 
 /**

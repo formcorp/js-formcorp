@@ -1993,7 +1993,8 @@ var fc = (function ($) {
                 value,
                 description,
                 help,
-                icon;
+                icon,
+                htmlClass;
 
             if (options.length > 0) {
                 options = options.split("\n");
@@ -2013,6 +2014,7 @@ var fc = (function ($) {
                     help = "";
                     value = "";
                     icon = "";
+                    htmlClass = "";
 
                     // Attempt to convert to json object, continue if can not
                     try {
@@ -2027,11 +2029,12 @@ var fc = (function ($) {
                         description = json[1] || "";
                         icon = json[2] || "";
                         help = json[3] || "";
+                        htmlClass = json[4] || "";
                     } catch (ignore) {
                     }
                     checked = getConfig(field, 'default') === option ? ' checked' : '';
 
-                    html += '<div class="fc-content-radio-item fc-col">';
+                    html += '<div class="fc-content-radio-item fc-col ' + htmlClass + '">';
                     html += '<div class="fc-content-title">' + htmlEncode(value) + '</div>'; //!fc-content-title
                     html += '<div class="fc-content-content">';
                     html += '<div class="fc-content-desc">' + description + '</div>'; //!fc-content-desc
@@ -4661,14 +4664,17 @@ var fc = (function ($) {
         var html = '',
             options = [
                 {
+                    class: "fc-drivers-license",
                     title: "Drivers License",
                     desc: "Use your state issues drivers license to help prove your identity."
                 },
                 {
+                    class: "fc-drivers-passport",
                     title: "Passport",
                     desc: "Do you have an Australian issued passport? If so, whack in the details below."
                 },
                 {
+                    class: "fc-medibank",
                     title: "Medibank",
                     desc: "Do you have a valid Medibank account? Throw your information in and help us out."
                 }
@@ -4676,11 +4682,12 @@ var fc = (function ($) {
             optionString = '',
             iterator,
             contentListField,
-            packageHtml;
+            packageHtml,
+            packages;
 
         // Generate an options string
         for (iterator = 0; iterator < options.length; iterator += 1) {
-            optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '",""]' + "\n";
+            optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","", "","' + options[iterator].class + '"]' + "\n";
         }
 
         // Generate field obj
@@ -4698,9 +4705,13 @@ var fc = (function ($) {
 
         // Generate html for package selection
         packageHtml = renderContentRadioList(contentListField);
+        
+        // Add success messages
+        packages = $(packageHtml);
+        packages.find('.fc-content-content').append('<div class="fc-successfully-verified"><i class="fa fa-check"></i> Successfully verified</div>');
 
         // Form the html
-        html += packageHtml;
+        html += packages.prop('outerHTML');
         html += '<div class="fc-greenid-options"></div>';
 
         return html;
