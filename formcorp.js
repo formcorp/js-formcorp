@@ -268,8 +268,6 @@ var fc = (function ($) {
                 return '//cdn.formcorp.com.au/js/';
             }
             
-            console.log(fc.cdnUrl);
-            
             // If manually set, use that value
             if (typeof fc.cdnUrl === 'string') {
                 return fc.cdnUrl;
