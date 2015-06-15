@@ -3625,7 +3625,7 @@ var fc = (function ($) {
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_tos'
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_nsw_tos'
                                     },
                                     config: {}
                                 }
@@ -3658,7 +3658,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_nsw_tos">';
                         html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_nsw_tos">I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
@@ -3758,7 +3758,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_qld_tos">';
                         html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_qld_tos">I have read and accepted <a href="http://www.tmr.qld.gov.au/privacy">Queensland Transport\'s terms and conditions</a>.</label>';
                         html += '</div>';
 
@@ -3846,7 +3846,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_sa_tos">';
                         html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_sa_tos">I have read and accepted <a href="http://www.transport.sa.gov.au/privacy.asp">SA Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
@@ -3970,7 +3970,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_vic_tos">';
                         html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_vic_tos">I have read and accepted <a href="https://www.vicroads.vic.gov.au/privacy">VicRoads\' privacy statement</a>.</label>';
                         html += '</div>';
 
@@ -4009,19 +4009,19 @@ var fc = (function ($) {
                                 },
                                 dob: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_dob'
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_dob'
                                     },
                                     config: {}
                                 },
                                 expiry: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_dob'
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_dob'
                                     },
                                     config: {}
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_tos'
+                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_tos'
                                     },
                                     config: {}
                                 }
@@ -4054,7 +4054,7 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_wa_tos">';
                         html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_wa_tos">I have read and accepted <a href="http://www.transport.wa.gov.au/aboutus/our-website.asp">WA Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
