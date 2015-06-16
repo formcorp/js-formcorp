@@ -4135,7 +4135,7 @@ var fc = (function ($) {
                     if (selectValue === null) {
                         return;
                     }
-
+                    
                     // If the state has a callback function, trigger it for the HTML and output
                     if (typeof stateCallbacks[selectValue] === 'function') {
                         // Set the current state of greenID verification
@@ -4152,6 +4152,172 @@ var fc = (function ($) {
                 });
             };
 
+            // Passport button clicked
+            callbackFunctions.Passport = function (el) {
+                var id = el.attr('formcorp-data-id'),
+                    rootId = id.split('_')[0],
+                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]'),
+                    rootSchema = fc.fieldSchema[rootId],
+                    optionContainer,
+                    containerHtml = '',
+                    fields,
+                    html = '<div class="fc-passport">',
+                    updateMap = {
+                        'first-name': 'greenIDFirstName',
+                        'surname': 'greenIDSurname',
+                        'dob': 'greenIDDOB'
+                    },
+                    key,
+                    obj,
+                    childField,
+                    inputId;
+                        
+                if (rootContainer.length === 0) {
+                    // Ensure a root container exists
+                    console.log('Unable to find root container');
+                    return;
+                }
+
+                optionContainer = rootContainer.find('.fc-greenid-options');
+                if (optionContainer.length === 0) {
+                    // Ensure option container exists
+                    console.log('Options container not found.');
+                    return;
+                }
+                
+                fields = {
+                    passportNumber: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_number'
+                        },
+                        config: {}
+                    },
+                    givenName: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_given_name'
+                        },
+                        config: {}
+                    },
+                    middleNames: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_middle_names'
+                        },
+                        config: {}
+                    },
+                    familyName: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_family_name'
+                        },
+                        config: {}
+                    },
+                    dateOfBirth: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_dob'
+                        },
+                        config: {}
+                    },
+                    familyNameAtBirth: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_family_name_at_birth'
+                        },
+                        config: {}
+                    },
+                    placeOfBirth: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_place_birth'
+                        },
+                        config: {}
+                    },
+                    countryOfBirth: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_place_birth'
+                        },
+                        config: {}
+                    },
+                    tos: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_tos'
+                        },
+                        config: {}
+                    }
+                };
+                
+                html += '<div class="fc-clear"></div>';
+
+                // Passport number
+                html += '<div class="passport-number fc-green-field"><label>Passport number (include any letters): <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.passportNumber);
+                html += '</div>';
+
+                // Given name
+                html += '<div class="given-name fc-green-field"><label>Given name (as shown on passport): <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.givenName);
+                html += '</div>';
+
+                // Middle names
+                html += '<div class="middle-names fc-green-field"><label>Middle names: </label>';
+                html += renderTextfield(fields.middleNames);
+                html += '</div>';
+
+                // Family name
+                html += '<div class="family-name fc-green-field"><label>Family name: <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.familyName);
+                html += '</div>';
+
+                html += '<div class="fc-clear"></div>';
+                
+                // Date of birth
+                html += '<div class="dob fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.dateOfBirth);
+                html += '</div>';
+                
+                // Family name at birth
+                html += '<div class="family-name-at-birth fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.familyNameAtBirth);
+                html += '</div>';
+                
+                // Place of birth
+                html += '<div class="place-of-birth fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.placeOfBirth);
+                html += '</div>';
+                
+                html += '<div class="fc-clear"></div>';
+
+                // Terms of service
+                html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_passport_tos">';
+                html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_passport_tos">I have read and accepted <a href="http://dfat.gov.au/privacy.html">DFAT\'s Disclosure Statement</a>.</label>';
+                html += '</div>';
+
+                // Button
+                html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                html += '</div>';
+
+                obj = $(html);
+
+                // Update values on the run
+                for (key in updateMap) {
+                    if (updateMap.hasOwnProperty(key)) {
+                        inputId = getConfig(rootSchema, updateMap[key]);
+                        if (typeof fc.fields[inputId] === 'string') {
+                            childField = obj.find('.' + key);
+                            if (childField.length > 0) {
+                                childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
+                            }
+                        }
+                    }
+                }
+
+                html = obj.prop('outerHTML');
+                
+                // Output the container html
+                containerHtml += '<h3 class="fc-header">Passport Verification</h3>';
+                containerHtml += '<p>To verify using your passport, please fill out the options below.</p>';
+                containerHtml += html;
+                containerHtml += '<div class="fc-child-options" data-for="' + rootId + '"></div>';
+
+                optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').hide().html(containerHtml).slideDown();
+            };
+            
             // Event handler for button click
             $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
                 var id = el.attr('id'),
@@ -4725,7 +4891,7 @@ var fc = (function ($) {
             packageHtml,
             packages,
             fieldValue = fc.fields[getId(field)],
-            licenseServices = ['nswrego'],
+            licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
             licenseType;
 
         // Generate an options string
