@@ -4005,9 +4005,9 @@ var fc = (function ($) {
                         // Address
                         html += '<div class="fc-clear"></div>';
                         html += '<div class="address_vic fc-green-field"><label>Address as shown on licence: <span class="fc-required-caret">*</span></label>';
-                        html += renderTextfield(fields.address[0]);
-                        html += renderTextfield(fields.address[1]);
-                        html += renderTextfield(fields.address[2]);
+                        html += '<div class="vic_address_1">' + renderTextfield(fields.address[0]) + '</div>';
+                        html += '<div class="vic_address_2">' + renderTextfield(fields.address[1]) + '</div>';
+                        html += '<div class="vic_address_3">' + renderTextfield(fields.address[2]) + '</div>';
                         html += '</div>';
 
                         html += '<div class="fc-clear"></div>';
