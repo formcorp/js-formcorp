@@ -3444,7 +3444,7 @@ var fc = (function ($) {
             
             // Set the progress bar percentage
             percentage = fc.greenID.getPercentage(fieldId);
-            fc.greenID.setProgress(fieldId, percentage);
+            fc.greenID.setProgress(fieldId, percentage, true);
         },
         
         /**
@@ -4392,9 +4392,9 @@ var fc = (function ($) {
                 }
                 
                 fields = {
-                    passportNumber: {
+                    visaNumber: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_passport_number'
+                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_number'
                         },
                         config: {}
                     },
@@ -4427,8 +4427,8 @@ var fc = (function ($) {
                 html += '<div class="fc-clear"></div>';
 
                 // Passport number
-                html += '<div class="passport-number fc-green-field"><label>Passport number (include any letters): <span class="fc-required-caret">*</span></label>';
-                html += renderTextfield(fields.passportNumber);
+                html += '<div class="visa-number fc-green-field"><label>Visa number: <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.visaNumber);
                 html += '</div>';
 
                 // Family name
@@ -5070,7 +5070,7 @@ var fc = (function ($) {
                     desc: "Do you have an Australian issued passport? If so, whack in the details below."
                 },
                 {
-                    class: "fc-visa",
+                    class: "fc-visa-verification",
                     title: "Employment Visa (Foreign Passport)",
                     desc: "Confirm your details with the Department of Immigration and Citizenship."
                 }
@@ -5118,12 +5118,29 @@ var fc = (function ($) {
                 }
             }
         }
+        
+        // Check to see if passport should be checked
+        if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-passport-verification').length > 0) {
+            if (typeof fieldValue.result.sources['passport'] === 'object' && fieldValue.result.sources['passport'].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources['passport'].passed) > -1) {
+                    packages.find('.fc-passport-verification').addClass('fc-verified');
+                }
+        }
+        
+        // Check to see if visa should be checked
+        if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-visa-verification').length > 0) {
+            if (typeof fieldValue.result.sources['visa'] === 'object' && fieldValue.result.sources['visa'].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources['visa'].passed) > -1) {
+                    packages.find('.fc-visa-verification').addClass('fc-verified');
+                }
+        }
 
         // Form the html
-        html += packages.prop('outerHTML');
+        html += '<div class="fc-greenid-successfully-verified">You have successfully been verified.</div>';
         
-        // Render the progress dialog
+        // Show the packages and the progress bar
+        html += '<div class="fc-greenid-verification-packages">';
+        html += packages.prop('outerHTML');
         html += '<div class="progress fc-greenid-progress"><div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">0%</div></div>';
+        html += '</div>';
         
         // Render the options box
         html += '<div class="fc-greenid-options"></div>';
