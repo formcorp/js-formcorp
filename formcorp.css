@@ -732,6 +732,14 @@ div.fc-pagination {
     box-shadow: none;
 }
 
+.fc-greenid-options {
+    position: relative;
+}
+
+.fc-field-greenIdVerification .fc-non-australia-fields {
+    display: none;
+}
+
 /**
  * FormCorp Loader
  */

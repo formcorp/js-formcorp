@@ -4163,8 +4163,9 @@ var fc = (function ($) {
                     fields,
                     html = '<div class="fc-passport">',
                     updateMap = {
-                        'first-name': 'greenIDFirstName',
-                        'surname': 'greenIDSurname',
+                        'given-name': 'greenIDFirstName',
+                        'middle-names': 'greenIDMiddleName',
+                        'family-name': 'greenIDSurname',
                         'dob': 'greenIDDOB'
                     },
                     key,
@@ -4234,6 +4235,18 @@ var fc = (function ($) {
                         },
                         config: {}
                     },
+                    firstNameAtCitizenship: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_first_name_citizenship'
+                        },
+                        config: {}
+                    },
+                    surnameAtCitizenship: {
+                        '_id': {
+                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_surname_citizenship'
+                        },
+                        config: {}
+                    },
                     tos: {
                         '_id': {
                             '$id': getId(fc.fieldSchema[rootId]) + '_passport_tos'
@@ -4272,13 +4285,38 @@ var fc = (function ($) {
                 html += '</div>';
                 
                 // Family name at birth
-                html += '<div class="family-name-at-birth fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                html += '<div class="family-name-at-birth fc-green-field"><label>Family name at birth: <span class="fc-required-caret">*</span></label>';
                 html += renderTextfield(fields.familyNameAtBirth);
                 html += '</div>';
                 
                 // Place of birth
-                html += '<div class="place-of-birth fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
+                html += '<div class="place-of-birth fc-green-field"><label>Place of birth: <span class="fc-required-caret">*</span></label>';
                 html += renderTextfield(fields.placeOfBirth);
+                html += '</div>';
+                
+                html += '<div class="fc-clear"></div>';
+                
+                // Render country of birth
+                html += '<div class="country-birth fc-green-field"><label>Country of birth: <span class="fc-required-caret">*</span></label>';
+                html += '<select data-for="' + rootId + '"><option value="">Please select a value</option><option value="1">AUSTRALIA</option><option value="5">AFGHANISTAN</option><option value="272">ALAND ISLANDS</option><option value="8">ALBANIA</option><option value="69">ALGERIA</option><option value="14">AMERICAN SAMOA</option><option value="9">ANDORRA</option><option value="6">ANGOLA</option><option value="7">ANGUILLA</option><option value="15">ANTARCTICA</option><option value="17">ANTIGUA AND BARBUDA</option><option value="12">ARGENTINA</option><option value="13">ARMENIA</option><option value="4">ARUBA</option><option value="18">AUSTRIA</option><option value="19">AZERBAIJAN</option><option value="27">BAHAMAS</option><option value="26">BAHRAIN</option><option value="24">BANGLADESH</option><option value="34">BARBADOS</option><option value="262">BECHUANALAND*</option><option value="29">BELARUS</option><option value="21">BELGIUM</option><option value="30">BELIZE</option><option value="22">BENIN</option><option value="31">BERMUDA</option><option value="36">BHUTAN</option><option value="32">BOLIVIA</option><option value="28">BOSNIA AND HERZEGOVINA</option><option value="39">BOTSWANA</option><option value="38">BOUVET ISLAND</option><option value="33">BRAZIL</option><option value="113">BRITISH INDIAN OCEAN TERRITITORY (CHAGOS ARCH.)</option><option value="35">BRUNEI</option><option value="25">BULGARIA</option><option value="23">BURKINA FASO</option><option value="37">BURMA*</option><option value="20">BURUNDI</option><option value="40">BYELORUSSIA*</option><option value="126">CAMBODIA</option><option value="48">CAMEROON</option><option value="42">CANADA</option><option value="54">CAPE VERDE</option><option value="60">CAYMAN ISLANDS</option><option value="41">CENTRAL AFRICAN REPUBLIC</option><option value="219">CHAD</option><option value="45">CHILE</option><option value="46">CHINA</option><option value="59">CHRISTMAS ISLAND</option><option value="43">COCOS KEELING ISLANDS</option><option value="52">COLOMBIA</option><option value="53">COMOROS</option><option value="50">CONGO</option><option value="49">CONGO (DEMOCRATIC REPUBLIC OF THE)</option><option value="51">COOK ISLANDS</option><option value="55">COSTA RICA</option><option value="107">CROATIA</option><option value="58">CUBA</option><option value="61">CYPRUS</option><option value="62">CZECH REPUBLIC</option><option value="56">CZECHOSLOVAKIA*</option><option value="263">DAHOMEY*</option><option value="67">DENMARK</option><option value="267">DJIBOUTI</option><option value="66">DOMINICA</option><option value="68">DOMINICAN REPUBLIC</option><option value="264">EAST PAKISTAN*</option><option value="70">ECUADOR</option><option value="71">EGYPT</option><option value="205">EL SALVADOR</option><option value="96">EQUATORIAL GUINEA</option><option value="72">ERITREA</option><option value="75">ESTONIA</option><option value="76">ETHIOPIA</option><option value="79">FALKLAND ISLANDS (MALVINAS)</option><option value="81">FAROE ISLANDS</option><option value="78">FIJI</option><option value="77">FINLAND</option><option value="80">FRANCE</option><option value="265">FRENCH ALGERIA*</option><option value="101">FRENCH GUIANA</option><option value="190">FRENCH POLYNESIA</option><option value="16">FRENCH SOUTHERN TERRITORIES</option><option value="65">FRENCH TERRITORY OF AFARS AND ISSAS*</option><option value="83">GABON</option><option value="94">GAMBIA</option><option value="89">GEORGIA</option><option value="266">GERMAN EAST AFRICA*</option><option value="63">GERMANY (DEMOCRATIC REPUBLIC OF)*</option><option value="64">GERMANY (FEDERAL REPUBLIC OF)</option><option value="90">GHANA</option><option value="91">GIBRALTAR</option><option value="97">GREECE</option><option value="99">GREENLAND</option><option value="98">GRENADA</option><option value="93">GUADELOUPE</option><option value="102">GUAM</option><option value="100">GUATEMALA</option><option value="276">GUERNSEY</option><option value="92">GUINEA</option><option value="95">GUINEA BISSAU</option><option value="103">GUYANA</option><option value="108">HAITI</option><option value="105">HEARD AND MCDONALD ISLANDS</option><option value="106">HONDURAS</option><option value="104">HONG KONG SAR</option><option value="109">HUNGARY</option><option value="117">ICELAND</option><option value="112">INDIA</option><option value="111">INDONESIA</option><option value="115">IRAN</option><option value="116">IRAQ</option><option value="114">IRELAND</option><option value="277">ISLE OF MAN</option><option value="118">ISRAEL</option><option value="119">ITALY</option><option value="47">IVORY COAST</option><option value="120">JAMAICA</option><option value="122">JAPAN</option><option value="275">JERSEY</option><option value="121">JORDAN</option><option value="57">KANTON AND ENDERBURY ISLANDS*</option><option value="123">KAZAKHSTAN</option><option value="124">KENYA</option><option value="127">KIRIBATI</option><option value="187">KOREA, NORTH</option><option value="129">KOREA, SOUTH</option><option value="271">KOSOVO</option><option value="130">KUWAIT</option><option value="125">KYRGYZSTAN</option><option value="131">LAOS</option><option value="141">LATVIA</option><option value="132">LEBANON</option><option value="138">LESOTHO</option><option value="133">LIBERIA</option><option value="134">LIBYA</option><option value="136">LIECHTENSTEIN</option><option value="139">LITHUANIA</option><option value="140">LUXEMBOURG</option><option value="142">MACAU SAR</option><option value="150">MACEDONIA, FORMER YUGOSLAV REPUBLIC OF</option><option value="146">MADAGASCAR</option><option value="161">MALAWI</option><option value="162">MALAYSIA</option><option value="147">MALDIVES</option><option value="151">MALI</option><option value="152">MALTA</option><option value="149">MARSHALL ISLANDS</option><option value="159">MARTINIQUE</option><option value="157">MAURITANIA</option><option value="160">MAURITIUS</option><option value="163">MAYOTTE</option><option value="148">MEXICO</option><option value="82">MICRONESIA</option><option value="145">MOLDOVA</option><option value="144">MONACO</option><option value="154">MONGOLIA</option><option value="269">MONTENEGRO</option><option value="158">MONTSERRAT</option><option value="143">MOROCCO</option><option value="156">MOZAMBIQUE</option><option value="153">MYANMAR</option><option value="164">NAMIBIA</option><option value="174">NAURU</option><option value="173">NEPAL</option><option value="171">NETHERLANDS</option><option value="10">NETHERLANDS ANTILLES</option><option value="175">NEUTRAL ZONE</option><option value="165">NEW CALEDONIA</option><option value="176">NEW ZEALAND</option><option value="169">NICARAGUA</option><option value="166">NIGER</option><option value="168">NIGERIA</option><option value="170">NIUE</option><option value="167">NORFOLK ISLAND</option><option value="155">NORTHERN MARIANA ISLANDS</option><option value="172">NORWAY</option><option value="177">OMAN</option><option value="178">PAKISTAN</option><option value="183">PALAU</option><option value="279">PALESTINIAN TERRITORIES*</option><option value="179">PANAMA</option><option value="184">PAPUA NEW GUINEA</option><option value="189">PARAGUAY</option><option value="181">PERU</option><option value="182">PHILIPPINES</option><option value="180">PITCAIRN</option><option value="185">POLAND</option><option value="188">PORTUGAL</option><option value="186">PUERTO RICO</option><option value="191">QATAR</option><option value="192">REUNION</option><option value="258">RHODESIA*</option><option value="193">ROMANIA</option><option value="194">RUSSIA</option><option value="195">RWANDA</option><option value="273">SAINT BARTHELEMY</option><option value="201">SAINT HELENA</option><option value="128">SAINT KITTS AND NEVIS</option><option value="135">SAINT LUCIA</option><option value="274">SAINT MARTIN</option><option value="208">SAINT PIERRE AND MIQUECON</option><option value="239">SAINT VINCENT AND GRENADINES</option><option value="246">SAMOA</option><option value="206">SAN MARINO</option><option value="209">SAO TOME &amp; PRINCIPE</option><option value="196">SAUDI ARABIA</option><option value="199">SENEGAL</option><option value="268">SERBIA</option><option value="197">SERBIA AND MONTENEGRO*</option><option value="216">SEYCHELLES</option><option value="204">SIERRA LEONE</option><option value="200">SINGAPORE</option><option value="212">SLOVAKIA</option><option value="213">SLOVENIA</option><option value="203">SOLOMON ISLANDS</option><option value="207">SOMALIA</option><option value="252">SOUTH AFRICA</option><option value="270">SOUTH GEORGIA AND SOUTH SANDWICH ISLANDS</option><option value="259">SOUTHERN RHODESIA*</option><option value="74">SPAIN</option><option value="137">SRI LANKA</option><option value="198">SUDAN</option><option value="211">SURINAME</option><option value="202">SVALBARD AND JAN MAYEN</option><option value="215">SWAZILAND</option><option value="214">SWEDEN</option><option value="44">SWITZERLAND</option><option value="217">SYRIA</option><option value="231">TAIWAN</option><option value="222">TAJIKISTAN</option><option value="261">TANGANYIKA*</option><option value="232">TANZANIA</option><option value="221">THAILAND</option><option value="225">TIMOR LESTE (FORMERLY EAST TIMOR)</option><option value="220">TOGO</option><option value="223">TOKELAU</option><option value="226">TONGA</option><option value="227">TRINIDAD &amp; TOBAGO</option><option value="228">TUNISIA</option><option value="229">TURKEY</option><option value="224">TURKMENISTAN</option><option value="218">TURKS &amp; CAICOS ISLANDS</option><option value="230">TUVALU</option><option value="210">U.S.S.R.*</option><option value="233">UGANDA</option><option value="234">UKRAINE</option><option value="11">UNITED ARAB EMIRATES</option><option value="3">UNITED KINGDOM</option><option value="235">UNITED STATES MINOR OUTLYING ISLANDS</option><option value="236">URUGUAY</option><option value="2">USA</option><option value="237">UZBEKISTAN</option><option value="244">VANUATU</option><option value="238">VATICAN CITY STATE (HOLY SEE)</option><option value="240">VENEZUELA</option><option value="243">VIETNAM</option><option value="241">VIRGIN ISLANDS (BRITISH)</option><option value="242">VIRGIN ISLANDS (USA)</option><option value="245">WALLIS AND FUTUNA ISLANDS</option><option value="73">WESTERN SAHARA</option><option value="278">WESTERN SAMOA*</option><option value="249">YEMEN</option><option value="250">YEMEN (DEMOCRATIC PEOPLES\' REPUBLIC)*</option><option value="251">YUGOSLAVIA*</option><option value="253">ZAIRE</option><option value="254">ZAMBIA</option><option value="260">ZANZIBAR*</option><option value="255">ZIMBABWE</option></select>';
+                html += '</div>';
+                html += '<div class="fc-clear"></div>';
+                
+                // (fields required when country is not Au)
+                html += '<div class="fc-non-australia-fields">';
+                html += '<p>As you are not an Australian citizen by birth, we require additional information to verify your citizenship.</p>';
+                html += '<div class="fc-clear"></div>';
+                
+                // First name at citizenship
+                html += '<div class="first-name-at-citizenship fc-green-field"><label>First name at citizenship: <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.familyNameAtBirth);
+                html += '</div>';
+                
+                // Surname at citizenship
+                html += '<div class="surname-at-citizenship fc-green-field"><label>Surname at citizenship: <span class="fc-required-caret">*</span></label>';
+                html += renderTextfield(fields.placeOfBirth);
+                html += '</div>';
+                
                 html += '</div>';
                 
                 html += '<div class="fc-clear"></div>';
@@ -4316,6 +4354,9 @@ var fc = (function ($) {
                 containerHtml += '<div class="fc-child-options" data-for="' + rootId + '"></div>';
 
                 optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').hide().html(containerHtml).slideDown();
+                
+                // Set the current state
+                fc.greenID.currentState = 'verifyPassport';
             };
             
             // Event handler for button click
@@ -4331,6 +4372,25 @@ var fc = (function ($) {
                 }
 
                 return false;
+            });
+            
+            // Event handler for passport country fieldSchema
+            $(fc.jQueryContainer).on('change', '.fc-green-field.country-birth select', function () {
+                var countryCode = $(this).find('option:selected').val(),
+                    fieldId = $(this).attr('data-for'),
+                    nonAustralianFieldsContainer = $(fc.jQueryContainer).find('.fc-field-greenIdVerification[fc-data-group="' + fieldId + '"] .fc-non-australia-fields');
+                    
+                // If the fields aren't found, return.
+                if (nonAustralianFieldsContainer.length === 0) {
+                    return;
+                }
+                    
+                // If a non-australian country is selected, show the additional fields
+                if (countryCode.length === 0 || countryCode !== '1') {
+                    nonAustralianFieldsContainer.show();
+                } else {
+                    nonAustralianFieldsContainer.hide();
+                }
             });
         },
 
@@ -4875,12 +4935,12 @@ var fc = (function ($) {
                     desc: "Use your state issues drivers license to help prove your identity."
                 },
                 {
-                    class: "fc-drivers-passport",
+                    class: "fc-passport-verification",
                     title: "Passport",
                     desc: "Do you have an Australian issued passport? If so, whack in the details below."
                 },
                 {
-                    class: "fc-medibank",
+                    class: "fc-medibank-verification",
                     title: "Medibank",
                     desc: "Do you have a valid Medibank account? Throw your information in and help us out."
                 }
