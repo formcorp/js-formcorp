@@ -276,9 +276,9 @@ var fc = (function ($) {
             
             if (!isDev()) {
                 if (isMinified()) {
-                    url = url.replace('formcorp.min.js');
+                    url = url.replace('formcorp.min.js', '');
                 } else {
-                    url = url.replace('formcorp.js');
+                    url = url.replace('formcorp.js', '');
                 }
                 
                 url = url.replace('https://', '//').replace('http://', '//');
