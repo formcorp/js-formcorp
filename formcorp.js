@@ -272,18 +272,27 @@ var fc = (function ($) {
          * @type {string}
          */
         cdnUrl = function () {
+            var url = scriptUrl;
+            
             if (!isDev()) {
-                return '//cdn.formcorp.com.au/js/';
+                if (isMinified()) {
+                    url = url.replace('formcorp.min.js');
+                } else {
+                    url = url.replace('formcorp.js');
+                }
+                
+                url = url.replace('https://', '//').replace('http://', '//');
+                return url;
             }
-
+            
             // If manually set, use that value
             if (typeof fc.cdnUrl === 'string') {
                 return fc.cdnUrl;
             }
-
+            
             return '//' + baseUrl(false) + ':9004/';
         },
-
+        
         /**
          * The URL of the Analytics javascript file
          * @type {string}
