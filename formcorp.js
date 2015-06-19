@@ -5152,11 +5152,18 @@ var fc = (function ($) {
 
         // Form the html
         html += '<div class="fc-greenid-successfully-verified">You have successfully been verified.</div>';
+        
+        // Verification error html
+        html += '<div class="fc-greenid-verification-error">';
+        html += '<div class="alert alert-danger" role="alert"><strong>Uh oh!</strong> Unfortunately we were unable to verify your identity</div>';
+        html += '<h5>Please confirm the following details are correct: </h5>';
+        html += '</div>';
 
         // Show the packages and the progress bar
         html += '<div class="fc-greenid-verification-packages">';
         html += packages.prop('outerHTML');
         html += '<div class="progress fc-greenid-progress"><div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;">0%</div></div>';
+        html += '<div class="fc-greenid-error-summary"></div>';
         html += '</div>';
 
         // Render the options box
