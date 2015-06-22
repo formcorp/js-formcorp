@@ -149,8 +149,14 @@ div.fc-pagination {
     clear: both;
 }
 
+/* Hide fields on repeatable */
 .fc-field .fc-repeatable .fc-fieldgroup .fc-field, .fc-field .fc-repeatable .fc-fieldgroup .fc-fieldinput {
     display: none;
+}
+
+/* Show repeatable fields outputted to DOM by default */
+.fc-field .fc-repeatable.fc-repeatable-predetermined .fc-fieldgroup .fc-fieldinput {
+    display: block;
 }
 
 .fc-repeatable-container .fc-fieldcontainer > label {
@@ -764,6 +770,18 @@ div.fc-pagination {
     margin: 0 auto;
     display: inline;
     padding-top: 2px;
+}
+
+.fc-field-greenIdVerification .fc-greenid-verification-error {
+    display: none;
+}
+
+.fc-field-greenIdVerification.fc-verification-error .fc-greenid-verification-error {
+    display: block;
+}
+
+.fc-field-greenIdVerification h5 {
+    margin-top: 20px;
 }
 
 /**

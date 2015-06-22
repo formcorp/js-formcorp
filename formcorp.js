@@ -1145,7 +1145,25 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         inModal = function (obj) {
-            return obj.parent().parent().parent().parent().attr("class").indexOf("fc-repeatable-container") > -1;
+            var parentContainer = obj.parent().parent().parent().parent(),
+                dataId,
+                field;
+
+            if (parentContainer.length === 0) {
+                return false;
+            }
+            
+            // Fetch the field the object belongs to
+            dataId = parentContainer.attr('fc-data-group');
+            if (dataId !== undefined && dataId !== null) {
+                field = fc.fieldSchema[dataId];
+                if (getConfig(field, 'repeatable', false)) {
+                    // If the field is repeatable, its in a modal
+                    return fc.constants.repeatableInModal.indexOf(parseInt(getConfig(field, 'repeatableStyle', 1))) > -1;
+                }
+            }
+            
+            return false;
         },
 
         /**
@@ -1154,10 +1172,13 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         validForm = function (rootElement, showErrors) {
+            console.log('valid form clicked');
             var errors = {},
                 required;
 
+            console.log(1);
             if (rootElement === undefined) {
+                console.log(2);
                 rootElement = fc.jQueryContainer;
             }
 
@@ -1169,9 +1190,10 @@ var fc = (function ($) {
             // Test if required fields have a value
             $(rootElement).find('.fc-field[fc-data-group]').each(function () {
                 // If a repeatable field, ignore
-                if ($(this).parent().attr("class").indexOf("repeatable") > -1) {
+                if ($(this).parent().attr("class").indexOf("repeatable") > -1 && $(this).parent().attr('class').indexOf('fc-repeatable-row') === -1) {
                     return;
                 }
+                
 
                 // If the field is hidden, not required to validate
                 if ($(this).hasClass('fc-hide')) {
@@ -1238,6 +1260,18 @@ var fc = (function ($) {
                 } else if (field.type === "grouplet") {
                     // Grouplet field as a whole doesn't need to be validated
                     return;
+                } else if (field.type === "greenIdVerification") {
+                    // Validate a Green ID field
+                    if (fc.greenID === undefined) {
+                        // Green ID has yet to be initialised
+                        localErrors.push('Green ID has not been initialised.');
+                    } else if (typeof value !== "object" || !fc.greenID.passesValidation(getId(field))) {
+                        // Validation is allowed to pass
+                        localErrors.push('You must verify your identity.');
+                    } else {
+                        // Otherwise the verification is valid
+                        skipCheck = true;
+                    }
                 }
 
                 // If repeatable and required, check the amount of values
@@ -3457,7 +3491,9 @@ var fc = (function ($) {
             if (schema === undefined || value === undefined) {
                 return;
             }
-
+            
+            // Update the container html
+            fc.greenID.updateSummary(fieldId);
 
             // Set the progress bar percentage
             percentage = fc.greenID.getPercentage(fieldId);
@@ -4547,6 +4583,7 @@ var fc = (function ($) {
 
         updateMobileFieldsVisibility,
         renderGrouplet,
+        outputRepeatablePreDetermined,
         renderFields,
         renderPageSections,
         generateRandomString,
@@ -4735,6 +4772,68 @@ var fc = (function ($) {
 
         return html;
     };
+    
+    /**
+     * Render a repeatable field (x) times
+     * @param fieldId
+     * @param amountOfTimes
+     * @returns {string}
+     */
+    outputRepeatablePreDetermined = function (fieldId, amountOfTimes) {
+        // Variable declaration
+        var returnHTML = '',
+            fieldsHTML = '',
+            field = fc.fieldSchema[fieldId],
+            iterator,
+            tagValues = getFieldTagValues();
+            
+        // If amount of times is not numeric, assume it is a tag
+        if (!$.isNumeric(amountOfTimes)) {
+            if (fc.reRenderOnValueChange[amountOfTimes] === undefined) {
+                // Re-render the field on value change
+                fc.reRenderOnValueChange[amountOfTimes] = [];
+            }
+            
+            if (fc.reRenderOnValueChange[amountOfTimes].indexOf(getId(field)) < 0) {
+                // If the ID doesn't exist within the array, add it
+                fc.reRenderOnValueChange[amountOfTimes].push(getId(field));
+            }
+            
+            if (typeof tagValues === 'object' && tagValues[amountOfTimes] !== 'undefined' && $.isNumeric(tagValues[amountOfTimes])) {
+                amountOfTimes = tagValues[amountOfTimes];
+            }
+        }
+        
+        // If no amount of times specified, default to 1
+        if (amountOfTimes === undefined || !$.isNumeric(amountOfTimes)) {
+            amountOfTimes = 1;
+        }
+        
+        // If no config defined, do nothing
+        if (field.config === undefined) {
+            return returnHTML;
+        }
+        
+        
+        // If a grouplet, render
+        if (field.config.grouplet !== undefined && typeof field.config.grouplet === 'object' && field.config.grouplet.field !== undefined) {
+            // Output (x) times
+            for (iterator = 0; iterator < amountOfTimes; iterator += 1) {
+                fieldsHTML = renderFields(field.config.grouplet.field);
+                
+                // Append to return
+                returnHTML += '<div class="fc-repeatable-row fc-row-' + (iterator + 1) + '">';
+                returnHTML += fieldsHTML;
+                returnHTML += '<div class="fc-end-repeatable-row"></div>';
+                returnHTML += '</div>';
+                
+                // Replace tokens
+                returnHTML = returnHTML.replace(/\{iterator\}/gi, iterator + 1, returnHTML);
+            }
+        }
+        
+        return returnHTML;
+    }
 
     /**
      * Render a collection of fields.
@@ -4748,6 +4847,7 @@ var fc = (function ($) {
             field,
             required,
             fieldHtml,
+            fieldDOMHTML,
             dataId,
             fieldId,
             groupletId,
@@ -4756,7 +4856,8 @@ var fc = (function ($) {
             iterator,
             match,
             re,
-            helpTitle;
+            helpTitle,
+            repeatableStyle;
 
         // Field id prefix (for grouplet fields that may be shown multiple times)
         if (prefix === undefined) {
@@ -4880,75 +4981,86 @@ var fc = (function ($) {
 
             // Output a repeatable field
             if (getConfig(field, 'repeatable', false) === true) {
-                fieldHtml += '<div class="fc-repeatable">';
+                repeatableStyle = parseInt(getConfig(field, 'repeatableStyle', 0));
+                console.log(repeatableStyle);
+                
+                fieldHtml += '<div class="fc-repeatable' + (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined) ? ' fc-repeatable-predetermined' : '') + '">';
                 fieldHtml += '<div class="fc-summary"></div>';
-                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.lang.addFieldTextValue + '</a></div>';
+                
+                // Output a button depending on style
+                if (repeatableStyle.length === 0 || fc.constants.repeatableWithButton.indexOf(repeatableStyle) >= 0) {
+                    fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.lang.addFieldTextValue + '</a></div>';
+                }
             }
 
             fieldHtml += '<div class="fc-fieldgroup">';
 
             switch (field.type) {
                 case 'text':
-                    fieldHtml += renderTextfield(field, prefix);
+                    fieldDOMHTML = renderTextfield(field, prefix);
                     break;
                 case 'dropdown':
-                    fieldHtml += renderDropdown(field, prefix);
+                    fieldDOMHTML = renderDropdown(field, prefix);
                     break;
                 case 'textarea':
-                    fieldHtml += renderTextarea(field, prefix);
+                    fieldDOMHTML = renderTextarea(field, prefix);
                     break;
                 case 'radioList':
-                    fieldHtml += renderRadioList(field, prefix);
+                    fieldDOMHTML = renderRadioList(field, prefix);
                     break;
                 case 'checkboxList':
-                    fieldHtml += renderCheckboxList(field, prefix);
+                    fieldDOMHTML = renderCheckboxList(field, prefix);
                     break;
                 case 'hidden':
-                    fieldHtml += renderHiddenField(field, prefix);
+                    fieldDOMHTML = renderHiddenField(field, prefix);
                     break;
                 case 'richTextArea':
-                    fieldHtml += renderRichText(field, prefix);
+                    fieldDOMHTML = renderRichText(field, prefix);
                     break;
                 case 'grouplet':
-                    fieldHtml += renderGrouplet(field, prefix);
+                    fieldDOMHTML = renderGrouplet(field, prefix);
                     break;
                 case 'creditCard':
-                    fieldHtml += renderCreditCard(field, prefix);
+                    fieldDOMHTML = renderCreditCard(field, prefix);
                     break;
                 case 'emailVerification':
-                    fieldHtml += renderEmailVerification(field, prefix);
+                    fieldDOMHTML = renderEmailVerification(field, prefix);
                     break;
                 case 'smsVerification':
-                    fieldHtml += renderSmsVerification(field, prefix);
+                    fieldDOMHTML = renderSmsVerification(field, prefix);
                     break;
                 case 'reviewTable':
-                    fieldHtml += renderReviewTable(field, prefix);
+                    fieldDOMHTML = renderReviewTable(field, prefix);
                     break;
                 case 'signature':
-                    fieldHtml += renderSignature(field, prefix);
+                    fieldDOMHTML = renderSignature(field, prefix);
                     break;
                 case 'contentRadioList':
-                    fieldHtml += renderContentRadioList(field, prefix);
+                    fieldDOMHTML = renderContentRadioList(field, prefix);
                     break;
                 case 'optionTable':
-                    fieldHtml += renderOptionTable(field, prefix);
+                    fieldDOMHTML = renderOptionTable(field, prefix);
                     break;
                 case 'abnVerification':
-                    fieldHtml += renderAbnField(field, prefix);
+                    fieldDOMHTML = renderAbnField(field, prefix);
                     break;
                 case 'repeatableIterator':
-                    fieldHtml += renderRepeatableIterator(field, prefix);
+                    fieldDOMHTML = renderRepeatableIterator(field, prefix);
                     break;
                 case 'apiLookup':
-                    fieldHtml += renderApiLookupField(field, prefix);
+                    fieldDOMHTML = renderApiLookupField(field, prefix);
                     break;
                 case 'greenIdVerification':
-                    fieldHtml += renderGreenIdField(field, prefix);
+                    fieldDOMHTML = renderGreenIdField(field, prefix);
                     break;
                 default:
                     console.log('Unknown field type: ' + field.type);
             }
-
+            
+            // Append the field DOM html to the total output
+            fieldHtml += fieldDOMHTML;
+            
+            // Output error text container
             fieldHtml += '<div class="fc-error-text"></div>';
 
             // Help text
@@ -4956,8 +5068,15 @@ var fc = (function ($) {
                 fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
 
+            // Close repeatable tag (if open)
             if (getConfig(field, 'repeatable', false) === true) {
                 fieldHtml += '</div>';
+                
+                // If repeatable (and amount pre-determined), output the rows
+                if (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined)) {
+                    console.log(field.config);
+                    fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1));
+                }
             }
 
             fieldHtml += '<div class="fc-empty"></div></div>';
@@ -5155,8 +5274,13 @@ var fc = (function ($) {
         
         // Verification error html
         html += '<div class="fc-greenid-verification-error">';
-        html += '<div class="alert alert-danger" role="alert"><strong>Uh oh!</strong> Unfortunately we were unable to verify your identity</div>';
+        html += '<div class="alert alert-danger" role="alert"><strong>Uh oh!</strong> Unfortunately we weren\'t able to sufficiently verify your credentials to confirm your identity.</div>';
+        html += '<h5>What to do?</h5>';
+        html += '<p>Please verify the correctness of the details below. If you notice an error, please go back in the form to edit these details and try re-commencing verification.</p>';
         html += '<h5>Please confirm the following details are correct: </h5>';
+        html += '<div class="fc-greenid-value-summary"></div>';
+        html += '<h5>They are correct, what do I do now?</h5>';
+        html += '<p>We\'ll have to attempt to verify you manually. Please attach a copy of your drivers license and/or passport to your printed application and mail it through to us.</p>';
         html += '</div>';
 
         // Show the packages and the progress bar
@@ -5560,18 +5684,18 @@ var fc = (function ($) {
             field,
             linkedTo,
             prePopulate,
-            tmp;
+            tag,
+            tmp,
+            replaceContainer,
+            replaceHTML,
+            replaceHTMLDOM,
+            replaceDOM,
+            replaceSchema,
+            replaceSectionID;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
             return;
-        }
-
-        // If the field is linked to another field, try to update it
-        // @todo: disable for now
-        linkedTo = getConfig(fieldSchema, 'linkedTo', '');
-        if (false && linkedTo.length > 0 && fc.fieldSchema[linkedTo] !== undefined) {
-            valueChanged(linkedTo, value);
         }
 
         // If pre-populating other fields, do so now
@@ -5593,7 +5717,7 @@ var fc = (function ($) {
         // If the value hasn't actually changed, return
         if (fc.fields[dataId] && fc.fields[dataId] === value) {
             return;
-        }
+        }        
 
         $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
 
@@ -5759,6 +5883,27 @@ var fc = (function ($) {
         // Scroll to the next field if required
         if (getConfig(fc.fieldSchema[dataId], 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
             autoScrollToField(dataId, nextField);
+        }
+        
+        // If the field needs to trigger a re-rendering of an existing field, do it now
+        tag = getConfig(fieldSchema, 'tag', '');
+        if (tag.length > 0 && fc.reRenderOnValueChange[tag] !== undefined) {
+            for (iterator = 0; iterator < fc.reRenderOnValueChange[tag].length; iterator += 1) {
+                tmp = fc.reRenderOnValueChange[tag][iterator];
+                replaceContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + tmp + '"]');
+                if (replaceContainer.length > 0) {
+                    // If the field exists, re-render
+                    replaceSectionID = replaceContainer.attr('fc-belongs-to');
+                    replaceSchema = fc.fieldSchema[tmp];
+                    if (replaceSchema !== undefined && replaceSchema.type === 'grouplet') {
+                        replaceHTML = renderFields([replaceSchema], replaceSectionID);
+                        if (replaceHTML.length > 0) {
+                            replaceHTMLDOM = $(replaceHTML);
+                            replaceContainer.html($(replaceHTML).html());
+                        }
+                    }                    
+                }
+            }
         }
     };
 
@@ -7390,6 +7535,9 @@ var fc = (function ($) {
             this.nextPageButtonClicked = false;
             this.validAbns = [];
             this.mobileView = isMobile();
+            
+            // Fields to re-render on value change
+            this.reRenderOnValueChange = {};
 
             // Track which fields belong to which grouplets
             this.fieldGrouplets = {};
@@ -7481,7 +7629,13 @@ var fc = (function ($) {
                 defaultChannel: 'master',
                 greenId: {
                     scriptPath: isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
-                }
+                },
+                
+                // Repeatable constants
+                repeatableWithButton: [0, 1],
+                repeatablePredetermined: 2,
+                repeatableInModal: [0],
+                repeatableLinkedTo: 'repeatableLinkedTo'
             };
 
             /**
