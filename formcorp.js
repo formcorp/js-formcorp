@@ -1835,6 +1835,21 @@ var fc = (function ($) {
 
             return fieldIsRepeatable(parentId);
         },
+        
+        /**
+         * Set the value of a range field type.
+         * @param domObject
+         */
+        setRangeValue = function (domObject) {
+            // On range value change
+            var val = parseInt(domObject.val()),
+                resultObj = domObject.parent().find('.fc-numeric-outcome');
+                
+            // If a result element was found, update it.
+            if (resultObj.length > 0) {
+                resultObj.html(val);
+            }
+        },
 
         /**
          * Set a value in the DOM
@@ -1844,11 +1859,17 @@ var fc = (function ($) {
          */
         setDomValue = function (obj, value) {
             var fieldGroup = $(obj).find('.fc-fieldgroup'),
+                valInputs = fieldGroup.find('input[type=text],textarea,input[type=range]'),
                 selector;
 
-            if (fieldGroup.find('input[type=text],textarea').length > 0) {
+            if (valInputs.length > 0) {
                 // Input type text
-                fieldGroup.find('input[type=text],textarea').val(value);
+                valInputs.val(value);
+                
+                // Range, set the outcome value
+                if (valInputs.attr('type') === 'range') {
+                    setRangeValue(valInputs);
+                }
             } else if (fieldGroup.find('select').length > 0) {
                 // Select box
                 fieldGroup.find('select').val(value);
@@ -4626,6 +4647,7 @@ var fc = (function ($) {
         flushRepeatableGroupletVisibility,
         flushSectionVisibility,
         flushFieldVisibility,
+        setValueUpdate,
         registerValueChangedListeners,
         valueChanged,
         validateModal,
@@ -4636,6 +4658,7 @@ var fc = (function ($) {
         renderRepeatableIterator,
         renderApiLookupField,
         renderGreenIdField,
+        renderNumericSliderField,
         registerApiLookupListener,
         renderAutoCompleteWidget,
         removeAutoCompleteWidget;
@@ -5063,6 +5086,9 @@ var fc = (function ($) {
                 case 'greenIdVerification':
                     fieldDOMHTML = renderGreenIdField(field, prefix);
                     break;
+                case 'numericSlider':
+                    fieldDOMHTML = renderNumericSliderField(field, prefix);
+                    break;
                 default:
                     console.log('Unknown field type: ' + field.type);
             }
@@ -5187,6 +5213,29 @@ var fc = (function ($) {
             html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
         /*jslint nomen: false*/
         return html;
+    };
+    
+    /**
+     * Render a numeric slider field.
+     * @param field
+     * @param prefix
+     */
+    renderNumericSliderField = function (field, prefix) {
+        if (prefix === undefined) {
+                prefix = "";
+            }
+
+            // Initial variables
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                step = parseInt(getConfig(field, 'step', 1)),
+                min = parseInt(getConfig(field, 'min', 1)),
+                max = parseInt(getConfig(field, 'max', 10)),     
+                html = '<input class="fc-fieldinput" type="range" min="' + min + '" max="' + max + '" step="' + step + '" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            
+            // Render the outcome/value
+            html += '<span class="fc-numeric-outcome"></span>';
+            
+            return html;
     };
 
     /**
@@ -5764,6 +5813,8 @@ var fc = (function ($) {
             replaceSectionID,
             index,
             groupletID;
+            
+        console.log('value changed');
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -6022,6 +6073,45 @@ var fc = (function ($) {
             }
         }
     };
+    
+    /**
+     * When a value for a text/numeric field etc. is updated (no duplicate code)
+     * @param obj
+     */
+    setValueUpdate = function (obj) {
+        var val = obj.val(),
+            id = obj.attr('formcorp-data-id'),
+            schema = fc.fieldSchema[id],
+            el;
+
+        if (schema && schema.type && schema.type === 'abnVerification') {
+            // Do not want to temporarily store ABN
+            el = obj.parent().find('.fc-button');
+
+            if (val.length === 0 || fc.validAbns.indexOf(val) === -1) {
+                // If the abn hasn't previously been marked as valid, show the button
+
+                if (el.hasClass('fc-hide')) {
+                    el.removeClass('fc-hide');
+                }
+            } else {
+                // Otherwise ABN is known to be valid, mark as changed and remove possible errors
+                el.addClass('fc-hide');
+                valueChanged(id, val);
+                removeFieldError(id);
+            }
+
+            // Need to update the stored value to ensure proper validation
+            fc.fields[id] = val;
+
+            return;
+        }
+
+        if (val !== fc.fields[id]) {
+            // Only trigger when the value has truly changed
+            valueChanged(id, val);
+        }
+    };
 
     /**
      * Register event listeners that fire when a form input field's value changes
@@ -6072,39 +6162,13 @@ var fc = (function ($) {
         }
 
         // Input types text changed
-        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput', function () {
-            var val = $(this).val(),
-                id = $(this).attr('formcorp-data-id'),
-                schema = fc.fieldSchema[id],
-                el;
-
-            if (schema && schema.type && schema.type === 'abnVerification') {
-                // Do not want to temporarily store ABN
-                el = $(this).parent().find('.fc-button');
-
-                if (val.length === 0 || fc.validAbns.indexOf(val) === -1) {
-                    // If the abn hasn't previously been marked as valid, show the button
-
-                    if (el.hasClass('fc-hide')) {
-                        el.removeClass('fc-hide');
-                    }
-                } else {
-                    // Otherwise ABN is known to be valid, mark as changed and remove possible errors
-                    el.addClass('fc-hide');
-                    valueChanged(id, val);
-                    removeFieldError(id);
-                }
-
-                // Need to update the stored value to ensure proper validation
-                fc.fields[id] = val;
-
-                return;
-            }
-
-            if (val !== fc.fields[id]) {
-                // Only trigger when the value has truly changed
-                valueChanged(id, val);
-            }
+        $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+            setValueUpdate($(this));
+        });
+        
+        // Input types text changed
+        $(fc.jQueryContainer).on('input', 'input[type=range].fc-fieldinput', function () {
+            setRangeValue($(this));
         });
 
         $(fc.jQueryContainer).on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput', function () {
