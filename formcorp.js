@@ -1172,13 +1172,10 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         validForm = function (rootElement, showErrors) {
-            console.log('valid form clicked');
             var errors = {},
                 required;
 
-            console.log(1);
             if (rootElement === undefined) {
-                console.log(2);
                 rootElement = fc.jQueryContainer;
             }
 
@@ -1679,6 +1676,11 @@ var fc = (function ($) {
                 token,
                 index,
                 re;
+                
+            // If no replacements found, do nothing
+            if (!$.isArray(replacements) || replacements.length === 0) {
+                return;
+            }
 
             for (index = 0; index < replacements.length; index += 1) {
                 replacement = replacements[index];
@@ -1886,7 +1888,7 @@ var fc = (function ($) {
                     console.log('restore grouplet that isnt repeatable');
                 } else if (fieldIsRepeatable(fieldId)) {
                     // Restore a repeatable value
-                    if (typeof value === 'object') {
+                    if (getConfig(schema, 'renderRepeatableTable', false) && typeof value === 'object') {
                         $('[fc-data-group="' + fieldId + '"] .fc-summary').html(renderRepeatableTable(fieldId, value));
                     }
                 } else if (schema.type === 'contentRadioList') {
@@ -1913,12 +1915,19 @@ var fc = (function ($) {
         },
 
         /**
-         * Set values on DOM from fields in JS
+         * Set values on DOM from fields in JS.
+         * @param rootElement
          */
-        setFieldValues = function () {
+        setFieldValues = function (rootElement) {
             var fieldId;
+            
+            // If no root element found, default (by default will therefore set values on the entire form)
+            if (rootElement === undefined) {
+                rootElement = $(fc.jQueryContainer);
+            }
 
-            $('div[fc-data-group]').each(function () {
+            // Iterate through each field and set a value
+            rootElement.find('div[fc-data-group]').each(function () {
                 fieldId = $(this).attr('fc-data-group');
                 setFieldValue(this, fieldId);
             });
@@ -4614,6 +4623,7 @@ var fc = (function ($) {
         render,
         renderPage,
         flushVisibility,
+        flushRepeatableGroupletVisibility,
         flushSectionVisibility,
         flushFieldVisibility,
         registerValueChangedListeners,
@@ -4777,9 +4787,10 @@ var fc = (function ($) {
      * Render a repeatable field (x) times
      * @param fieldId
      * @param amountOfTimes
+     * @param section
      * @returns {string}
      */
-    outputRepeatablePreDetermined = function (fieldId, amountOfTimes) {
+    outputRepeatablePreDetermined = function (fieldId, amountOfTimes, section) {
         // Variable declaration
         var returnHTML = '',
             fieldsHTML = '',
@@ -4819,7 +4830,7 @@ var fc = (function ($) {
         if (field.config.grouplet !== undefined && typeof field.config.grouplet === 'object' && field.config.grouplet.field !== undefined) {
             // Output (x) times
             for (iterator = 0; iterator < amountOfTimes; iterator += 1) {
-                fieldsHTML = renderFields(field.config.grouplet.field);
+                fieldsHTML = renderFields(field.config.grouplet.field, section, [fieldId, iterator, ''].join(fc.constants.prefixSeparator));
                 
                 // Append to return
                 returnHTML += '<div class="fc-repeatable-row fc-row-' + (iterator + 1) + '">';
@@ -4982,7 +4993,6 @@ var fc = (function ($) {
             // Output a repeatable field
             if (getConfig(field, 'repeatable', false) === true) {
                 repeatableStyle = parseInt(getConfig(field, 'repeatableStyle', 0));
-                console.log(repeatableStyle);
                 
                 fieldHtml += '<div class="fc-repeatable' + (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined) ? ' fc-repeatable-predetermined' : '') + '">';
                 fieldHtml += '<div class="fc-summary"></div>';
@@ -5074,8 +5084,7 @@ var fc = (function ($) {
                 
                 // If repeatable (and amount pre-determined), output the rows
                 if (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined)) {
-                    console.log(field.config);
-                    fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1));
+                    fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1), section);
                 }
             }
 
@@ -5434,6 +5443,64 @@ var fc = (function ($) {
             }
         });
     };
+    
+    /**
+     * Flush repeatable grouplet field visibility.
+     * @param dataId
+     * @param field
+     */
+    flushRepeatableGroupletVisibility = function (dataId, field) {
+       var visible,
+        groupletID,
+        index,
+        fieldID,
+        parts,
+        visibility,
+        re;
+
+        // If the field belongs to a grouplet within the DOM, need to flush visibility
+        if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+            parts = dataId.split(fc.constants.prefixSeparator);
+            
+            // Only continue if a minimum of 3 parts were found (needs to be in the format groupletID_index_fieldID)
+            if (parts.length >= 2) {
+                groupletID = parts[0];
+                
+                // Only continue if the root element is a grouplet
+                field = fc.fieldSchema[groupletID];
+                if (field !== undefined && field.type === 'grouplet' && getConfig(field, 'repeatable', false)) {
+                    // If the modal style is that so it is shown in the DOM, then process and add to the array
+                    if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(field, 'repeatableStyle', 0))) >= 0) {
+                        index = parts[1];
+                        fieldID = parts[2];
+                        
+                        // If the field definition is supplied, fetch the visibility
+                        if (fc.fieldSchema[fieldID] !== undefined) {
+                            visibility = getConfig(fc.fieldSchema[fieldID], 'visibility', '');
+                            if (visibility.length > 0) {
+                                // By default, the visibility string will look something along the lines as that below:
+                                // (fc.comparisonIn(fc.fields["55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"], ["Yes"], "55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"))
+                                // The groupletID_fieldID needs to be replaced in this instance (because its in the DOM as an array) with groupletID_arrayIndex_fieldID)
+                                re = new RegExp(groupletID + fc.constants.prefixSeparator, 'g');
+                                visibility = visibility.replace(re, '####');
+                                visibility = visibility.replace(/#{4,}/g, [groupletID, index, ''].join(fc.constants.prefixSeparator));
+                                
+                                // Evaludate the visibility logic to determine if the field should be visible
+                                visible = eval(visibility);
+                                if (typeof visible === 'boolean') {
+                                    if (visible) {
+                                        $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
+                                    } else {
+                                        $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
 
     /**
      * Flushes the field visibility options. Should be triggered when the page is first rendered, and when a value
@@ -5445,7 +5512,7 @@ var fc = (function ($) {
             var dataId = $(this).attr('fc-data-group'),
                 field,
                 visible;
-
+                
             if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.fieldSchema[dataId] !== 'object') {
                 return;
             }
@@ -5462,6 +5529,9 @@ var fc = (function ($) {
                     }
                 }
             }
+            
+            // Flush repeatable grouplet visibility (logic to determine if code should actually run exists within the function)
+            flushRepeatableGroupletVisibility(dataId, field);
         });
     };
 
@@ -5691,7 +5761,9 @@ var fc = (function ($) {
             replaceHTMLDOM,
             replaceDOM,
             replaceSchema,
-            replaceSectionID;
+            replaceSectionID,
+            index,
+            groupletID;
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -5723,6 +5795,7 @@ var fc = (function ($) {
 
         // Store when not a repeatable value
         if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
+            console.log('field is not repeatable');
             fc.fields[dataId] = value;
 
             // If a grouplet, save the original state of the grouplet
@@ -5737,27 +5810,67 @@ var fc = (function ($) {
         // Store against array values when sub field (field_1, field_2) for a repeatable iterator
         if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
             parts = dataId.split(fc.constants.prefixSeparator);
-            if (fc.fieldSchema[parts[0]] && fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
-                // Initialise the base field if required
-                if (fc.fields[parts[0]] === undefined || !$.isArray(fc.fields[parts[0]])) {
-                    fc.fields[parts[0]] = [];
-                }
-
-                field = fc.fields[parts[0]];
-
-                for (iterator = 1; iterator < parts.length; iterator += 1) {
-                    if (iterator === (parts.length - 1)) {
-                        field[parts[iterator]] = value;
-                    } else {
-                        if (field[parts[iterator]] === undefined) {
-                            field[parts[iterator]] = {};
-                        }
-                        field = field[parts[iterator]];
+            
+            // If a repeatable iterator, store each value
+            if (fc.fieldSchema[parts[0]] !== undefined && parts.length > 1) {
+                if (fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
+                    // Initialise the base field if required
+                    if (fc.fields[parts[0]] === undefined || !$.isArray(fc.fields[parts[0]])) {
+                        fc.fields[parts[0]] = [];
                     }
-                }
 
-                // Queue to be saved
-                fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+                    field = fc.fields[parts[0]];
+
+                    for (iterator = 1; iterator < parts.length; iterator += 1) {
+                        if (iterator === (parts.length - 1)) {
+                            field[parts[iterator]] = value;
+                        } else {
+                            if (field[parts[iterator]] === undefined) {
+                                field[parts[iterator]] = {};
+                            }
+                            field = field[parts[iterator]];
+                        }
+                    }
+
+                    // Queue to be saved
+                    fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+
+                // If the field value belongs to a grouplet, we have to check if its been repeated in the DOM
+                // If it has been repeated, need to treat the value as an array, and append it to the value
+                // The alternative is that it is shown in a modal window, and therefore needs to be treated differently
+                } else if (fc.fieldSchema[parts[0]].type === 'grouplet' && $.isNumeric(parts[1])) {
+                    groupletID = parts[0];
+                    // If the modal style is that so it is shown in the DOM, then process and add to the array
+                    if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.fieldSchema[groupletID], 'repeatableStyle', 0))) >= 0) {
+                        // If the core field value hasn't been set (as an array), set it first
+                        if (fc.fields[groupletID] === undefined || !$.isArray(fc.fields[groupletID])) {
+                            fc.fields[groupletID] = [];
+                        }
+                        
+                        // The array/row index to update
+                        index = parseInt(parts[1]);
+                        
+                        // The user doesn't necessarily have to update the values in incrementing order
+                        // They might update the nth row before the first row, and you can't update the nth row of an array
+                        // without values existing from 0 to n-1. Therefore, need to iterate through and ensure n-1
+                        // rows exist within the array.
+                        if (typeof fc.fields[groupletID][index] !== 'object') {
+                            console.log(1);
+                            console.log('index: ' + index);
+                            for (iterator = 0; iterator <= index; iterator += 1) {
+                                if (typeof fc.fields[groupletID][iterator] !== 'object') {
+                                    fc.fields[groupletID].push({});
+                                }
+                            }
+                        }
+                        
+                        // It is now safe to add the object value to the array
+                        fc.fields[groupletID][index][parts[2]] = value;
+                    }
+                    
+                    // The value has been safely updated, update the save queue
+                    fc.saveQueue[groupletID] = fc.fields[groupletID];
+                }
             }
         }
 
@@ -5778,7 +5891,7 @@ var fc = (function ($) {
             fc.pageOrders = fc.pageOrders.splice(0, fc.pageOrders.indexOf(fc.currentPage) + 1);
         }
 
-        // If the item belongs to a repeatable object, do not store the changed value
+        // If the item belongs to a repeatable object (or grouplet in the DOM), do not store the changed value
         if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
             dataParams = dataId.split(fc.constants.prefixSeparator);
             parentId = dataParams[0];
@@ -5900,6 +6013,9 @@ var fc = (function ($) {
                         if (replaceHTML.length > 0) {
                             replaceHTMLDOM = $(replaceHTML);
                             replaceContainer.html($(replaceHTML).html());
+                            
+                            // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
+                            setFieldValues(replaceContainer);
                         }
                     }                    
                 }
@@ -6283,7 +6399,10 @@ var fc = (function ($) {
         }
         fc.fields[fc.activeModalField].push(values);
 
-        $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').html(renderRepeatableTable(fc.activeModalField, fc.fields[fc.activeModalField]));
+        // Render a repeatable summary table upon successful add if specified by the user (this should always be set to TRUE)
+        if (getConfig(fc.fieldSchema[fc.activeModalField], 'renderRepeatableTable', false)) {
+            $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').html(renderRepeatableTable(fc.activeModalField, fc.fields[fc.activeModalField]));
+        }
 
         // Set to null to signify no repeatable grouplet is being displayed
         hideModal();
@@ -7635,6 +7754,7 @@ var fc = (function ($) {
                 repeatableWithButton: [0, 1],
                 repeatablePredetermined: 2,
                 repeatableInModal: [0],
+                repeatableInDOM: [1, 2],
                 repeatableLinkedTo: 'repeatableLinkedTo'
             };
 
