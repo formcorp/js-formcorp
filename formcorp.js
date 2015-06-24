@@ -4764,6 +4764,7 @@ var fc = (function ($) {
         renderRepeatableIterator,
         renderApiLookupField,
         initGreenIDFieldInDOM,
+        greenIdFieldHeader,
         renderGreenIdField,
         renderNumericSliderField,
         registerApiLookupListener,
@@ -5373,6 +5374,72 @@ var fc = (function ($) {
         html += '<div class="fc-init-green-id" fc-prefix="' + prefix + '">Initialising...</div>';
         return html;
     };
+    
+    /**
+     * Fetch the string for the green ID header
+     * @param fieldId
+     */
+    greenIdFieldHeader = function (fieldId) {
+        // Update the summary div
+        var summaryHtml = '',
+            nameHtml = '',
+            addressHtml = '',
+            values = fc.fields[fieldId].values;
+            
+        console.log('FIELD HEADER');
+        console.log(fieldId);
+        
+        // First line: name
+        if (typeof values.title === 'string' && values.title.length > 0) {
+            // Title
+            nameHtml += (nameHtml.length > 0 ? ' ' : '') +  values.title;
+        }
+        
+        if (typeof values.firstName === 'string' && values.firstName.length > 0) {
+            // First name
+            nameHtml += (nameHtml.length > 0 ? ' ' : '') +  values.firstName;
+        }
+        
+        if (typeof values.middleName === 'string' && values.middleName.length > 0) {
+            // Middle name
+            nameHtml += (nameHtml.length > 0 ? ' ' : '') + values.middleName;
+        }
+        
+        if (typeof values.surname === 'string' && values.surname.length > 0) {
+            // Surname
+            nameHtml += (nameHtml.length > 0 ? ' ' : '') + values.surname;
+        }
+        
+        // Second line: address
+        if (typeof values.address === 'string' && values.address.length > 0) {
+            // Address
+            addressHtml += (addressHtml.length > 0 ? ' ' : '') +  values.address;
+        }
+        
+        if (typeof values.suburb === 'string' && values.suburb.length > 0) {
+            // Suburb
+            addressHtml += (addressHtml.length > 0 ? ', ' : '') +  values.suburb;
+        }
+        
+        if (typeof values.postcode === 'string' && values.postcode.length > 0) {
+            // Postcode
+            addressHtml += (addressHtml.length > 0 ? ', ' : '') +  values.postcode;
+        }
+        
+        if (typeof values.state === 'string' && values.state.length > 0) {
+            // State
+            addressHtml += (addressHtml.length > 0 ? '<br>' : '') +  values.state;
+        }
+        
+        if (typeof values.country === 'string' && values.country.length > 0) {
+            // Country
+            addressHtml += (addressHtml.length > 0 ? ', ' : '') +  values.country;
+        }
+        
+        summaryHtml = '<h5>Complete verification for: </h5><p>' + nameHtml + '<br>' + addressHtml + '</p>';
+
+        return summaryHtml;
+    };
 
     /**
      * Render the Green ID field
@@ -5399,6 +5466,7 @@ var fc = (function ($) {
         }
 
         var html = '',
+            summary,
             options = [
                 {
                     class: "fc-drivers-license",
@@ -5425,6 +5493,12 @@ var fc = (function ($) {
             licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
             licenseType;
 
+        // Show a summary in the header
+        if (getConfig(field, 'showSummaryInHeader', false) && typeof fc.greenID !== undefined) {
+            summary = greenIdFieldHeader(prefix + getId(field));
+            html += '<div class="fc-green-id-header-summary">' + summary + '</div>';
+        }
+        
         // Generate an options string
         for (iterator = 0; iterator < options.length; iterator += 1) {
             optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","", "","' + options[iterator].class + '"]' + "\n";

@@ -966,3 +966,10 @@ div.fc-pagination {
 .fc-field input[type=range]:focus::-webkit-slider-runnable-track {
     background: #ccc;
 }
+
+.fc-green-id-header-summary {
+    background: #F1F1F1;
+    padding: 4px 18px;
+    border-radius: 9px;
+    margin-bottom: 18px;
+}
