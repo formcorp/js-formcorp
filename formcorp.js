@@ -1189,8 +1189,7 @@ var fc = (function ($) {
                 // If a repeatable field, ignore
                 if ($(this).parent().attr("class").indexOf("repeatable") > -1 && $(this).parent().attr('class').indexOf('fc-repeatable-row') === -1) {
                     return;
-                }
-                
+                }                
 
                 // If the field is hidden, not required to validate
                 if ($(this).hasClass('fc-hide')) {
@@ -1207,8 +1206,15 @@ var fc = (function ($) {
                     field = fc.fieldSchema[dataId],
                     value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                     localErrors = [],
-                    skipCheck = false;
-
+                    skipCheck = false,
+                    prefix = '';
+                
+                // Determine the prefix
+                if (field !== undefined && dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+                    prefix = dataId.replace(getId(field), '');
+                    console.log(prefix);
+                }
+                
                 // If not required, do nothing
                 if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
                     return;
@@ -1262,7 +1268,7 @@ var fc = (function ($) {
                     if (fc.greenID === undefined) {
                         // Green ID has yet to be initialised
                         localErrors.push('Green ID has not been initialised.');
-                    } else if (typeof value !== "object" || !fc.greenID.passesValidation(getId(field))) {
+                    } else if (typeof value !== "object" || !fc.greenID.passesValidation(prefix + getId(field))) {
                         // Validation is allowed to pass
                         localErrors.push('You must verify your identity.');
                     } else {
@@ -3617,6 +3623,7 @@ var fc = (function ($) {
                     }
                 } else {
                     // greenID failed to initialise for the selected field
+                    console.log(data);
                     console.log('unable to render greenID');
                 }
             });
