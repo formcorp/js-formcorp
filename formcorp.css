@@ -348,6 +348,7 @@ div.fc-pagination {
 
 .fc-page {
     padding-top: 10px;
+    clear: both;
 }
 
 .fc-send-email .fc-btn {
@@ -782,6 +783,7 @@ div.fc-pagination {
 
 .fc-field-greenIdVerification h5 {
     margin-top: 20px;
+    font-weight: bold;
 }
 
 /**

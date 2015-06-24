@@ -1892,12 +1892,22 @@ var fc = (function ($) {
          */
         setFieldValue = function (obj, fieldId) {
             var value,
-                schema,
+                schema = fc.fieldSchema[fieldId],
                 iterator,
-                el;
+                el,
+                defaultValue;
+                
+            // If no value found, try and use default
+            value = fc.fields[fieldId];
+            if (value === undefined && schema !== undefined) {
+                defaultValue = getConfig(schema, 'default', '');
+                if (defaultValue.length > 0) {
+                    value = defaultValue;
+                }
+            }
 
-            if (fc.fields[fieldId] !== undefined) {
-                value = fc.fields[fieldId];
+            // If a value was found, set the value in the DOM
+            if (value !== undefined) {
                 schema = fc.fieldSchema[fieldId];
 
                 // If read-only and a default value set, use it
@@ -3515,19 +3525,102 @@ var fc = (function ($) {
         initGreenIdField = function (fieldId) {
             var schema = fc.fieldSchema[fieldId],
                 value = fc.fields[fieldId],
-                percentage;
-
-            // If schema or value not initialised, do nothing
-            if (schema === undefined || value === undefined) {
+                percentage,
+                init,
+                values = {},
+                rootId,
+                prefix,
+                fieldSelector = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + fieldId + '"]'),
+                initSelector,
+                parts,
+                values = {}, // @todo get for non-repeatable
+                iteratorSchema,
+                referenceId,
+                greenIDValues = {},
+                key,
+                searchFieldId;
+            
+            // Ensure the greenID field exists within the DOM
+            if (fieldSelector.length === 0) {
+                console.log('Unable to locate greenID field in DOM');
                 return;
             }
             
-            // Update the container html
-            fc.greenID.updateSummary(fieldId);
+            // Call to initialise the greenID component. Sometimes the initial verification check will
+            // automatically be triggered, and the greenID field will have already been initialised.
+            // In this case, the init() function can be triggered, however otherwise it will need to be
+            // initialised here first prior to setting the progress etc.
+            init = function () {
+                // If schema or value not initialised, do nothing
+                if (schema === undefined || value === undefined) {
+                    return;
+                }
 
-            // Set the progress bar percentage
-            percentage = fc.greenID.getPercentage(fieldId);
-            fc.greenID.setProgress(fieldId, percentage, true);
+                // Update the container html
+                fc.greenID.updateSummary(fieldId);
+
+                // Set the progress bar percentage
+                percentage = fc.greenID.getPercentage(fieldId);
+                fc.greenID.setProgress(fieldId, percentage, true);
+            };
+            
+            initSelector = fieldSelector.find('.fc-init-green-id');
+            
+            // If not initialising, render the greenID.
+            if (initSelector.length === 0) {
+                init();
+                return;
+            }
+            
+            // If repeatable, need to fetch the values from the repeatable array 
+            parts = fieldId.split(fc.constants.prefixSeparator);
+            if (parts.length >= 2) {
+                iteratorSchema = fc.fieldSchema[parts[0]];
+                if (iteratorSchema !== undefined) {
+                    referenceId = getConfig(iteratorSchema, 'sourceField', '');
+                    if (referenceId.length > 0 && fc.fields[referenceId] !== undefined && typeof fc.fields[referenceId][parts[1]] === 'object') {
+                        values = fc.fields[referenceId][parts[1]];
+                    }
+                }
+            }
+            
+            // Need to create a dictionary of values to send to greenID
+            if (typeof schema !== undefined) {
+                for (key in fc.greenID.configKeys) {
+                    if (fc.greenID.configKeys.hasOwnProperty(key)) {
+                        searchFieldId = getConfig(schema, fc.greenID.configKeys[key], '');
+                        if (searchFieldId.length > 0 && values[searchFieldId] !== undefined) {
+                            greenIDValues[key] = values[searchFieldId];
+                        }
+                    }
+                }
+            }
+            
+            // Append the field id
+            greenIDValues.fieldId = fieldId;
+            
+            // Shoot off the greenID initialisation request to the server
+            fc.greenID.initialiseGreenIDVerification(fieldId, greenIDValues, function (dataId, data) {
+                var html, fieldSelector, prefix;
+                
+                prefix = fieldId.replace(getId(fc.fieldSchema[fieldId]), '');
+                console.log(prefix);
+                    
+                // When a valid result is returned by the server, output accordingly
+                if (typeof data === 'object' && data.result !== undefined && typeof data.result === 'object') {
+                    html = renderGreenIdField(fc.fieldSchema[fieldId], prefix, true);
+                    fieldSelector = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + fieldId + '"]');
+                    if (fieldSelector.length > 0) {
+                        fieldSelector.find('.fc-init-green-id').remove();
+                        fieldSelector.find('.fc-fieldgroup').prepend(html);
+                        init();
+                    }
+                } else {
+                    // greenID failed to initialise for the selected field
+                    console.log('unable to render greenID');
+                }
+            });
+            
         },
 
         /**
@@ -3556,14 +3649,22 @@ var fc = (function ($) {
                 hasGreenId = false,
                 callbackFunctions = {},
                 greenIdFields,
-                greenIDFieldId;
+                value,
+                searchDict,
+                tmp,
+                prePopulateFields;
 
-            // Iterate through and check if green id field exists
-            for (fieldId in fc.fieldSchema) {
-                if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.fieldSchema[fieldId].type === 'greenIdVerification') {
-                    greenIDFieldId = fieldId;
-                    hasGreenId = true;
-                    break;
+            // If the greenID was forced by the app, attempt to load/initialise it (at the moment, when a greenID is in an iterable field.
+            // there is no way to discern whether the greenID libs should be loaded. @todo: more intelligence)
+            if (typeof fc.config.forceGreenID === 'boolean') {
+                hasGreenId = fc.config.forceGreenID;
+            } else {
+                // Otherwise look throughout the schema for a greenID field - if it exists, initialise libs
+                for (fieldId in fc.fieldSchema) {
+                    if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.fieldSchema[fieldId].type === 'greenIdVerification') {
+                        hasGreenId = true;
+                        break;
+                    }
                 }
             }
 
@@ -3578,17 +3679,77 @@ var fc = (function ($) {
 
                 loadJsFile(cdnUrl() + fc.constants.greenId.scriptPath);
             }
+            
+            // Need to pre-populate fields with values that have already been entered. This needs to cater for both iterable fieldSchema
+            // and basic identification fields. If part of a repeatable iterator, need to pull the values from the source id, otherwise
+            // need to just use fc.fields.
+            /**
+             * @param rootId
+             */
+            searchDict = function (rootId) {
+                var dict, tmp;
+                
+                if (rootId.indexOf(fc.constants.prefixSeparator) > 0) {
+                    tmp = {};
+                    tmp.repeatableIterator = rootId.split(fc.constants.prefixSeparator);
+                    if (fc.fieldSchema[tmp.repeatableIterator[0]] !== undefined) {
+                        tmp.sourceField = getConfig(fc.fieldSchema[tmp.repeatableIterator[0]], 'sourceField');
+                        if (fc.fields[tmp.sourceField] !== undefined && fc.fields[tmp.sourceField][tmp.repeatableIterator[1]] !== undefined) {
+                            return fc.fields[tmp.sourceField][tmp.repeatableIterator[1]];
+                        }
+                    }                            
+                }
+                
+                return fc.fields;
+            };
+            
+            /**
+             * Pre-populate values in the DOM with values that have already been entered.
+             * @param obj
+             * @param rootId
+             * @param rootSchema
+             * @param updateMap
+             * @param childField
+             */
+            prePopulateFields = function (obj, rootId, rootSchema, updateMap, childField) {
+                var inputId,
+                    key,
+                    dict = searchDict(rootId);
+                
+                for (key in updateMap) {
+                    if (updateMap.hasOwnProperty(key)) {
+                        inputId = getConfig(rootSchema, updateMap[key]);
+                        value = '';
+                        if (typeof dict[inputId] === 'string') {
+                            childField = obj.find('.' + key);
+                            if (childField.length > 0) {
+                                childField.find('.fc-fieldinput').attr('value', dict[inputId]);
+                            }
+                        }
+                    }
+                }
+            };
 
             // Drivers license button clicked
             callbackFunctions.DriversLicense = function (el) {
                 var id = el.attr('formcorp-data-id'),
-                    rootId = id.split('_')[0],
-                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]'),
-                    rootSchema = fc.fieldSchema[rootId],
+                    lastSeparatorIndex,
+                    rootId,
+                    completeId,
+                    rootContainer,
+                    rootSchema,
                     optionContainer,
                     containerHtml = '',
                     stateOption,
                     stateCallbacks = {};
+                
+                // Fetch the root ID
+                lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
+                rootId = id.substr(0, lastSeparatorIndex);
+               
+                // Fetch the root container
+                rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]');
+                rootSchema = fc.fieldSchema[rootId];
 
                 if (rootContainer.length === 0) {
                     // Ensure a root container exists
@@ -3606,7 +3767,7 @@ var fc = (function ($) {
                 // Render the HTML for the drivers license form
                 stateOption = {
                     '_id': {
-                        '$id': getId(fc.fieldSchema[rootId]) + '_state'
+                        '$id': rootId + '_state'
                     },
                     config: {
                         label: 'State',
@@ -3633,31 +3794,31 @@ var fc = (function ($) {
                         var fields = {
                                 license: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_license_number'
+                                        '$id': rootId + '_act_license_number'
                                     },
                                     config: {}
                                 },
                                 firstName: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_first_name'
+                                        '$id': rootId + '_act_first_name'
                                     },
                                     config: {}
                                 },
                                 surname: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_surname'
+                                        '$id': rootId + '_act_surname'
                                     },
                                     config: {}
                                 },
                                 dob: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_dob'
+                                        '$id': rootId + '_act_dob'
                                     },
                                     config: {}
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_act_tos'
+                                        '$id': rootId + '_act_tos'
                                     },
                                     config: {}
                                 }
@@ -3697,29 +3858,18 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_act_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_act_tos">I have read and accepted <a href="http://www.rego.act.gov.au/aboutus/?a=527482">ACT Government\'s privacy statement</a>.</label>';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_act_tos">';
+                        html += '<label for="' + rootId + '_act_tos">I have read and accepted <a href="http://www.rego.act.gov.au/aboutus/?a=527482">ACT Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
 
                         html += '</div>';
-
                         obj = $(html);
-
-                        // Update values on the run
-                        for (key in updateMap) {
-                            if (updateMap.hasOwnProperty(key)) {
-                                inputId = getConfig(rootSchema, updateMap[key]);
-                                if (typeof fc.fields[inputId] === 'string') {
-                                    childField = obj.find('.' + key);
-                                    if (childField.length > 0) {
-                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                                    }
-                                }
-                            }
-                        }
+                        
+                        // Pre-populate the values in the DOM
+                        prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                         return obj.html();
                     },
@@ -3733,25 +3883,25 @@ var fc = (function ($) {
                         var fields = {
                                 license: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_nsw_license_number'
+                                        '$id': rootId + '_nsw_license_number'
                                     },
                                     config: {}
                                 },
                                 licenseCardNumber: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_nsw_card_number'
+                                        '$id': rootId + '_nsw_card_number'
                                     },
                                     config: {}
                                 },
                                 surname: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_nsw_surname'
+                                        '$id': rootId + '_nsw_surname'
                                     },
                                     config: {}
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_nsw_tos'
+                                        '$id': rootId + '_nsw_tos'
                                     },
                                     config: {}
                                 }
@@ -3784,29 +3934,19 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_nsw_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_nsw_tos">I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_nsw_tos">';
+                        html += '<label for="' + rootId + '_nsw_tos">I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
 
                         html += '</div>';
 
                         obj = $(html);
 
                         // Update values on the run
-                        for (key in updateMap) {
-                            if (updateMap.hasOwnProperty(key)) {
-                                inputId = getConfig(rootSchema, updateMap[key]);
-                                if (typeof fc.fields[inputId] === 'string') {
-                                    childField = obj.find('.' + key);
-                                    if (childField.length > 0) {
-                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                                    }
-                                }
-                            }
-                        }
+                        prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                         return obj.html();
                     },
@@ -3820,31 +3960,31 @@ var fc = (function ($) {
                         var fields = {
                                 license: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_license_number'
+                                        '$id': rootId + '_qld_license_number'
                                     },
                                     config: {}
                                 },
                                 firstName: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_first_name'
+                                        '$id': rootId + '_qld_first_name'
                                     },
                                     config: {}
                                 },
                                 surname: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_surname'
+                                        '$id': rootId + '_qld_surname'
                                     },
                                     config: {}
                                 },
                                 dob: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_dob'
+                                        '$id': rootId + '_qld_dob'
                                     },
                                     config: {}
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_qld_tos'
+                                        '$id': rootId + '_qld_tos'
                                     },
                                     config: {}
                                 }
@@ -3884,29 +4024,19 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_qld_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_qld_tos">I have read and accepted <a href="http://www.tmr.qld.gov.au/privacy">Queensland Transport\'s terms and conditions</a>.</label>';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_qld_tos">';
+                        html += '<label for="' + rootId + '_qld_tos">I have read and accepted <a href="http://www.tmr.qld.gov.au/privacy">Queensland Transport\'s terms and conditions</a>.</label>';
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
 
                         html += '</div>';
 
                         obj = $(html);
 
                         // Update values on the run
-                        for (key in updateMap) {
-                            if (updateMap.hasOwnProperty(key)) {
-                                inputId = getConfig(rootSchema, updateMap[key]);
-                                if (typeof fc.fields[inputId] === 'string') {
-                                    childField = obj.find('.' + key);
-                                    if (childField.length > 0) {
-                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                                    }
-                                }
-                            }
-                        }
+                        prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                         return obj.html();
                     },
@@ -3920,25 +4050,25 @@ var fc = (function ($) {
                         var fields = {
                                 license: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_sa_license_number'
+                                        '$id': rootId + '_sa_license_number'
                                     },
                                     config: {}
                                 },
                                 surname: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_sa_surname'
+                                        '$id': rootId + '_sa_surname'
                                     },
                                     config: {}
                                 },
                                 dob: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_sa_dob'
+                                        '$id': rootId + '_sa_dob'
                                     },
                                     config: {}
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_sa_tos'
+                                        '$id': rootId + '_sa_tos'
                                     },
                                     config: {}
                                 }
@@ -3972,29 +4102,19 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_sa_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_sa_tos">I have read and accepted <a href="http://www.transport.sa.gov.au/privacy.asp">SA Government\'s privacy statement</a>.</label>';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_sa_tos">';
+                        html += '<label for="' + rootId + '_sa_tos">I have read and accepted <a href="http://www.transport.sa.gov.au/privacy.asp">SA Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
 
                         html += '</div>';
 
                         obj = $(html);
 
                         // Update values on the run
-                        for (key in updateMap) {
-                            if (updateMap.hasOwnProperty(key)) {
-                                inputId = getConfig(rootSchema, updateMap[key]);
-                                if (typeof fc.fields[inputId] === 'string') {
-                                    childField = obj.find('.' + key);
-                                    if (childField.length > 0) {
-                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                                    }
-                                }
-                            }
-                        }
+                        prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                         return obj.html();
                     },
@@ -4008,26 +4128,26 @@ var fc = (function ($) {
                         var fields = {
                                 license: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_license_number'
+                                        '$id': rootId + '_vic_license_number'
                                     },
                                     config: {}
                                 },
                                 surname: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_surname'
+                                        '$id': rootId + '_vic_surname'
                                     },
                                     config: {}
                                 },
                                 dob: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_dob'
+                                        '$id': rootId + '_vic_dob'
                                     },
                                     config: {}
                                 },
                                 address: [
                                     {
                                         '_id': {
-                                            '$id': getId(fc.fieldSchema[rootId]) + '_vic_address_1'
+                                            '$id': rootId + '_vic_address_1'
                                         },
                                         config: {
                                             placeholder: 'Address (line 1)'
@@ -4035,7 +4155,7 @@ var fc = (function ($) {
                                     },
                                     {
                                         '_id': {
-                                            '$id': getId(fc.fieldSchema[rootId]) + '_vic_address_2'
+                                            '$id': rootId + '_vic_address_2'
                                         },
                                         config: {
                                             placeholder: 'Address (line 2)'
@@ -4043,7 +4163,7 @@ var fc = (function ($) {
                                     },
                                     {
                                         '_id': {
-                                            '$id': getId(fc.fieldSchema[rootId]) + '_vic_address_3'
+                                            '$id': rootId + '_vic_address_3'
                                         },
                                         config: {
                                             placeholder: 'Address (line 3)'
@@ -4052,7 +4172,7 @@ var fc = (function ($) {
                                 ],
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_vic_tos'
+                                        '$id': rootId + '_vic_tos'
                                     },
                                     config: {}
                                 }
@@ -4096,58 +4216,53 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_vic_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_vic_tos">I have read and accepted <a href="https://www.vicroads.vic.gov.au/privacy">VicRoads\' privacy statement</a>.</label>';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_vic_tos">';
+                        html += '<label for="' + rootId + '_vic_tos">I have read and accepted <a href="https://www.vicroads.vic.gov.au/privacy">VicRoads\' privacy statement</a>.</label>';
                         html += '</div>';
 
                         html += '<div class="fc-clear"></div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
 
                         html += '</div>';
 
                         obj = $(html);
 
                         // Update values on the run
-                        for (key in updateMap) {
-                            if (updateMap.hasOwnProperty(key)) {
-                                inputId = getConfig(rootSchema, updateMap[key]);
-                                if (typeof fc.fields[inputId] === 'string') {
-                                    childField = obj.find('.' + key);
-                                    if (childField.length > 0) {
-                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                                    }
-                                }
-                            }
-                        }
+                        prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                         return obj.html();
                     },
 
+                    /**
+                     * Western Australia
+                     * @returns {*}
+                     * @constructor
+                     */
                     WA: function () {
                         var fields = {
                                 license: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_license_number'
+                                        '$id': rootId + '_wa_license_number'
                                     },
                                     config: {}
                                 },
                                 dob: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_dob'
+                                        '$id': rootId + '_wa_dob'
                                     },
                                     config: {}
                                 },
                                 expiry: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_dob'
+                                        '$id': rootId + '_wa_dob'
                                     },
                                     config: {}
                                 },
                                 tos: {
                                     '_id': {
-                                        '$id': getId(fc.fieldSchema[rootId]) + '_wa_tos'
+                                        '$id': rootId + '_wa_tos'
                                     },
                                     config: {}
                                 }
@@ -4180,32 +4295,22 @@ var fc = (function ($) {
                         html += '<div class="fc-clear"></div>';
 
                         // Terms of service
-                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_wa_tos">';
-                        html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_wa_tos">I have read and accepted <a href="http://www.transport.wa.gov.au/aboutus/our-website.asp">WA Government\'s privacy statement</a>.</label>';
+                        html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_wa_tos">';
+                        html += '<label for="' + rootId + '_wa_tos">I have read and accepted <a href="http://www.transport.wa.gov.au/aboutus/our-website.asp">WA Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         html += '<div class="fc-clear"></div>';
 
                         // Button
-                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                        html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
 
                         html += '</div>';
 
                         obj = $(html);
 
                         // Update values on the run
-                        for (key in updateMap) {
-                            if (updateMap.hasOwnProperty(key)) {
-                                inputId = getConfig(rootSchema, updateMap[key]);
-                                if (typeof fc.fields[inputId] === 'string') {
-                                    childField = obj.find('.' + key);
-                                    if (childField.length > 0) {
-                                        childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                                    }
-                                }
-                            }
-                        }
-
+                        prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
+                        
                         return obj.html();
                     }
                 };
@@ -4238,9 +4343,10 @@ var fc = (function ($) {
             // Passport button clicked
             callbackFunctions.Passport = function (el) {
                 var id = el.attr('formcorp-data-id'),
-                    rootId = id.split('_')[0],
-                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]'),
-                    rootSchema = fc.fieldSchema[rootId],
+                    rootId,
+                    lastSeparatorIndex,
+                    rootContainer,
+                    rootSchema,
                     optionContainer,
                     containerHtml = '',
                     fields,
@@ -4255,7 +4361,15 @@ var fc = (function ($) {
                     obj,
                     childField,
                     inputId;
-
+                    
+                // Fetch the root ID
+                lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
+                rootId = id.substr(0, lastSeparatorIndex);
+               
+                // Fetch the root container
+                rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]');
+                rootSchema = fc.fieldSchema[rootId];
+                
                 if (rootContainer.length === 0) {
                     // Ensure a root container exists
                     console.log('Unable to find root container');
@@ -4272,67 +4386,67 @@ var fc = (function ($) {
                 fields = {
                     passportNumber: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_number'
+                            '$id': rootId + '_passport_number'
                         },
                         config: {}
                     },
                     givenName: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_given_name'
+                            '$id': rootId + '_passport_given_name'
                         },
                         config: {}
                     },
                     middleNames: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_middle_names'
+                            '$id': rootId + '_passport_middle_names'
                         },
                         config: {}
                     },
                     familyName: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_family_name'
+                            '$id': rootId + '_passport_family_name'
                         },
                         config: {}
                     },
                     dateOfBirth: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_dob'
+                            '$id': rootId + '_passport_dob'
                         },
                         config: {}
                     },
                     familyNameAtBirth: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_family_name_at_birth'
+                            '$id': rootId + '_passport_family_name_at_birth'
                         },
                         config: {}
                     },
                     placeOfBirth: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_place_birth'
+                            '$id':rootId + '_passport_place_birth'
                         },
                         config: {}
                     },
                     countryOfBirth: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_place_birth'
+                            '$id': rootId + '_passport_place_birth'
                         },
                         config: {}
                     },
                     firstNameAtCitizenship: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_first_name_citizenship'
+                            '$id': rootId + '_passport_first_name_citizenship'
                         },
                         config: {}
                     },
                     surnameAtCitizenship: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_surname_citizenship'
+                            '$id': rootId + '_passport_surname_citizenship'
                         },
                         config: {}
                     },
                     tos: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_passport_tos'
+                            '$id': rootId + '_passport_tos'
                         },
                         config: {}
                     }
@@ -4405,28 +4519,18 @@ var fc = (function ($) {
                 html += '<div class="fc-clear"></div>';
 
                 // Terms of service
-                html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_passport_tos">';
-                html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_passport_tos">I have read and accepted <a href="http://dfat.gov.au/privacy.html">DFAT\'s Disclosure Statement</a>.</label>';
+                html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_passport_tos">';
+                html += '<label for="' + rootId + '_passport_tos">I have read and accepted <a href="http://dfat.gov.au/privacy.html">DFAT\'s Disclosure Statement</a>.</label>';
                 html += '</div>';
 
                 // Button
-                html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
                 html += '</div>';
 
                 obj = $(html);
 
-                // Update values on the run
-                for (key in updateMap) {
-                    if (updateMap.hasOwnProperty(key)) {
-                        inputId = getConfig(rootSchema, updateMap[key]);
-                        if (typeof fc.fields[inputId] === 'string') {
-                            childField = obj.find('.' + key);
-                            if (childField.length > 0) {
-                                childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                            }
-                        }
-                    }
-                }
+                // Pre-populate the different field elements
+                prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                 html = obj.prop('outerHTML');
 
@@ -4445,9 +4549,10 @@ var fc = (function ($) {
             // Passport button clicked
             callbackFunctions.EmploymentVisaForeignPassport = function (el) {
                 var id = el.attr('formcorp-data-id'),
-                    rootId = id.split('_')[0],
-                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]'),
-                    rootSchema = fc.fieldSchema[rootId],
+                    lastSeparatorIndex,
+                    rootId,
+                    rootContainer,
+                    rootSchema,
                     optionContainer,
                     containerHtml = '',
                     fields,
@@ -4460,6 +4565,14 @@ var fc = (function ($) {
                     obj,
                     childField,
                     inputId;
+                
+                // Fetch the root ID
+                lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
+                rootId = id.substr(0, lastSeparatorIndex);
+               
+                // Fetch the root container
+                rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]');
+                rootSchema = fc.fieldSchema[rootId];
 
                 if (rootContainer.length === 0) {
                     // Ensure a root container exists
@@ -4477,31 +4590,31 @@ var fc = (function ($) {
                 fields = {
                     visaNumber: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_number'
+                            '$id': rootId + '_visa_number'
                         },
                         config: {}
                     },
                     familyName: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_family_name'
+                            '$id': rootId + '_visa_family_name'
                         },
                         config: {}
                     },
                     dateOfBirth: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_dob'
+                            '$id': rootId + '_visa_dob'
                         },
                         config: {}
                     },
                     passportCountry: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_passport_country'
+                            '$id': rootId + '_visa_passport_country'
                         },
                         config: {}
                     },
                     tos: {
                         '_id': {
-                            '$id': getId(fc.fieldSchema[rootId]) + '_visa_tos'
+                            '$id': rootId + '_visa_tos'
                         },
                         config: {}
                     }
@@ -4533,28 +4646,18 @@ var fc = (function ($) {
                 html += '<div class="fc-clear"></div>';
 
                 // Terms of service
-                html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + getId(fc.fieldSchema[rootId]) + '_visa_tos">';
-                html += '<label for="' + getId(fc.fieldSchema[rootId]) + '_visa_tos">I understand that I am disclosing information relating to my employment visa or non-Australian passport. This information will be disclosed to the Department of Immigration and Citizenship. I am aware that if am not entitled to be in Australia, then the Department of Immigration and Citizenship may use the information that I provide above to locate me.</label>';
+                html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_visa_tos">';
+                html += '<label for="' + rootId + '_visa_tos">I understand that I am disclosing information relating to my employment visa or non-Australian passport. This information will be disclosed to the Department of Immigration and Citizenship. I am aware that if am not entitled to be in Australia, then the Department of Immigration and Citizenship may use the information that I provide above to locate me.</label>';
                 html += '</div>';
 
                 // Button
-                html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + greenIDFieldId + '">Verify</a></div>';
+                html += '<div class="green-id-verify"><a class="fc-btn" href="#" data-for="' + rootId + '">Verify</a></div>';
                 html += '</div>';
 
                 obj = $(html);
 
-                // Update values on the run
-                for (key in updateMap) {
-                    if (updateMap.hasOwnProperty(key)) {
-                        inputId = getConfig(rootSchema, updateMap[key]);
-                        if (typeof fc.fields[inputId] === 'string') {
-                            childField = obj.find('.' + key);
-                            if (childField.length > 0) {
-                                childField.find('.fc-fieldinput').attr('value', fc.fields[inputId]);
-                            }
-                        }
-                    }
-                }
+                // Pre-populate the different field elements
+                prePopulateFields(obj, rootId, rootSchema, updateMap, childField);
 
                 html = obj.prop('outerHTML');
 
@@ -4607,6 +4710,9 @@ var fc = (function ($) {
             });
         },
 
+        /**
+         * When the schema is loaded, initialise the greenID components
+         */
         onSchemaLoaded = function () {
             initGreenId();
         },
@@ -4657,6 +4763,7 @@ var fc = (function ($) {
         orderObject,
         renderRepeatableIterator,
         renderApiLookupField,
+        initGreenIDFieldInDOM,
         renderGreenIdField,
         renderNumericSliderField,
         registerApiLookupListener,
@@ -5089,8 +5196,17 @@ var fc = (function ($) {
                 case 'numericSlider':
                     fieldDOMHTML = renderNumericSliderField(field, prefix);
                     break;
+                case 'groupletReference':
+                    // Do nothing
+                    fieldDOMHTML = '';
+                    break;
                 default:
                     console.log('Unknown field type: ' + field.type);
+            }
+            
+            // If no field value returned, do nothing
+            if (fieldDOMHTML === undefined || (typeof fieldDOMHTML === 'string' && fieldDOMHTML.length === 0)) {
+                continue;
             }
             
             // Append the field DOM html to the total output
@@ -5155,7 +5271,9 @@ var fc = (function ($) {
         }
 
         // Check to ensure source field values is an array
+        console.log(sourceField);
         source = fc.fields[sourceField];
+        console.log(source);
         if (!$.isArray(source) || source.length === 0) {
             return '';
         }
@@ -5175,9 +5293,10 @@ var fc = (function ($) {
                     rowValues[tags[rowFieldId]] = rowValues[rowFieldId];
                 }
             }
-
+            
             // Data to set for token replacement
             data = $.extend({}, tagValues, rowValues);
+            console.log(data);
 
             // Build row html
             row = '<div class="fc-iterator-row">';
@@ -5237,18 +5356,46 @@ var fc = (function ($) {
             
             return html;
     };
+    
+    /**
+     * Initialise a greenID field
+     * @param field
+     * @param prefix
+     */
+    initGreenIDFieldInDOM = function (field, prefix) {
+        var html = '';
+        
+        // Force prefix to be a string
+        if (typeof prefix !== 'string') {
+            prefix = '';
+        }
+        
+        html += '<div class="fc-init-green-id" fc-prefix="' + prefix + '">Initialising...</div>';
+        return html;
+    };
 
     /**
      * Render the Green ID field
      * @param field
      * @param prefix
+     * @param bypass
      * @returns {string}
      */
-    renderGreenIdField = function (field, prefix) {
+    renderGreenIdField = function (field, prefix, bypass) {
+        // Default bypass to false
+        if (typeof bypass !== 'boolean') {
+            bypass = false;
+        }
+        
+        // Default prefix to an empty string
+        if (typeof prefix !== 'string') {
+            prefix = '';
+        }
+        
         // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
-        if (typeof fc.fields[getId(field)] !== 'object' || fc.fields[getId(field)].result === undefined || fc.fields[getId(field)].result.userId === 'undefined') {
+        if (!bypass && (typeof fc.fields[prefix + getId(field)] !== 'object' || fc.fields[prefix + getId(field)].result === undefined || fc.fields[prefix + getId(field)].result.userId === 'undefined')) {
             console.log('GreenID field not previously initialised. Unable to render.');
-            return;
+            return initGreenIDFieldInDOM(field, prefix);
         }
 
         var html = '',
@@ -5274,7 +5421,7 @@ var fc = (function ($) {
             contentListField,
             packageHtml,
             packages,
-            fieldValue = fc.fields[getId(field)],
+            fieldValue = fc.fields[prefix + getId(field)],
             licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
             licenseType;
 
@@ -5286,7 +5433,7 @@ var fc = (function ($) {
         // Generate field obj
         contentListField = {
             '_id': {
-                '$id': getId(field) + '_rootSelection'
+                '$id': prefix + getId(field) + '_rootSelection'
             },
             config: field.config
         };
@@ -5301,7 +5448,7 @@ var fc = (function ($) {
 
         // Add success messages
         packages = $(packageHtml);
-        packages.find('.fc-content-content').append('<div class="fc-successfully-verified"><i class="fa fa-check"></i> Successfully verified</div>');
+        packages.find('.fc-content-content').append('<div class="fc-successfully-verified"> Successfully verified</div>');
 
         // Iterates through all of the license types to see if that particular instance has been verified
         if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-drivers-license').length > 0) {
@@ -5846,7 +5993,6 @@ var fc = (function ($) {
 
         // Store when not a repeatable value
         if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
-            console.log('field is not repeatable');
             fc.fields[dataId] = value;
 
             // If a grouplet, save the original state of the grouplet
