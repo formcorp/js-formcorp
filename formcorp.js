@@ -566,6 +566,26 @@ var fc = (function ($) {
 
             return tags;
         },
+        
+        /**
+         * Iterate through each field and return a simple key => value array
+         * @param fields
+         * @returns {{}}
+         */
+        getFieldsSchema = function (fields) {
+            if (typeof fields !== 'object') {
+                return {};
+            }
+            
+            var iterator, field, schema = {};
+            
+            for (iterator = 0; iterator < fields.length; iterator += 1) {
+                field = fields[iterator];
+                schema[getId(field)] = field;
+            }
+            
+            return schema;
+        },
 
         /**
          * Retrieve the field tags
@@ -1212,7 +1232,6 @@ var fc = (function ($) {
                 // Determine the prefix
                 if (field !== undefined && dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
                     prefix = dataId.replace(getId(field), '');
-                    console.log(prefix);
                 }
                 
                 // If not required, do nothing
@@ -3620,6 +3639,9 @@ var fc = (function ($) {
                         fieldSelector.find('.fc-init-green-id').remove();
                         fieldSelector.find('.fc-fieldgroup').prepend(html);
                         init();
+                        
+                        // Mark as not initialised
+                        fieldSelector.addClass('fc-not-verified');
                     }
                 } else {
                     // greenID failed to initialise for the selected field
@@ -4481,8 +4503,6 @@ var fc = (function ($) {
                 html += renderTextfield(fields.familyName);
                 html += '</div>';
 
-                html += '<div class="fc-clear"></div>';
-
                 // Date of birth
                 html += '<div class="dob fc-green-field"><label>Date of birth (DD/MM/YYYY): <span class="fc-required-caret">*</span></label>';
                 html += renderTextfield(fields.dateOfBirth);
@@ -4687,8 +4707,6 @@ var fc = (function ($) {
                     verificationTypeClicked = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g) !== null,
                     verificationFunction = decodeURIComponent(value).replace(/[^a-zA-Z0-9\_]/g, '');
 
-                console.log(verificationFunction);
-
                 if (verificationTypeClicked && typeof callbackFunctions[verificationFunction] === 'function') {
                     // The user selects a verification type
                     return callbackFunctions[verificationFunction](el);
@@ -4696,7 +4714,7 @@ var fc = (function ($) {
 
                 return false;
             });
-
+            
             // Event handler for passport country fieldSchema
             $(fc.jQueryContainer).on('change', '.fc-green-field.country-birth select', function () {
                 var countryCode = $(this).find('option:selected').val(),
@@ -5392,10 +5410,7 @@ var fc = (function ($) {
             nameHtml = '',
             addressHtml = '',
             values = fc.fields[fieldId].values;
-            
-        console.log('FIELD HEADER');
-        console.log(fieldId);
-        
+
         // First line: name
         if (typeof values.title === 'string' && values.title.length > 0) {
             // Title
@@ -6042,7 +6057,6 @@ var fc = (function ($) {
             index,
             groupletID;
             
-        console.log('value changed');
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
         if (fieldSchema === undefined) {
@@ -6133,8 +6147,6 @@ var fc = (function ($) {
                         // without values existing from 0 to n-1. Therefore, need to iterate through and ensure n-1
                         // rows exist within the array.
                         if (typeof fc.fields[groupletID][index] !== 'object') {
-                            console.log(1);
-                            console.log('index: ' + index);
                             for (iterator = 0; iterator <= index; iterator += 1) {
                                 if (typeof fc.fields[groupletID][iterator] !== 'object') {
                                     fc.fields[groupletID].push({});
@@ -6758,9 +6770,13 @@ var fc = (function ($) {
         }
 
         logEvent(fc.eventTypes.onNextPageClick);
+        
+        console.log('load next page clicked');
 
         if (!validForm()) {
             logEvent(fc.eventTypes.onNextPageError);
+            
+            console.log('not valid');
 
             // Scroll to first error
             if (showError && fc.config.scrollOnSubmitError) {
@@ -7278,7 +7294,11 @@ var fc = (function ($) {
                 token,
                 replacement,
                 re,
-                domObj;
+                domObj,
+                parts,
+                groupletTags,
+                groupletSchema,
+                key;
 
             if (typeof json !== 'object') {
                 return false;
@@ -7290,9 +7310,28 @@ var fc = (function ($) {
             } catch (ignore) {
                 return false;
             }
+            
 
-            // Retrieve field tags and perform replacement=
+            // Retrieve field tags and perform replacement
             tags = getFieldTags(true);
+            
+            // If the field belongs to a grouplet, need to also match simple grouplet tags to the complex ids
+            if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+                parts = dataId.split(fc.constants.prefixSeparator);
+                if (fc.fieldSchema[parts[0]] !== undefined && fc.fieldSchema[parts[0]].type !== undefined && fc.fieldSchema[parts[0]].type === 'grouplet') {
+                    // Fetch the grouplet schema
+                    groupletSchema = getFieldsSchema(getConfig(fc.fieldSchema[parts[0]], 'grouplet', {'field': []}).field);
+                    for (key in groupletSchema) {
+                        if (groupletSchema.hasOwnProperty(key)) {
+                            if (getConfig(groupletSchema[key], 'tag', '').length > 0) {
+                                tags[getConfig(groupletSchema[key], 'tag', '')] = [parts[0], parts[1], key].join(fc.constants.prefixSeparator);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Iterate through each mapped tag and attempt to update values within the DOM
             for (tag in mapObj) {
                 if (mapObj.hasOwnProperty(tag)) {
                     if (tags[tag] !== undefined) {

@@ -786,6 +786,13 @@ div.fc-pagination {
     font-weight: bold;
 }
 
+.fc-green-id-header-summary {
+    background: #F1F1F1;
+    padding: 4px 18px;
+    border-radius: 9px;
+    margin-bottom: 18px;
+}
+
 /**
  * FormCorp Loader
  */
@@ -967,9 +974,3 @@ div.fc-pagination {
     background: #ccc;
 }
 
-.fc-green-id-header-summary {
-    background: #F1F1F1;
-    padding: 4px 18px;
-    border-radius: 9px;
-    margin-bottom: 18px;
-}
