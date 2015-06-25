@@ -6027,7 +6027,7 @@ var fc = (function ($) {
      * @param dataId
      * @param value
      */
-    valueChanged = function (dataId, value) {
+    valueChanged = function (dataId, value, force) {
         var fieldSchema = fc.fieldSchema[dataId],
             errors,
             params,
@@ -6056,10 +6056,13 @@ var fc = (function ($) {
             replaceSectionID,
             index,
             groupletID;
-            
+        
+        if (typeof force !== 'boolean') {
+            force = false;
+        }
 
         // If unable to locate the field schema, do nothing (i.e. credit card field changes)
-        if (fieldSchema === undefined) {
+        if (!force && fieldSchema === undefined) {
             return;
         }
 
@@ -6080,7 +6083,7 @@ var fc = (function ($) {
         }
 
         // If the value hasn't actually changed, return
-        if (fc.fields[dataId] && fc.fields[dataId] === value) {
+        if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
             return;
         }        
 
@@ -7336,7 +7339,6 @@ var fc = (function ($) {
                 if (mapObj.hasOwnProperty(tag)) {
                     if (tags[tag] !== undefined) {
                         tagId = tags[tag];
-
                         domObj = $('.fc-field[fc-data-group="' + tagId + '"');
 
                         if (domObj.length > 0) {
@@ -7353,11 +7355,13 @@ var fc = (function ($) {
                                     val = val.replace(re, replacement);
                                 }
                             }
-
+                            
                             // Set the field value in the DOM
                             fc.fields[tagId] = val;
                             fc.saveQueue[tagId] = val;
                             setDomValue(domObj, val);
+                            
+                            valueChanged(tagId, val, true);
                         }
                     }
                 }
