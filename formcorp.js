@@ -1185,6 +1185,83 @@ var fc = (function ($) {
             
             return false;
         },
+        
+        /**
+         * Retrieve errors for a field ID
+         * @param fieldId
+         */
+        getFieldErrors = function (fieldId) {
+            var errors = [],
+                field = fc.fieldSchema[fieldId],
+                skipCheck = false;
+                
+            // If the field hasn't been defined, return no errors
+            if (field === undefined) {
+                return [];
+            }
+            
+            // If a credit card payment field, treat uniquely
+            if (field.type === "creditCard") {
+                if (value.length === 0) {
+                    errors.push(fc.lang.paymentRequired);
+                }
+                skipCheck = true;
+            } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
+                // If email or sms verification, check if verified
+                console.log('check email verification');
+                if (fc.fields[getId(field)] === undefined || fc.fields[getId(field)] !== '1') {
+                    errors.push(fc.lang.fieldMustBeVerified);
+                } else {
+                    // Successfully verified
+                    skipCheck = true;
+                }
+            } else if (field.type === "signature") {
+                // Signature fields need to be uniquely validated
+                if (fc.renderedSignatures === undefined || fc.renderedSignatures[fieldId] === undefined) {
+                    // Signature hasn't been initialised
+                    errors.push("Field has not been initialised");
+                } else {
+                    if (fc.renderedSignatures[fieldId].validateForm() === false) {
+                        // Attempt to validate the field
+                        errors.push(fc.lang.emptyFieldError);
+                    } else {
+                        // Store the value
+                        fc.fields[fieldId] = fc.renderedSignatures[fieldId].getSignatureString();
+                    }
+                }
+                skipCheck = true;
+
+            } else if (field.type === "grouplet") {
+                // Grouplet field as a whole doesn't need to be validated
+                return;
+            } else if (field.type === "greenIdVerification") {
+                // Validate a Green ID field
+                if (fc.greenID === undefined) {
+                    // Green ID has yet to be initialised
+                    errors.push('Green ID has not been initialised.');
+                } else if (typeof value !== "object" || !fc.greenID.passesValidation(prefix + getId(field))) {
+                    // Validation is allowed to pass
+                    errors.push('You must verify your identity.');
+                } else {
+                    // Otherwise the verification is valid
+                    skipCheck = true;
+                }
+            }
+
+            // If repeatable and required, check the amount of values
+            if (!skipCheck && errors.length === 0) {
+                if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
+                    required = $(this).attr('data-required');
+                    if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
+                        errors.push(fc.lang.emptyFieldError);
+                    }
+                } else {
+                    errors = fieldErrors(fieldId);
+                }
+            }
+            
+            return errors;
+        },
 
         /**
          * Check the validity of the entire form.
@@ -1192,6 +1269,7 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         validForm = function (rootElement, showErrors) {
+            console.log('validForm checked');
             var errors = {},
                 required;
 
@@ -1249,64 +1327,8 @@ var fc = (function ($) {
                     return;
                 }
 
-                // If a credit card payment field, treat uniquely
-                if (field.type === "creditCard") {
-                    if (value.length === 0) {
-                        localErrors.push(fc.lang.paymentRequired);
-                    }
-                    skipCheck = true;
-                } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
-                    // If email or sms verification, check if verified
-                    if (fc.fields[getId(field)] === undefined || fc.fields[getId(field)] !== '1') {
-                        localErrors.push(fc.lang.fieldMustBeVerified);
-                    } else {
-                        // Successfully verified
-                        skipCheck = true;
-                    }
-                } else if (field.type === "signature") {
-                    // Signature fields need to be uniquely validated
-                    if (fc.renderedSignatures === undefined || fc.renderedSignatures[dataId] === undefined) {
-                        // Signature hasn't been initialised
-                        localErrors.push("Field has not been initialised");
-                    } else {
-                        if (fc.renderedSignatures[dataId].validateForm() === false) {
-                            // Attempt to validate the field
-                            localErrors.push(fc.lang.emptyFieldError);
-                        } else {
-                            // Store the value
-                            fc.fields[dataId] = fc.renderedSignatures[dataId].getSignatureString();
-                        }
-                    }
-                    skipCheck = true;
-
-                } else if (field.type === "grouplet") {
-                    // Grouplet field as a whole doesn't need to be validated
-                    return;
-                } else if (field.type === "greenIdVerification") {
-                    // Validate a Green ID field
-                    if (fc.greenID === undefined) {
-                        // Green ID has yet to be initialised
-                        localErrors.push('Green ID has not been initialised.');
-                    } else if (typeof value !== "object" || !fc.greenID.passesValidation(prefix + getId(field))) {
-                        // Validation is allowed to pass
-                        localErrors.push('You must verify your identity.');
-                    } else {
-                        // Otherwise the verification is valid
-                        skipCheck = true;
-                    }
-                }
-
-                // If repeatable and required, check the amount of values
-                if (!skipCheck && localErrors.length === 0) {
-                    if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
-                        required = $(this).attr('data-required');
-                        if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
-                            localErrors.push(fc.lang.emptyFieldError);
-                        }
-                    } else {
-                        localErrors = fieldErrors(dataId);
-                    }
-                }
+                // Retrieve the field errors
+                localErrors = getFieldErrors(dataId);
 
                 // If have errors, output
                 if (localErrors.length > 0) {
@@ -2450,6 +2472,16 @@ var fc = (function ($) {
 
             return $(form);
         },
+        
+        /**
+         * Force update of a field value and save to the data storage.
+         * @param fieldId
+         * @param value
+         */
+        forceUpdateFieldValue = function (fieldId, value) {
+            fc.fields[fieldId] = value;
+            fc.saveQueue[fieldId] = value;
+        },
 
         /**
          * Send the payment request to formcorp
@@ -2782,6 +2814,7 @@ var fc = (function ($) {
                     // The field was successfully verified
                     $('[fc-data-group="' + fc.modalMeta.fieldId + '"]').addClass('fc-verified');
                     fc.fields[fc.modalMeta.fieldId] = '1';
+                    valueChanged(fc.modalMeta.fieldId, '1', true);
                     hideModal();
                 }
 
@@ -2896,17 +2929,23 @@ var fc = (function ($) {
                 registerEmailVerificationListeners();
             }
 
-            /// Start formatting the html to output
+            // Start formatting the html to output
             var html = '',
                 fieldValue = fc.fields[getId(field)],
-                verified = fieldValue !== undefined && fieldValue === '1';
+                verified = fieldValue !== undefined && fieldValue === '1',
+                buttonText = getConfig(field, 'sendButtonText', '');
+            
+            // Default button text
+            if (buttonText.length === 0) {
+                buttonText = fc.lang.sendEmail;
+            }
 
             // If not verified, show the form to verify
             if (!verified) {
                 html += '<div class="fc-email-verification" fc-belongs-to="' + getId(field) + '">';
 
                 html += '<div class="fc-send-email">';
-                html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendEmail + '"><div class="fc-loading fc-hide"></div>';
+                html += '<input class="fc-btn" type="submit" value="' + buttonText + '"><div class="fc-loading fc-hide"></div>';
                 html += '<div class="fc-clear fc-verification-options">';
                 html += '<p><small>Already have a verification code? Click <a href="#" class="fc-email-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
                 html += '</div></div>';
@@ -2920,6 +2959,23 @@ var fc = (function ($) {
             html += fc.lang.fieldValidated;
             html += '</div>';
             /*!fc-success*/
+            
+            // Auto send the email
+            if (!verified && fieldValue === undefined && getConfig(field, 'autoDeliverOnFirstRender', false)) {
+                console.log('look to auto deliver on first render.');
+                
+                // Send the api callback to deliver the email
+                api('verification/callback', {field: getId(field)}, 'POST', function (data) {
+                    // On successful request, load a dialog to input the code
+                    if (typeof data === "object" && data.success !== undefined && data.success) {
+                        showEmailVerificationModal(getId(field));
+                        waitForVerification(getId(field));
+                        
+                        // Update the field value
+                        forceUpdateFieldValue(getId(field), '0');
+                    }
+                });
+            }
 
             return html;
         },
@@ -5888,6 +5944,7 @@ var fc = (function ($) {
             fc.prevPages[pageId] = getPageById(fc.currentPage);
         }
 
+        // Update the current page on render
         fc.currentPage = pageId;
 
         // Store field schema locally
@@ -5899,6 +5956,7 @@ var fc = (function ($) {
             // Show form in stages
             $(fc.jQueryContainer + ' .render').html(html);
         } else {
+            // If a one-page form, append to the DOM
             $(fc.jQueryContainer + ' .render').append(html);
             fc.pageOrders.push(pageId);
             $(fc.jQueryContainer).find('.fc-pagination').hide();
@@ -5940,6 +5998,7 @@ var fc = (function ($) {
      * @returns {*}
      */
     nextPage = function (shouldRender, returnPage, pageId) {
+        console.log('nextPage called');
         if (typeof shouldRender !== 'boolean') {
             shouldRender = true;
         }
@@ -5985,21 +6044,17 @@ var fc = (function ($) {
             stage = fc.schema.stage[x];
 
             // If the stage that is to be rendered has been found, do so
-            /*jslint nomen: true*/
             if (foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
                 if (shouldRender) {
-                    render(stage.page[0]._id.$id, true);
+                    render(getId(stage.page[0]), true);
                 }
-                return returnPage ? getPageById(stage.page[0]._id.$id) : true;
+                return returnPage ? getPageById(getId(stage.page[0])) : true;
             }
-            /*jslint nomen: false*/
 
             // If the current iterative stage is the stage of the currently rendered page, mark the next stage to be rendered
-            /*jslint nomen: true*/
-            if (stage._id.$id === currentPage.stage._id.$id) {
+            if (getId(stage) === getId(currentPage.stage)) {
                 foundStage = true;
             }
-            /*jslint nomen: false*/
         }
 
         return false;
@@ -7651,7 +7706,8 @@ var fc = (function ($) {
             grouplet,
             val,
             visible,
-            defaultValue;
+            defaultValue,
+            errors;
 
         // Can pass through either an id to retrieve the schema, or the schema itself
         try {
@@ -7712,6 +7768,13 @@ var fc = (function ($) {
 
             return true;
         }
+        
+        // Check for basic errors
+        errors = getFieldErrors(dataId);
+        console.log(errors);
+        if ($.isArray(errors) && errors.length > 0) {
+            return false;
+        }
 
         // Check custom validators
         customErrors = getCustomErrors(schema, value);
@@ -7720,7 +7783,6 @@ var fc = (function ($) {
 
     /**
      * Iterates through an object of dataId=>value pairs to determine if fields are valid.
-     *
      * @param fields
      * @returns {boolean}
      */
@@ -7778,6 +7840,8 @@ var fc = (function ($) {
             valid,
             allowAutoLoad,
             continueLoading = false;
+            
+        console.log('getFirstPage');
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
@@ -7787,11 +7851,13 @@ var fc = (function ($) {
                 break;
             }
 
+            // If no stage exists, consider an erroneous page and break out
             if (typeof page.stage !== 'object') {
                 break;
             }
             fc.currentPage = id;
 
+            // Update the browser hash when required
             if (fc.config.updateHash) {
                 window.location.hash = id;
             }
@@ -7802,6 +7868,10 @@ var fc = (function ($) {
             fields = removeInvisibleSectionFields(page, fields);
             fields = pruneInvisibleFields(fields);
             valid = formFieldsValid(fields);
+            
+            console.log('check validity');
+            console.log(fields);
+            console.log(valid);
 
             // Whether to continue loading or not
             continueLoading = valid && !isSubmitPage(page.page);
@@ -8504,6 +8574,16 @@ var fc = (function ($) {
             }
 
             return field === comparisonValue;
+        },
+        
+        /**
+         * Returns whether two values are not equal equal.
+         * @param field
+         * @param comparisonValue
+         * @returns {boolean}
+         */
+        comparisonNot_equal: function (field, comparisonValue) {
+            return field !== comparisonValue;
         },
 
         /**
