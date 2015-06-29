@@ -150,12 +150,14 @@ div.fc-pagination {
 }
 
 /* Hide fields on repeatable */
-.fc-field .fc-repeatable .fc-fieldgroup .fc-field, .fc-field .fc-repeatable .fc-fieldgroup .fc-fieldinput {
+.fc-field .fc-repeatable .fc-fieldgroup .fc-field, 
+.fc-field .fc-repeatable .fc-fieldgroup .fc-fieldinput {
     display: none;
 }
 
 /* Show repeatable fields outputted to DOM by default */
-.fc-field .fc-repeatable.fc-repeatable-predetermined .fc-fieldgroup .fc-fieldinput {
+.fc-field .fc-repeatable.fc-repeatable-predetermined .fc-fieldgroup .fc-fieldinput,
+.fc-field .fc-repeatable.fc-repeatable-in-dom .fc-fieldgroup .fc-fieldinput {
     display: block;
 }
 

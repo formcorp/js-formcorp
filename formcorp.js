@@ -5231,13 +5231,19 @@ var fc = (function ($) {
             if (getConfig(field, 'repeatable', false) === true) {
                 repeatableStyle = parseInt(getConfig(field, 'repeatableStyle', 0));
                 
-                fieldHtml += '<div class="fc-repeatable' + (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined) ? ' fc-repeatable-predetermined' : '') + '">';
-                fieldHtml += '<div class="fc-summary"></div>';
-                
-                // Output a button depending on style
-                if (repeatableStyle.length === 0 || fc.constants.repeatableWithButton.indexOf(repeatableStyle) >= 0) {
-                    fieldHtml += '<div class="fc-link"><a href="#" class="fc-click" data-id="' + dataId + '">' + fc.lang.addFieldTextValue + '</a></div>';
+                // Output the repeatable container
+                fieldHtml += '<div class="fc-repeatable';
+                if (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined)) {
+                    fieldHtml += ' fc-repeatable-predetermined';
                 }
+                
+                // If in the DOM, add an additional class
+                if (fc.constants.repeatableInDOM.indexOf(parseInt(repeatableStyle)) >= 0) {
+                    fieldHtml += ' fc-repeatable-in-dom';
+                }
+                
+                fieldHtml += '">';
+                fieldHtml += '<div class="fc-summary"></div>';
             }
 
             fieldHtml += '<div class="fc-fieldgroup">';
@@ -5331,10 +5337,35 @@ var fc = (function ($) {
             if (getConfig(field, 'repeatable', false) === true) {
                 fieldHtml += '</div>';
                 
-                // If repeatable (and amount pre-determined), output the rows
-                if (parseInt(repeatableStyle) === parseInt(fc.constants.repeatablePredetermined)) {
+                // If rows are outputted in DOM, output container
+                if (fc.constants.repeatableInDOM.indexOf(parseInt(repeatableStyle)) >= 0) {
+                    fieldHtml += '<div class="fc-repeatable-rows">';
+                }
+                
+                // If repeatable (and to be shown in the DOM), output the rows
+                if (fc.constants.repeatableInDOM.indexOf(parseInt(repeatableStyle)) > -1) {
                     fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1), section);
                 }
+                
+                // If rows are outputted in DOM, close container
+                if (fc.constants.repeatableInDOM.indexOf(parseInt(repeatableStyle)) >= 0) {
+                    fieldHtml += '</div>'; //!fc-repeatable-rows
+                }
+            }
+            
+            // Output a repeatable field
+            if (getConfig(field, 'repeatable', false) && (repeatableStyle.length === 0 || fc.constants.repeatableWithButton.indexOf(repeatableStyle) >= 0)) {
+                // Remove button (for style '1' - add button in DOM)
+                if (parseInt(repeatableStyle) === 1) {
+                    fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-remove" data-id="' + dataId + '">';
+                    fieldHtml += getConfig(field, 'removeButtonText', '').length > 0 ? getConfig(field, 'removeButtonText') : fc.lang.removeFieldTextValue;
+                    fieldHtml += '</a></div>';
+                }
+                
+                // Add button
+                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-add" data-id="' + dataId + '">';
+                fieldHtml += getConfig(field, 'addButtonText', '').length > 0 ? getConfig(field, 'addButtonText') : fc.lang.addFieldTextValue;
+                fieldHtml += '</a></div>';
             }
 
             fieldHtml += '<div class="fc-empty"></div></div>';
@@ -7098,17 +7129,103 @@ var fc = (function ($) {
         });
 
         // Add value for a repeatable group
-        $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click', function () {
+        $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click.fc-add', function () {
             var dataId = $(this).attr('data-id'),
-                html = $("<div />").append($('[fc-data-group="' + dataId + '"] > .fc-fieldcontainer').clone()).html();
+                html = '',
+                schema = fc.fieldSchema[dataId],
+                repeatableStyle,
+                sectionId,
+                fieldContainer,
+                rowContainer,
+                currentRows;
+                
+            // If the schema is set and is repeatable, determine what to do
+            if (schema !== undefined && getConfig(schema, 'repeatable', false)) {
+                repeatableStyle = parseInt(getConfig(schema, 'repeatableStyle', 0));
+                
+                // Different repeatable objects have different styles. 
+                // Style '0': show the form fields in a modal dialog.
+                // Style '1': drop the form fields undearnath.
+                if (repeatableStyle === 0) {
+                    // Style '0': show the form fields in a modal dialog.
+                    fc.activeModalField = dataId;
+                    fc.modalState = fc.states.ADD_REPEATABLE;
 
-            // Set current active modal
-            fc.activeModalField = dataId;
-            fc.modalState = fc.states.ADD_REPEATABLE;
-
-            $('.fc-modal .modal-body').html(html);
-            $('.fc-modal').addClass('fc-show');
-
+                    html = $("<div />").append($('[fc-data-group="' + dataId + '"] > .fc-fieldcontainer').clone()).html();
+                    $('.fc-modal .modal-body').html(html);
+                    $('.fc-modal').addClass('fc-show');
+                } else if (repeatableStyle === 1) {
+                    // If already at the limit, do nothing
+                    
+                    // Style '1': drop form field underneath
+                    fieldContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"]');
+                    sectionId = fieldContainer.attr('fc-belongs-to');
+                    
+                    //  Append a row on to the end
+                    rowContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"] .fc-repeatable-rows');
+                    if (rowContainer.length > 0) {
+                        currentRows = rowContainer.find('.fc-repeatable-row').length;
+                        
+                        // Only perform the operation when under the maximum row threshold
+                        if (currentRows < getConfig(schema, 'maxRows', 100000)) {
+                            html = outputRepeatablePreDetermined(dataId, currentRows + 1, sectionId);
+                            rowContainer.html(html);
+                        }
+                        
+                        if (currentRows + 1 >= getConfig(schema, 'maxRows', 100000)) {
+                            // Hide the add button if hit the maximum threshold
+                            fieldContainer.find('.fc-add').addClass('fc-hide');
+                        } else if (fieldContainer.find('.fc-remove.fc-hide')) {
+                            // Show the remove button if its hidden
+                            fieldContainer.find('.fc-remove.fc-hide').removeClass('fc-hide');
+                        }
+                    }
+                }
+            }
+            return false;
+        });
+        
+        // Remove value for a repeatable group
+        $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click.fc-remove', function () {
+            var dataId = $(this).attr('data-id'),
+                html = '',
+                schema = fc.fieldSchema[dataId],
+                repeatableStyle,
+                sectionId,
+                rowContainer,
+                fieldContainer,
+                currentRows;
+                
+            // If the schema is set and is repeatable, determine what to do
+            if (schema !== undefined && getConfig(schema, 'repeatable', false)) {
+                repeatableStyle = parseInt(getConfig(schema, 'repeatableStyle', 0));
+                
+                if (repeatableStyle === 1) {
+                    // Style '1': drop form field underneath
+                    fieldContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"]');
+                    sectionId = fieldContainer.attr('fc-belongs-to');
+                    
+                    //  Append a row on to the end
+                    rowContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"] .fc-repeatable-rows');
+                    if (rowContainer.length > 0) {
+                        currentRows = rowContainer.find('.fc-repeatable-row').length;
+                        
+                        // Only output and make a change if one or more rows presently exist
+                        if (currentRows > 0) {
+                            html = outputRepeatablePreDetermined(dataId, currentRows - 1, sectionId);
+                            rowContainer.html(html);
+                        }
+                        
+                        if (currentRows - 1 === 0) {
+                            // Hide the remove button if zero rows
+                            fieldContainer.find('.fc-remove').addClass('fc-hide');
+                        } else if (fieldContainer.find('.fc-add.fc-hide')) {
+                            // Show the add button if its hidden
+                            fieldContainer.find('.fc-add.fc-hide').removeClass('fc-hide');
+                        }
+                    }
+                }
+            }
             return false;
         });
 
@@ -8511,6 +8628,7 @@ var fc = (function ($) {
                 submitFormText: "Submit application",
                 formCompleteHtml: '<h2 class="fc-header">Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
                 addFieldTextValue: 'Add value',
+                removeFieldTextValue: 'Remove value',
                 closeModalText: 'Close',
                 addModalText: 'Add',
                 addModalHeader: 'Add value',
