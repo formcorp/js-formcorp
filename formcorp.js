@@ -2962,13 +2962,16 @@ var fc = (function ($) {
             
             // Auto send the email
             if (!verified && fieldValue === undefined && getConfig(field, 'autoDeliverOnFirstRender', false)) {
-                console.log('look to auto deliver on first render.');
-                
                 // Send the api callback to deliver the email
                 api('verification/callback', {field: getId(field)}, 'POST', function (data) {
                     // On successful request, load a dialog to input the code
                     if (typeof data === "object" && data.success !== undefined && data.success) {
-                        showEmailVerificationModal(getId(field));
+                        // If the user has opted to automatically show the modal dialog after e-mail delivery, show it
+                        if (getConfig(field, 'autoShowModalDialog', false)) {
+                            showEmailVerificationModal(getId(field));
+                        }
+                        
+                        // Wait for verification asynchronously in the background
                         waitForVerification(getId(field));
                         
                         // Update the field value
@@ -5353,9 +5356,7 @@ var fc = (function ($) {
         }
 
         // Check to ensure source field values is an array
-        console.log(sourceField);
         source = fc.fields[sourceField];
-        console.log(source);
         if (!$.isArray(source) || source.length === 0) {
             return '';
         }
@@ -7248,6 +7249,10 @@ var fc = (function ($) {
                 postData,
                 request = {},
                 gracePeriod,
+                minCharsStripRegex,
+                minCharValue,
+                minCharRegex,
+                minCharAmount,
                 obj = this;
 
             // Fetch the grace period
@@ -7263,9 +7268,22 @@ var fc = (function ($) {
             }
 
             // Not enough characters to trigger an API lookup
-            if (value.length < parseInt(getConfig(schema, 'minCharsBeforeTrigger', 1))) {
-                removeAutoCompleteWidget(fieldId);
-                return;
+            minCharAmount = parseInt(getConfig(schema, 'minCharsBeforeTrigger', 0));
+            if (minCharAmount > 0) {
+                // Often various characters will want to be removed from the minimum character calclations.
+                // An example is a street address. You may want to ignore the house number and space (i.e. '12345 ')
+                // and only start triggering on the street name (in this case sample regex could be [\d\s]
+                minCharValue = value;
+                minCharsStripRegex = getConfig(schema, 'stripCharRegex', '');
+                if (minCharsStripRegex.length > 0) {
+                    minCharRegex = new RegExp(minCharsStripRegex, 'g');
+                    minCharValue = minCharValue.replace(minCharRegex, '');
+                }
+                
+                if (minCharValue.length < minCharAmount) {
+                    removeAutoCompleteWidget(fieldId);
+                    return;
+                }
             }
 
             // Fetch the URL to send the request to
@@ -7356,7 +7374,8 @@ var fc = (function ($) {
                 parts,
                 groupletTags,
                 groupletSchema,
-                key;
+                key,
+                successfulTransaction;
 
             if (typeof json !== 'object') {
                 return false;
@@ -7368,7 +7387,6 @@ var fc = (function ($) {
             } catch (ignore) {
                 return false;
             }
-            
 
             // Retrieve field tags and perform replacement
             tags = getFieldTags(true);
@@ -7420,6 +7438,18 @@ var fc = (function ($) {
                         }
                     }
                 }
+            }
+            
+            // In some instances, when a value is clicked a request needs to be sent off to a 3rd party URL
+            // to indicate a successful transaction. This is for instance, a case with an address lookup, where
+            // the merchant needs to be instructed of a successful transaction for billing purposes.
+            successfulTransaction = getConfig(schema, 'successfulTransaction', '');            
+            if (successfulTransaction.length > 0) {
+                // Send the request off @todo: more than just GET
+                $.ajax({
+                    'type': 'GET',
+                    'url': successfulTransaction,
+                });
             }
 
             removeAutoCompleteWidget(dataId);
