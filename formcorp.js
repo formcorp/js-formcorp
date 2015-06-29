@@ -2672,7 +2672,19 @@ var fc = (function ($) {
             html += '<div class="fc-creditCard-header">';
             if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 // Show the label
-                html += '<label>' + htmlEncode(getConfig(field, 'label')) + '</label>';
+                html += '<label>' + htmlEncode(getConfig(field, 'label'));
+                
+                // Option to show labels on required fields
+                if (fc.config.asterisksOnLabels && getConfig(field, 'required', false)) {
+                    html += '<span class="fc-required-caret">' + fc.lang.requiredAsterisk + '</span>';
+                }
+                
+                // Option: show a colon after the label
+                if (fc.config.colonAfterLabel) {
+                    html += fc.lang.labelColon;
+                }
+                
+                html += '</label>';
             }
 
             if (getConfig(field, 'label', '').length > 0) {
@@ -5177,6 +5189,16 @@ var fc = (function ($) {
                 if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                     fieldHtml += '<label>';
                     fieldHtml += tokenise(field.config.label);
+                    
+                    // Option to show labels on required fields
+                    if (fc.config.asterisksOnLabels && getConfig(field, 'required', false)) {
+                        fieldHtml += '<span class="fc-required-caret">' + fc.lang.requiredAsterisk + '</span>';
+                    }
+                    
+                    // Option: show colon after label
+                    if (fc.config.colonAfterLabel) {
+                        fieldHtml += fc.lang.labelColon;
+                    }
 
                     // If set to open help data in a modal, output the link
                     if (fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
@@ -8448,6 +8470,8 @@ var fc = (function ($) {
                 deleteSessionOnComplete: true,
                 autoShiftFocusOnEnter: false,
                 minSizeForMobile: 479,
+                asterisksOnLabels: true,
+                colonAfterLabel: true,
                 helpAsModal: false
             };
 
@@ -8530,7 +8554,9 @@ var fc = (function ($) {
                 validate: 'Validate',
                 validAbnRequired: 'You must enter and validate a valid ABN.',
                 helpModalLink: 'what is this?',
-                helpTitle: 'What is this?'
+                helpTitle: 'What is this?',
+                requiredAsterisk: '*',
+                labelColon: ':'
             };
 
             // Update with client options
