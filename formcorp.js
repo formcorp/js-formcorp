@@ -983,9 +983,25 @@ var fc = (function ($) {
         /**
          * Returns the page id a field belongs to
          * @param fieldId
+         * @param useDOM
          * @returns {*}
          */
-        getFieldPageId = function (fieldId) {
+        getFieldPageId = function (fieldId, useDOM) {
+            var stageIterator,
+                pageIterator, 
+                sectionIterator, 
+                fieldIterator, 
+                groupletIterator, 
+                page, 
+                section, 
+                field, 
+                groupletFields;
+                
+            // Default use DOM to false
+            if (typeof useDOM !== 'boolean') {
+                useDOM = false;
+            }
+            
             if (fc.fieldPages === undefined) {
                 fc.fieldPages = {};
             }
@@ -993,36 +1009,54 @@ var fc = (function ($) {
             if (fc.fieldPages[fieldId] !== undefined && typeof fc.fieldPages[fieldId] === "string") {
                 return fc.fieldPages[fieldId];
             }
+            
+            // Method 1: Iterate through the schema and look for a match
+            if (!useDOM) {
+                // Iterate through each stage and look for a field match
+                for (stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
+                    for (pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
+                        page = fc.schema.stage[stageIterator].page[pageIterator];
+                        for (sectionIterator = 0; sectionIterator < page.section.length; sectionIterator += 1) {
+                            if (typeof page.section[sectionIterator].field !== "object") {
+                                continue;
+                            }
+                            section = page.section[sectionIterator];
 
-            var stageIterator, pageIterator, sectionIterator, fieldIterator, groupletIterator, page, section, field, groupletFields;
+                            for (fieldIterator = 0; fieldIterator < section.field.length; fieldIterator += 1) {
+                                field = section.field[fieldIterator];
+                                fc.fieldPages[getId(field)] = getId(page);
 
-            for (stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
-                for (pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
-                    page = fc.schema.stage[stageIterator].page[pageIterator];
-                    for (sectionIterator = 0; sectionIterator < page.section.length; sectionIterator += 1) {
-                        if (typeof page.section[sectionIterator].field !== "object") {
-                            continue;
-                        }
-                        section = page.section[sectionIterator];
-
-                        for (fieldIterator = 0; fieldIterator < section.field.length; fieldIterator += 1) {
-                            field = section.field[fieldIterator];
-                            /*jslint nomen: true*/
-                            fc.fieldPages[field._id.$id] = page._id.$id;
-                            /*jslint nomen: false*/
-
-                            // If field is a grouplet, need to get grouplet fields
-                            if (field.type === "grouplet") {
-                                groupletFields = getGroupletFields(field);
-                                for (groupletIterator = 0; groupletIterator < groupletFields.length; groupletIterator += 1) {
-                                    /*jslint nomen: true*/
-                                    fc.fieldPages[groupletFields[groupletIterator]] = page._id.$id;
-                                    /*jslint nomen: false*/
+                                // If field is a grouplet, need to get grouplet fields
+                                if (field.type === "grouplet") {
+                                    groupletFields = getGroupletFields(field);
+                                    for (groupletIterator = 0; groupletIterator < groupletFields.length; groupletIterator += 1) {
+                                        fc.fieldPages[groupletFields[groupletIterator]] = getId(page);
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            } else {
+                // Method 2: use the DOM to attempt to find a match
+                field = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + fieldId + '"]');
+                if (field.length === 0) {
+                    // If can't find the field, do nothing.
+                    return '';
+                }
+                
+                // Attempt to find the section the field belongs to
+                section = $(fc.jQueryContainer).find('.fc-section-' + field.attr('fc-belongs-to'));
+                if (section.length === 0) {
+                    return '';
+                }
+                
+                // Check if the parent has class fc-page (to indicate its a page)
+                if (!section.parent().hasClass('fc-page')) {
+                    return '';
+                }
+                
+                return section.parent().attr('data-page-id');
             }
 
             if (fc.fieldPages[fieldId] !== undefined && typeof fc.fieldPages[fieldId] === "string") {
@@ -1208,7 +1242,6 @@ var fc = (function ($) {
                 skipCheck = true;
             } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
                 // If email or sms verification, check if verified
-                console.log('check email verification');
                 if (fc.fields[getId(field)] === undefined || fc.fields[getId(field)] !== '1') {
                     errors.push(fc.lang.fieldMustBeVerified);
                 } else {
@@ -1269,7 +1302,6 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         validForm = function (rootElement, showErrors) {
-            console.log('validForm checked');
             var errors = {},
                 required;
 
@@ -3700,7 +3732,6 @@ var fc = (function ($) {
                 var html, fieldSelector, prefix;
                 
                 prefix = fieldId.replace(getId(fc.fieldSchema[fieldId]), '');
-                console.log(prefix);
                     
                 // When a valid result is returned by the server, output accordingly
                 if (typeof data === 'object' && data.result !== undefined && typeof data.result === 'object') {
@@ -4812,6 +4843,40 @@ var fc = (function ($) {
         onSchemaLoaded = function () {
             initGreenId();
         },
+        
+        /**
+         * Flush the active page for a field (to be triggered when its value changes)
+         * @param dataId
+         * @param useDom
+         */
+        flushActivePageForField = function (dataId, useDom) {
+            var pageDataId, foundPage = false;
+            
+            // Default useDom to false
+            if (typeof useDom !== 'boolean') {
+                useDom = false;
+            }
+            
+            console.log('Flush active page for: ' + dataId);
+            
+            fc.currentPage = getFieldPageId(dataId, useDom);
+            $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
+            $('.fc-page').each(function () {
+                pageDataId = $(this).attr('data-page-id');
+                if (foundPage && pageDataId !== fc.currentPage) {
+                    $(this).remove();
+                } else if (pageDataId === fc.currentPage) {
+                    foundPage = true;
+                }
+            });
+            
+            console.log(foundPage);
+
+            // Update the page orders
+            if (fc.pageOrders.indexOf(fc.currentPage) !== fc.pageOrders.length - 1) {
+                fc.pageOrders = fc.pageOrders.splice(0, fc.pageOrders.indexOf(fc.currentPage) + 1);
+            }
+        },
 
         updateMobileFieldsVisibility,
         renderGrouplet,
@@ -5095,6 +5160,7 @@ var fc = (function ($) {
             match,
             re,
             helpTitle,
+            amountOfRows,
             repeatableStyle;
 
         // Field id prefix (for grouplet fields that may be shown multiple times)
@@ -5344,7 +5410,20 @@ var fc = (function ($) {
                 
                 // If repeatable (and to be shown in the DOM), output the rows
                 if (fc.constants.repeatableInDOM.indexOf(parseInt(repeatableStyle)) > -1) {
-                    fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1), section);
+                    if (parseInt(repeatableStyle) === fc.constants.repeatablePredetermined) {
+                        // Style 2: pre-determined (either has static or DOM)
+                        fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1), section);
+                    } else {
+                        // Style 1: in DOM (initial value must be how many are saved)
+                        if (fc.fields[getId(field)] !== undefined && $.isArray(fc.fields[getId(field)])) {
+                            // If values have already been set, use it for the initial array length
+                            amountOfRows = fc.fields[getId(field)].length;
+                        } else {
+                            amountOfRows = 1;
+                        }
+                        
+                        fieldHtml += outputRepeatablePreDetermined(getId(field), amountOfRows, section);
+                    }
                 }
                 
                 // If rows are outputted in DOM, close container
@@ -5432,7 +5511,6 @@ var fc = (function ($) {
             
             // Data to set for token replacement
             data = $.extend({}, tagValues, rowValues);
-            console.log(data);
 
             // Build row html
             row = '<div class="fc-iterator-row">';
@@ -6052,7 +6130,6 @@ var fc = (function ($) {
      * @returns {*}
      */
     nextPage = function (shouldRender, returnPage, pageId) {
-        console.log('nextPage called');
         if (typeof shouldRender !== 'boolean') {
             shouldRender = true;
         }
@@ -6166,6 +6243,8 @@ var fc = (function ($) {
             index,
             groupletID;
         
+        console.log('value changed triggered');
+        
         if (typeof force !== 'boolean') {
             force = false;
         }
@@ -6277,21 +6356,8 @@ var fc = (function ($) {
         }
 
         // Set the active page id to the page that the field belongs to, delete later pages
-        fc.currentPage = getFieldPageId(dataId);
-        $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
-        $('.fc-page').each(function () {
-            pageDataId = $(this).attr('data-page-id');
-            if (foundPage && pageDataId !== fc.currentPage) {
-                $(this).remove();
-            } else if (pageDataId === fc.currentPage) {
-                foundPage = true;
-            }
-        });
-
-        // Update the page orders
-        if (fc.pageOrders.indexOf(fc.currentPage) !== fc.pageOrders.length - 1) {
-            fc.pageOrders = fc.pageOrders.splice(0, fc.pageOrders.indexOf(fc.currentPage) + 1);
-        }
+        console.log('look to flush the active page');
+        flushActivePageForField(dataId, true);
 
         // If the item belongs to a repeatable object (or grouplet in the DOM), do not store the changed value
         if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
@@ -6320,6 +6386,7 @@ var fc = (function ($) {
                 if (fc.config.saveInRealTime === true) {
                     fc.saveQueue[dataId] = value;
                 }
+                
                 return;
             }
         }
@@ -6882,13 +6949,9 @@ var fc = (function ($) {
         }
 
         logEvent(fc.eventTypes.onNextPageClick);
-        
-        console.log('load next page clicked');
 
         if (!validForm()) {
             logEvent(fc.eventTypes.onNextPageError);
-            
-            console.log('not valid');
 
             // Scroll to first error
             if (showError && fc.config.scrollOnSubmitError) {
@@ -7170,6 +7233,11 @@ var fc = (function ($) {
                         if (currentRows < getConfig(schema, 'maxRows', 100000)) {
                             html = outputRepeatablePreDetermined(dataId, currentRows + 1, sectionId);
                             rowContainer.html(html);
+                            
+                            // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
+                            setFieldValues(rowContainer);
+                            flushFieldVisibility();
+                            flushActivePageForField(dataId, true);
                         }
                         
                         if (currentRows + 1 >= getConfig(schema, 'maxRows', 100000)) {
@@ -7214,6 +7282,11 @@ var fc = (function ($) {
                         if (currentRows > 0) {
                             html = outputRepeatablePreDetermined(dataId, currentRows - 1, sectionId);
                             rowContainer.html(html);
+                            
+                            // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
+                            setFieldValues(rowContainer);
+                            flushFieldVisibility();
+                            flushActivePageForField(dataId, true);
                         }
                         
                         if (currentRows - 1 === 0) {
@@ -7940,7 +8013,6 @@ var fc = (function ($) {
         
         // Check for basic errors
         errors = getFieldErrors(dataId);
-        console.log(errors);
         if ($.isArray(errors) && errors.length > 0) {
             return false;
         }
@@ -8009,8 +8081,6 @@ var fc = (function ($) {
             valid,
             allowAutoLoad,
             continueLoading = false;
-            
-        console.log('getFirstPage');
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
@@ -8038,10 +8108,6 @@ var fc = (function ($) {
             fields = pruneInvisibleFields(fields);
             valid = formFieldsValid(fields);
             
-            console.log('check validity');
-            console.log(fields);
-            console.log(valid);
-
             // Whether to continue loading or not
             continueLoading = valid && !isSubmitPage(page.page);
 
