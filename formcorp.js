@@ -9068,4 +9068,47 @@ validAbn = function (value) {
 
     // Return true if divisible by 89
     return total % 89 === 0;
+},
+
+/**
+ * Verifies whether an ABN is valid
+ * @param value
+ * @returns boolean
+ */
+validAcn = function (value) {
+    var hash = [8, 7, 6, 5, 4, 3, 2, 1],
+        total = 0,
+        iterator,
+        acn = value.replace(/[\s]+/g, '', value),
+        acnArr = acn.split(""),
+        divisor,
+        complement;
+        
+    if (/[^0-9]/.test(acn)) {
+        return false
+    }
+    
+    if (acn.length !== 9) {
+        return false;
+    }
+
+    // Calculate the total
+    for (iterator = 0; iterator < 8; iterator += 1) {
+        total += parseInt(acnArr[iterator]) * hash[iterator];
+    }
+
+    // Calculate the complement
+    divisor = total % 10;
+    complement = 10 - divisor;
+    
+    // Verify against the check digit
+    return complement === parseInt(acnArr[8]);    
+},
+
+/**
+ * Checks whether a value is a valid ABN or ACN
+ * @param value
+ */
+validAcnOrAbn = function (value) {
+    return validAbn(value) || validAcn(value);
 };
