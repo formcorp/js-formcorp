@@ -1248,11 +1248,17 @@ var fc = (function ($) {
         /**
          * Retrieve errors for a field ID
          * @param fieldId
+         * @param value
          */
-        getFieldErrors = function (fieldId) {
+        getFieldErrors = function (fieldId, value, prefix) {
             var errors = [],
                 field = fc.fieldSchema[fieldId],
                 skipCheck = false;
+                
+            // Default prefix to empty string
+            if (typeof prefix !== 'string') {
+                prefix = '';
+            }
                 
             // If the field hasn't been defined, return no errors
             if (field === undefined) {
@@ -1385,7 +1391,7 @@ var fc = (function ($) {
                 }
 
                 // Retrieve the field errors
-                localErrors = getFieldErrors(dataId);
+                localErrors = getFieldErrors(dataId, value, prefix);
 
                 // If have errors, output
                 if (localErrors.length > 0) {
@@ -1667,11 +1673,9 @@ var fc = (function ($) {
                         }
 
                         // Append to object sections dictionary
-                        /*jslint nomen: true*/
-                        if (fc.sections[section._id.$id] === undefined) {
-                            fc.sections[section._id.$id] = section;
+                        if (fc.sections[getId(section)] === undefined) {
+                            fc.sections[getId(section)] = section;
                         }
-                        /*jslint nomen: false*/
 
                         // Iterate through each field
                         updateFieldSchemas(section.field);
@@ -8119,7 +8123,8 @@ var fc = (function ($) {
             fields,
             valid,
             allowAutoLoad,
-            continueLoading = false;
+            continueLoading = false,
+            checkedFields = [];
 
         // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
         do {
@@ -8144,15 +8149,18 @@ var fc = (function ($) {
             updateFieldSchema(page.stage);
             fields = pruneNonPageFields(page, fc.fields);
             fields = removeInvisibleSectionFields(page, fields);
-            fields = pruneInvisibleFields(fields);
-            valid = formFieldsValid(fields);
-            
-            // Whether to continue loading or not
-            continueLoading = valid && !isSubmitPage(page.page);
+            fields = pruneInvisibleFields(fields);            
 
             // If using a one page form structure, output
             if (fc.config.onePage) {
                 render(id);
+                flushVisibility();
+                
+                // If one page, can use the DOM to determine whether or not to continue loading (a safer indicator)
+                continueLoading = validForm(fc.jQueryContainer, false) && !isSubmitPage(page.page);
+            } else {
+                valid = formFieldsValid(fields);
+                continueLoading = valid && !isSubmitPage(page.page);
             }
 
             // On page load, ignore the autoLoad flag (if user is directed back to this form, need to continue loading until pretty late)
@@ -9041,21 +9049,14 @@ validAbn = function (value) {
         abn = value.replace(/[\s]+/g, '', value),
         abnArr = abn.split("");
         
-    console.log('CHECK VALID ABN');
-    console.log(abn);
     if (/[^0-9]/.test(abn)) {
-        console.log('non numeric');
         return false
     }
     
     if (abn.length !== 11) {
-        console.log('length not 11');
         return false;
     }
     
-    // Test the checksum
-    
-        
     // Subtract 1 from the first digit
     abnArr[0] = parseInt(abnArr[0]) - 1;
     console.log(abnArr);
