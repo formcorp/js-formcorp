@@ -770,7 +770,13 @@ var fc = (function ($) {
                 error,
                 type,
                 callbackFunction,
-                json;
+                json,
+                result;
+                
+            // If not required and no value specified, return no errors (otherwise perform custom validation)
+            if (!getConfig(field, 'required', false) && value.length === 0) {
+                return [];
+            }
 
             // If validators is a string (and starts with a json char to speed up), try to typecast to json
             if (typeof field.config.validators === "string" && ['[', '{'].indexOf(field.config.validators.substring(0, 1)) > -1) {
@@ -785,20 +791,39 @@ var fc = (function ($) {
             if (typeof field.config.validators === 'object' && field.config.validators.length > 0) {
                 for (x = 0; x < field.config.validators.length; x += 1) {
                     validator = field.config.validators[x];
-                    type = fc.toCamelCase(validator.type);
-                    callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
-
-                    // Convert string to function call
+                    type = fc.toCamelCase(validator.type);                    
+                    
                     callback = window;
-                    callbackSplit = callbackFunction.split('.');
-                    for (i = 0; i < callbackSplit.length; i += 1) {
-                        callback = callback[callbackSplit[i]];
-                    }
-
-                    // Call the callback function
-                    if (!callback(validator.params, value)) {
-                        error = typeof validator.error === 'string' && validator.error.length > 0 ? validator.error : fc.lang.defaultCustomValidationError;
-                        errors.push(error);
+                    
+                    try {
+                        if (type === fc.constants.functionCallbackType && $.isArray(validator.params) && validator.params.length > 0 && validator.params[0].length > 0) {
+                            // Custom callback function
+                            if (typeof callback[validator.params[0]] !== 'function') {
+                                console.log('Custom function \'' + validator.params[0] + '\' callback not defined.');
+                            } else {
+                                callback = callback[validator.params[0]];
+                                result = callback(value);
+                            }
+                        } else {
+                            // Standard callback function
+                            callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
+                                                  
+                            // Convert string to function call
+                            callbackSplit = callbackFunction.split('.');
+                            for (i = 0; i < callbackSplit.length; i += 1) {
+                                callback = callback[callbackSplit[i]];
+                            }
+                            
+                            result = callback(validator.params, value);
+                        }
+                        
+                        // Call the callback function
+                        if (typeof callback === 'function' && !result) {
+                            error = typeof validator.error === 'string' && validator.error.length > 0 ? validator.error : fc.lang.defaultCustomValidationError;
+                            errors.push(error);
+                        }
+                    } catch (ignore) {
+                        console.log('Exception raised while attempting custom validator.');
                     }
                 }
             }
@@ -7269,7 +7294,7 @@ var fc = (function ($) {
                 repeatableStyle = parseInt(getConfig(schema, 'repeatableStyle', 0));
                 
                 if (repeatableStyle === 1) {
-                    // Style '1': drop form field underneath
+                    // Style '1': drop form field underneath                
                     fieldContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"]');
                     sectionId = fieldContainer.attr('fc-belongs-to');
                     
@@ -7279,7 +7304,8 @@ var fc = (function ($) {
                         currentRows = rowContainer.find('.fc-repeatable-row').length;
                         
                         // Only output and make a change if one or more rows presently exist
-                        if (currentRows > 0) {
+                        if (currentRows > 0 && confirm('Are you sure you want to remove the last investor? (you can not undo this action)')) {
+                            // Confirm the user wants to remove the selected row
                             html = outputRepeatablePreDetermined(dataId, currentRows - 1, sectionId);
                             rowContainer.html(html);
                             
@@ -7287,6 +7313,19 @@ var fc = (function ($) {
                             setFieldValues(rowContainer);
                             flushFieldVisibility();
                             flushActivePageForField(dataId, true);
+                            
+                            // Need to update the values and save
+                            if (fc.fields[dataId] !== undefined && $.isArray(fc.fields[dataId])) {
+                                if (currentRows - 1 <= 0) {
+                                    // If no rows, reset the array
+                                    fc.fields[dataId] = [];
+                                    fc.saveQueue[dataId] = fc.fields[dataId];
+                                } else {
+                                    // Otherwise splice it, pop the final value off the end
+                                    fc.fields[dataId].splice(currentRows - 1);
+                                    fc.saveQueue[dataId] = fc.fields[dataId];
+                                }
+                            }
                         }
                         
                         if (currentRows - 1 === 0) {
@@ -8394,7 +8433,10 @@ var fc = (function ($) {
                 repeatablePredetermined: 2,
                 repeatableInModal: [0],
                 repeatableInDOM: [1, 2],
-                repeatableLinkedTo: 'repeatableLinkedTo'
+                repeatableLinkedTo: 'repeatableLinkedTo',
+                
+                // Function callback type
+                functionCallbackType: 'functionCallback'
             };
 
             /**
@@ -8985,4 +9027,44 @@ var fc = (function ($) {
         }
     };
 
-}(jQuery));
+}(jQuery)),
+
+/**
+ * Verifies whether an ABN is valid
+ * @param value
+ * @returns boolean
+ */
+validAbn = function (value) {
+    var hash = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
+        total = 0,
+        iterator,
+        abn = value.replace(/[\s]+/g, '', value),
+        abnArr = abn.split("");
+        
+    console.log('CHECK VALID ABN');
+    console.log(abn);
+    if (/[^0-9]/.test(abn)) {
+        console.log('non numeric');
+        return false
+    }
+    
+    if (abn.length !== 11) {
+        console.log('length not 11');
+        return false;
+    }
+    
+    // Test the checksum
+    
+        
+    // Subtract 1 from the first digit
+    abnArr[0] = parseInt(abnArr[0]) - 1;
+    console.log(abnArr);
+
+    // Calculate the total
+    for (iterator = 0; iterator < 11; iterator += 1) {
+        total += parseInt(abnArr[iterator]) * hash[iterator];
+    }
+
+    // Return true if divisible by 89
+    return total % 89 === 0;
+};
