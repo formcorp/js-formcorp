@@ -1253,7 +1253,8 @@ var fc = (function ($) {
         getFieldErrors = function (fieldId, value, prefix) {
             var errors = [],
                 field = fc.fieldSchema[fieldId],
-                skipCheck = false;
+                skipCheck = false,
+                required;
                 
             // Default prefix to empty string
             if (typeof prefix !== 'string') {
@@ -7744,7 +7745,7 @@ var fc = (function ($) {
                 // Send the request off @todo: more than just GET
                 $.ajax({
                     'type': 'GET',
-                    'url': successfulTransaction,
+                    'url': successfulTransaction
                 });
             }
 
