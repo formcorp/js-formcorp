@@ -7708,7 +7708,7 @@ var fc = (function ($) {
                 if (mapObj.hasOwnProperty(tag)) {
                     if (tags[tag] !== undefined) {
                         tagId = tags[tag];
-                        domObj = $('.fc-field[fc-data-group="' + tagId + '"');
+                        domObj = $('.fc-field[fc-data-group="' + tagId + '"]');
 
                         if (domObj.length > 0) {
                             // Perform the token replacement on the mapped value
