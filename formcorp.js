@@ -9142,8 +9142,8 @@ validAcn = function (value) {
 
     // Calculate the complement
     divisor = total % 10;
-    complement = 10 - divisor;
-    
+    complement = (10 - divisor) % 10;
+
     // Verify against the check digit
     return complement === parseInt(acnArr[8]);    
 },
