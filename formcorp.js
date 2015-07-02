@@ -1333,6 +1333,7 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         validForm = function (rootElement, showErrors) {
+            console.log('validform called');
             var errors = {},
                 required;
 
@@ -4019,7 +4020,7 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_act_tos">';
-                        html += '<label for="' + rootId + '_act_tos">I have read and accepted <a href="http://www.rego.act.gov.au/aboutus/?a=527482">ACT Government\'s privacy statement</a>.</label>';
+                        html += '<label for="' + rootId + '_act_tos">&nbsp;I have read and accepted <a href="http://www.rego.act.gov.au/aboutus/?a=527482">ACT Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         // Button
@@ -4095,7 +4096,7 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_nsw_tos">';
-                        html += '<label for="' + rootId + '_nsw_tos">I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
+                        html += '<label for="' + rootId + '_nsw_tos">&nbsp;I have read and accepted <a href="http://www.rms.nsw.gov.au/onlineprivacypolicy.html">NSW Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         // Button
@@ -4185,7 +4186,7 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_qld_tos">';
-                        html += '<label for="' + rootId + '_qld_tos">I have read and accepted <a href="http://www.tmr.qld.gov.au/privacy">Queensland Transport\'s terms and conditions</a>.</label>';
+                        html += '<label for="' + rootId + '_qld_tos">&nbsp;I have read and accepted <a href="http://www.tmr.qld.gov.au/privacy">Queensland Transport\'s terms and conditions</a>.</label>';
                         html += '</div>';
 
                         // Button
@@ -4263,7 +4264,7 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_sa_tos">';
-                        html += '<label for="' + rootId + '_sa_tos">I have read and accepted <a href="http://www.transport.sa.gov.au/privacy.asp">SA Government\'s privacy statement</a>.</label>';
+                        html += '<label for="' + rootId + '_sa_tos">&nbsp;I have read and accepted <a href="http://www.transport.sa.gov.au/privacy.asp">SA Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         // Button
@@ -4377,7 +4378,7 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_vic_tos">';
-                        html += '<label for="' + rootId + '_vic_tos">I have read and accepted <a href="https://www.vicroads.vic.gov.au/privacy">VicRoads\' privacy statement</a>.</label>';
+                        html += '<label for="' + rootId + '_vic_tos">&nbsp;I have read and accepted <a href="https://www.vicroads.vic.gov.au/privacy">VicRoads\' privacy statement</a>.</label>';
                         html += '</div>';
 
                         html += '<div class="fc-clear"></div>';
@@ -4456,7 +4457,7 @@ var fc = (function ($) {
 
                         // Terms of service
                         html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_wa_tos">';
-                        html += '<label for="' + rootId + '_wa_tos">I have read and accepted <a href="http://www.transport.wa.gov.au/aboutus/our-website.asp">WA Government\'s privacy statement</a>.</label>';
+                        html += '<label for="' + rootId + '_wa_tos">&nbsp;I have read and accepted <a href="http://www.transport.wa.gov.au/aboutus/our-website.asp">WA Government\'s privacy statement</a>.</label>';
                         html += '</div>';
 
                         html += '<div class="fc-clear"></div>';
@@ -4678,7 +4679,7 @@ var fc = (function ($) {
 
                 // Terms of service
                 html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_passport_tos">';
-                html += '<label for="' + rootId + '_passport_tos">I have read and accepted <a href="http://dfat.gov.au/privacy.html">DFAT\'s Disclosure Statement</a>.</label>';
+                html += '<label for="' + rootId + '_passport_tos">&nbsp;I have read and accepted <a href="http://dfat.gov.au/privacy.html">DFAT\'s Disclosure Statement</a>.</label>';
                 html += '</div>';
 
                 // Button
@@ -4805,7 +4806,7 @@ var fc = (function ($) {
 
                 // Terms of service
                 html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_visa_tos">';
-                html += '<label for="' + rootId + '_visa_tos">I understand that I am disclosing information relating to my employment visa or non-Australian passport. This information will be disclosed to the Department of Immigration and Citizenship. I am aware that if am not entitled to be in Australia, then the Department of Immigration and Citizenship may use the information that I provide above to locate me.</label>';
+                html += '<label for="' + rootId + '_visa_tos">&nbsp;I understand that I am disclosing information relating to my employment visa or non-Australian passport. This information will be disclosed to the Department of Immigration and Citizenship. I am aware that if am not entitled to be in Australia, then the Department of Immigration and Citizenship may use the information that I provide above to locate me.</label>';
                 html += '</div>';
 
                 // Button
@@ -4879,16 +4880,25 @@ var fc = (function ($) {
          * @param useDom
          */
         flushActivePageForField = function (dataId, useDom) {
-            var pageDataId, foundPage = false;
+            var pageDataId, foundPage = false, pageId;
             
             // Default useDom to false
             if (typeof useDom !== 'boolean') {
                 useDom = false;
             }
             
-            console.log('Flush active page for: ' + dataId);
+            // Do nothing if page id isn't numeric
+            pageId = getFieldPageId(dataId, useDom);
+            console.log(pageId);
+            if (typeof pageId !== 'string' || pageId.length === 0 || pageId.indexOf(fc.constants.prefixSeparator) > -1) {
+                console.log('PAGE ID NOT VALID, RETURN');
+                return;
+            }
             
-            fc.currentPage = getFieldPageId(dataId, useDom);
+            console.log('Flush active page for: ' + pageId);
+            
+            console.log('SET CURRENT PAGE TO2: ' + pageId);
+            fc.currentPage = pageId;
             $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
             $('.fc-page').each(function () {
                 pageDataId = $(this).attr('data-page-id');
@@ -5463,17 +5473,17 @@ var fc = (function ($) {
             
             // Output a repeatable field
             if (getConfig(field, 'repeatable', false) && (repeatableStyle.length === 0 || fc.constants.repeatableWithButton.indexOf(repeatableStyle) >= 0)) {
+                // Add button
+                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-add" data-id="' + dataId + '">';
+                fieldHtml += getConfig(field, 'addButtonText', '').length > 0 ? getConfig(field, 'addButtonText') : fc.lang.addFieldTextValue;
+                fieldHtml += '</a></div>';
+                
                 // Remove button (for style '1' - add button in DOM)
                 if (parseInt(repeatableStyle) === 1) {
                     fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-remove" data-id="' + dataId + '">';
                     fieldHtml += getConfig(field, 'removeButtonText', '').length > 0 ? getConfig(field, 'removeButtonText') : fc.lang.removeFieldTextValue;
                     fieldHtml += '</a></div>';
                 }
-                
-                // Add button
-                fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-add" data-id="' + dataId + '">';
-                fieldHtml += getConfig(field, 'addButtonText', '').length > 0 ? getConfig(field, 'addButtonText') : fc.lang.addFieldTextValue;
-                fieldHtml += '</a></div>';
             }
 
             fieldHtml += '<div class="fc-empty"></div></div>';
@@ -5857,6 +5867,8 @@ var fc = (function ($) {
      * @returns {boolean}
      */
     hasNextPage = function () {
+        console.log('hasNextPage called');
+        console.log(nextPage(false));
         return nextPage(false);
     };
 
@@ -5867,11 +5879,9 @@ var fc = (function ($) {
      */
     renderPage = function (page) {
         // Page details
-        /*jslint nomen: true*/
-        var pageDiv = '<div class="fc-page" data-page-id="' + page.page._id.$id + '">',
+        var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '">',
             submitText = fc.lang.submitText,
             nextPageObj;
-        /*jslint nomen: false*/
 
         pageDiv += '<h1>' + page.stage.label + '</h1>';
         page = page.page;
@@ -5892,6 +5902,10 @@ var fc = (function ($) {
         }
 
         nextPageObj = nextPage(false, true);
+        
+        console.log('renderPage called');
+        console.log('submission page?3');
+        console.log(isSubmitPage(page));
 
         // Submit button when a next page exists, or no next page exists
         if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
@@ -6083,6 +6097,7 @@ var fc = (function ($) {
      * @param isNextPage
      */
     render = function (pageId, isNextPage) {
+        console.log('render called');
         // If expired, do not render anything
         if (fc.expired === true) {
             return;
@@ -6112,9 +6127,9 @@ var fc = (function ($) {
         updateFieldSchema(page.stage);
 
         html += renderPage(page);
-
-        if (!fc.config.onePage) {
-            // Show form in stages
+        
+        if (!fc.config.onePage || isSubmitPage(page.page)) {
+            // Show form in stages (if not one page, or if the submission page)
             $(fc.jQueryContainer + ' .render').html(html);
         } else {
             // If a one-page form, append to the DOM
@@ -6159,6 +6174,12 @@ var fc = (function ($) {
      * @returns {*}
      */
     nextPage = function (shouldRender, returnPage, pageId) {
+        console.log('nextPage called');
+        console.log(pageId);
+        console.log('should render:');
+        console.log(shouldRender);
+        console.log('return page: ');
+        console.log(returnPage);
         if (typeof shouldRender !== 'boolean') {
             shouldRender = true;
         }
@@ -6169,6 +6190,8 @@ var fc = (function ($) {
         }
 
         // If no page id specified, use the current page
+        console.log('check for currentPage');
+        console.log(fc.currentPage);
         if (typeof pageId !== "string") {
             pageId = fc.currentPage;
         }
@@ -6179,6 +6202,9 @@ var fc = (function ($) {
             x,
             condition,
             stage;
+            
+        console.log('DEBUGHO');
+        console.log(currentPage);
 
         if (!currentPage || !currentPage.page) {
             return;
@@ -6230,9 +6256,11 @@ var fc = (function ($) {
 
         // If a next page exists and the current page is valid, load the next page
         if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
+            console.log('look to load the next page');
             loadNextPage(false);
             return true;
         }
+        console.log('return false for checkAutoLoad');
 
         return false;
     };
@@ -6973,6 +7001,7 @@ var fc = (function ($) {
      * @returns {boolean}
      */
     loadNextPage = function (showError) {
+        console.log('loadNextPage called');
         if (showError === undefined) {
             showError = true;
         }
@@ -7020,7 +7049,14 @@ var fc = (function ($) {
             form_values: formData
         };
         // Determine whether the application should be marked as complete
+        console.log('get next page: ');
         page = nextPage(false, true);
+        console.log(page);
+        console.log('is submit page1: ');
+        console.log(page && typeof page.page === "object" && isSubmitPage(page.page));
+        console.log(page === false);
+        console.log(isSubmitPage(page));
+        
         if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
             data.complete = true;
         }
@@ -7068,6 +7104,7 @@ var fc = (function ($) {
 
                 // Render the next page if available
                 if (hasNextPage()) {
+                    console.log('has next page');
                     oldPage = fc.currentPage;
                     nextPage();
                     newPage = fc.currentPage;
@@ -7082,6 +7119,10 @@ var fc = (function ($) {
                     });
 
                     fc.nextPageLoadedTimestamp = Date.now();
+                    
+                    console.log('page: ' + page.page);
+                    console.log('is submit page2: ');
+                    console.log(isSubmitPage(page.page));
 
                     // If the application is complete, raise completion event
                     if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -7330,14 +7371,14 @@ var fc = (function ($) {
                                     fc.saveQueue[dataId] = fc.fields[dataId];
                                 }
                             }
-                        }
-                        
-                        if (currentRows - 1 === 0) {
-                            // Hide the remove button if zero rows
-                            fieldContainer.find('.fc-remove').addClass('fc-hide');
-                        } else if (fieldContainer.find('.fc-add.fc-hide')) {
-                            // Show the add button if its hidden
-                            fieldContainer.find('.fc-add.fc-hide').removeClass('fc-hide');
+                            
+                            if (currentRows - 1 === 0) {
+                                // Hide the remove button if zero rows
+                                fieldContainer.find('.fc-remove').addClass('fc-hide');
+                            } else if (fieldContainer.find('.fc-add.fc-hide')) {
+                                // Show the add button if its hidden
+                                fieldContainer.find('.fc-add.fc-hide').removeClass('fc-hide');
+                            }
                         }
                     }
                 }
@@ -8117,6 +8158,7 @@ var fc = (function ($) {
      * @returns {*}
      */
     getFirstPage = function () {
+        console.log('getFirstPage called');
         var id = getFirstPageId(),
             page,
             nextPageObj,
@@ -8138,6 +8180,7 @@ var fc = (function ($) {
             if (typeof page.stage !== 'object') {
                 break;
             }
+            console.log('SET CURRENT PAGE TO1: ' + id);
             fc.currentPage = id;
 
             // Update the browser hash when required
@@ -9059,7 +9102,6 @@ validAbn = function (value) {
     
     // Subtract 1 from the first digit
     abnArr[0] = parseInt(abnArr[0]) - 1;
-    console.log(abnArr);
 
     // Calculate the total
     for (iterator = 0; iterator < 11; iterator += 1) {
@@ -9071,7 +9113,7 @@ validAbn = function (value) {
 },
 
 /**
- * Verifies whether an ABN is valid
+ * Verifies whether an ACN is valid
  * @param value
  * @returns boolean
  */
