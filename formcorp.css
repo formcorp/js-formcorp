@@ -976,3 +976,11 @@ div.fc-pagination {
     background: #ccc;
 }
 
+.fc-verify-email, .fc-send-email {
+    float: left;
+    margin-right: 10px;
+}
+
+.fc-email-verification .fc-empty {
+    clear: both;
+}
