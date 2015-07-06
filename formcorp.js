@@ -3746,8 +3746,8 @@ var fc = (function ($) {
                 // initialised here first prior to setting the progress etc.
                 init = function () {
                     // If schema or value not initialised, do nothing
-                    if (schema === undefined || value === undefined) {
-                        console.log('schema or value undefined, returning');
+                    //if (schema === undefined || value === undefined) {
+                    if (schema === undefined) {
                         return;
                     }
 
@@ -3756,6 +3756,7 @@ var fc = (function ($) {
 
                     // Set the progress bar percentage
                     percentage = fc.greenID.getPercentage(fieldId);
+                    console.log(percentage);
                     fc.greenID.setProgress(fieldId, percentage, true);
                 };
 
