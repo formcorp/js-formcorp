@@ -5044,7 +5044,7 @@ var fc = (function ($) {
                     optionContainer = rootContainer.find('.fc-greenid-options');
                     if (optionContainer.length === 0) {
                         // Ensure option container exists
-                                              return;
+                        return;
                     }
 
                     fields = {
@@ -7591,6 +7591,9 @@ var fc = (function ($) {
                         }
                     }
                 }
+
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onDynamicRowAdded);
+
                 return false;
             });
 
@@ -7665,6 +7668,9 @@ var fc = (function ($) {
                         }
                     }
                 }
+
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onDynamicRowRemoved);
+
                 return false;
             });
 
@@ -8727,7 +8733,9 @@ var fc = (function ($) {
                     onLoadingPageStart: 'onLoadingPageStart',
                     onLoadingPageEnd: 'onLoadingPageEnd',
                     onGreenIdLoaded: 'onGreenIdLoaded',
-                    onButtonUnknownClick: 'onButtonUnknownClick'
+                    onButtonUnknownClick: 'onButtonUnknownClick',
+                    onDynamicRowAdded: 'onDynamicRowAdded',
+                    onDynamicRowRemoved: 'onDynamicRowRemoved'
                 };
 
                 /**
