@@ -6006,8 +6006,8 @@ var fc = (function ($) {
             options = [
                 {
                     class: "fc-drivers-license",
-                    title: "Drivers License",
-                    desc: "Use your state issues drivers license to help prove your identity."
+                    title: "Drivers Licence",
+                    desc: "Use your state issues drivers licence to help prove your identity."
                 },
                 {
                     class: "fc-passport-verification",
@@ -6095,7 +6095,7 @@ var fc = (function ($) {
         html += '<h5>Please confirm the following details are correct: </h5>';
         html += '<div class="fc-greenid-value-summary"></div>';
         html += '<h5>They are correct, what do I do now?</h5>';
-        html += '<p>We\'ll have to attempt to verify you manually. Please attach a copy of your drivers license and/or passport to your printed application and mail it through to us.</p>';
+        html += '<p>We\'ll have to attempt to verify you manually. Please attach a copy of your drivers licence and/or passport to your printed application and mail it through to us.</p>';
         html += '</div>';
 
         // Show the packages and the progress bar
