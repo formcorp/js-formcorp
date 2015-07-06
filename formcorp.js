@@ -1064,19 +1064,15 @@ var fc = (function ($) {
                     }
                 } else {
                     // Method 2: use the DOM to attempt to find a match
-                    console.log('USE THE DOM');
-                    console.log(fieldId);
                     field = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + fieldId + '"]');
                     if (field.length === 0) {
                         // If can't find the field, do nothing.
-                        console.log('field not found');
                         return '';
                     }
 
                     // Attempt to find the section the field belongs to
                     section = $(fc.jQueryContainer).find('.fc-section-' + field.attr('fc-belongs-to'));
                     if (section.length === 0) {
-                        console.log('section not found');
                         return '';
                     }
 
@@ -1338,7 +1334,6 @@ var fc = (function ($) {
              * @returns {boolean}
              */
             validForm = function (rootElement, showErrors) {
-                console.log('validform called');
                 var errors = {},
                     required;
 
@@ -3756,7 +3751,6 @@ var fc = (function ($) {
 
                     // Set the progress bar percentage
                     percentage = fc.greenID.getPercentage(fieldId);
-                    console.log(percentage);
                     fc.greenID.setProgress(fieldId, percentage, true);
                 };
 
@@ -3785,8 +3779,6 @@ var fc = (function ($) {
                     }
                 }
 
-                console.log('have to initialise');
-
                 // Append the field id
                 greenIDValues.fieldId = fieldId;
 
@@ -3799,7 +3791,6 @@ var fc = (function ($) {
                     // When a valid result is returned by the server, output accordingly
                     if (typeof data === 'object' && data.result !== undefined && typeof data.result === 'object') {
                         html = renderGreenIdField(fc.fieldSchema[fieldId], prefix, true);
-                        console.log(html);
                         fieldSelector = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + fieldId + '"]');
                         if (fieldSelector.length > 0) {
                             fieldSelector.find('.fc-init-green-id').remove();
@@ -3812,7 +3803,6 @@ var fc = (function ($) {
                         }
                     } else {
                         // greenID failed to initialise for the selected field
-                        console.log(data);
                         console.log('unable to render greenID');
                     }
                 });
@@ -3949,14 +3939,12 @@ var fc = (function ($) {
 
                     if (rootContainer.length === 0) {
                         // Ensure a root container exists
-                        console.log('Unable to find root container');
                         return;
                     }
 
                     optionContainer = rootContainer.find('.fc-greenid-options');
                     if (optionContainer.length === 0) {
                         // Ensure option container exists
-                        console.log('Options container not found.');
                         return;
                     }
 
@@ -4843,7 +4831,6 @@ var fc = (function ($) {
 
                     if (rootContainer.length === 0) {
                         // Ensure a root container exists
-                        console.log('Unable to find root container');
                         return;
                     }
 
@@ -4857,7 +4844,6 @@ var fc = (function ($) {
                     optionContainer = rootContainer.find('.fc-greenid-options');
                     if (optionContainer.length === 0) {
                         // Ensure option container exists
-                        console.log('Options container not found.');
                         return;
                     }
 
@@ -5052,15 +5038,13 @@ var fc = (function ($) {
 
                     if (rootContainer.length === 0) {
                         // Ensure a root container exists
-                        console.log('Unable to find root container');
                         return;
                     }
 
                     optionContainer = rootContainer.find('.fc-greenid-options');
                     if (optionContainer.length === 0) {
                         // Ensure option container exists
-                        console.log('Options container not found.');
-                        return;
+                                              return;
                     }
 
                     fields = {
@@ -5205,18 +5189,11 @@ var fc = (function ($) {
                 }
 
                 // Do nothing if page id isn't numeric
-                console.log(useDom);
                 pageId = getFieldPageId(dataId, useDom);
-                console.log(pageId);
                 if (typeof pageId !== 'string' || pageId.length === 0 || pageId.indexOf(fc.constants.prefixSeparator) > -1) {
-                    console.log(pageId);
-                    console.log('PAGE ID NOT VALID, RETURN');
                     return;
                 }
 
-                console.log('Flush active page for: ' + pageId);
-
-                console.log('SET CURRENT PAGE TO2: ' + pageId);
                 fc.currentPage = pageId;
                 $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
                 $('.fc-page').each(function () {
@@ -5227,8 +5204,6 @@ var fc = (function ($) {
                         foundPage = true;
                     }
                 });
-
-                console.log(foundPage);
 
                 // Update the page orders
                 if (fc.pageOrders.indexOf(fc.currentPage) !== fc.pageOrders.length - 1) {
@@ -5447,9 +5422,6 @@ var fc = (function ($) {
                 field = fc.fieldSchema[fieldId],
                 iterator,
                 tagValues = getFieldTagValues();
-
-            console.log('output repeatable pre determined');
-            console.log(section);
 
             // If amount of times is not numeric, assume it is a tag
             if (!$.isNumeric(amountOfTimes)) {
@@ -6033,7 +6005,6 @@ var fc = (function ($) {
 
             // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
             if (!bypass && (typeof fc.fields[prefix + getId(field)] !== 'object' || fc.fields[prefix + getId(field)].result === undefined || fc.fields[prefix + getId(field)].result.userId === 'undefined')) {
-                console.log('GreenID field not previously initialised. Unable to render.');
                 return initGreenIDFieldInDOM(field, prefix);
             }
 
@@ -6202,8 +6173,6 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         hasNextPage = function () {
-            console.log('hasNextPage called');
-            console.log(nextPage(false));
             return nextPage(false);
         };
 
@@ -6237,10 +6206,6 @@ var fc = (function ($) {
             }
 
             nextPageObj = nextPage(false, true);
-
-            console.log('renderPage called');
-            console.log('submission page?3');
-            console.log(isSubmitPage(page));
 
             // Submit button when a next page exists, or no next page exists
             if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
@@ -6432,7 +6397,6 @@ var fc = (function ($) {
          * @param isNextPage
          */
         render = function (pageId, isNextPage) {
-            console.log('render called');
             // If expired, do not render anything
             if (fc.expired === true) {
                 return;
@@ -6509,12 +6473,6 @@ var fc = (function ($) {
          * @returns {*}
          */
         nextPage = function (shouldRender, returnPage, pageId) {
-            console.log('nextPage called');
-            console.log(pageId);
-            console.log('should render:');
-            console.log(shouldRender);
-            console.log('return page: ');
-            console.log(returnPage);
             if (typeof shouldRender !== 'boolean') {
                 shouldRender = true;
             }
@@ -6525,8 +6483,6 @@ var fc = (function ($) {
             }
 
             // If no page id specified, use the current page
-            console.log('check for currentPage');
-            console.log(fc.currentPage);
             if (typeof pageId !== "string") {
                 pageId = fc.currentPage;
             }
@@ -6537,9 +6493,6 @@ var fc = (function ($) {
                 x,
                 condition,
                 stage;
-
-            console.log('DEBUGHO');
-            console.log(currentPage);
 
             if (!currentPage || !currentPage.page) {
                 return;
@@ -6591,11 +6544,9 @@ var fc = (function ($) {
 
             // If a next page exists and the current page is valid, load the next page
             if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
-                console.log('look to load the next page');
                 loadNextPage(false);
                 return true;
             }
-            console.log('return false for checkAutoLoad');
 
             return false;
         };
@@ -6634,8 +6585,6 @@ var fc = (function ($) {
                 replaceSectionID,
                 index,
                 groupletID;
-
-            console.log('value changed triggered');
 
             if (typeof force !== 'boolean') {
                 force = false;
@@ -6748,7 +6697,6 @@ var fc = (function ($) {
             }
 
             // Set the active page id to the page that the field belongs to, delete later pages
-            console.log('look to flush the active page');
             flushActivePageForField(dataId, true);
 
             // If the item belongs to a repeatable object (or grouplet in the DOM), do not store the changed value
@@ -7336,7 +7284,6 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         loadNextPage = function (showError) {
-            console.log('loadNextPage called');
             if (showError === undefined) {
                 showError = true;
             }
@@ -7384,13 +7331,7 @@ var fc = (function ($) {
                 form_values: formData
             };
             // Determine whether the application should be marked as complete
-            console.log('get next page: ');
             page = nextPage(false, true);
-            console.log(page);
-            console.log('is submit page1: ');
-            console.log(page && typeof page.page === "object" && isSubmitPage(page.page));
-            console.log(page === false);
-            console.log(isSubmitPage(page));
 
             if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
                 data.complete = true;
@@ -7439,7 +7380,6 @@ var fc = (function ($) {
 
                     // Render the next page if available
                     if (hasNextPage()) {
-                        console.log('has next page');
                         oldPage = fc.currentPage;
                         nextPage();
                         newPage = fc.currentPage;
@@ -7454,10 +7394,6 @@ var fc = (function ($) {
                         });
 
                         fc.nextPageLoadedTimestamp = Date.now();
-
-                        console.log('page: ' + page.page);
-                        console.log('is submit page2: ');
-                        console.log(isSubmitPage(page.page));
 
                         // If the application is complete, raise completion event
                         if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -8504,7 +8440,6 @@ var fc = (function ($) {
          * @returns {*}
          */
         getFirstPage = function () {
-            console.log('getFirstPage called');
             var id = getFirstPageId(),
                 page,
                 nextPageObj,
@@ -8518,7 +8453,6 @@ var fc = (function ($) {
             do {
                 page = getPageById(id);
                 if (page === undefined) {
-                    console.log('FC Error: Page not found');
                     break;
                 }
 
@@ -8526,7 +8460,6 @@ var fc = (function ($) {
                 if (typeof page.stage !== 'object') {
                     break;
                 }
-                console.log('SET CURRENT PAGE TO1: ' + id);
                 fc.currentPage = id;
 
                 // Update the browser hash when required
