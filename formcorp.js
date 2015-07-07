@@ -9410,10 +9410,15 @@ var fc = (function ($) {
      * @returns boolean
      */
     validAbn = function (value) {
+        if (value.replace(/[^0-9]/g, '').length === 0) {
+            // If no value set, return true
+            return true;
+        }
+    
         var hash = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
             total = 0,
             iterator,
-            abn = value.replace(/[\s]+/g, '', value),
+            abn = value.replace(/[\s]+/g, ''),
             abnArr = abn.split("");
 
         if (/[^0-9]/.test(abn)) {
@@ -9442,6 +9447,11 @@ var fc = (function ($) {
      * @returns boolean
      */
     validAcn = function (value) {
+        if (value.replace(/[^0-9]/g, '').length === 0) {
+            // If no value set, return true
+            return true;
+        }
+        
         var hash = [8, 7, 6, 5, 4, 3, 2, 1],
             total = 0,
             iterator,
@@ -9486,6 +9496,11 @@ var fc = (function ($) {
      * @returns {boolean}
      */
     validTFN = function (value) {
+        if (value.replace(/[^0-9]/g, '').length === 0) {
+            // If no value set, return true
+            return true;
+        }
+        
         // Test to ensure a 9 digit value
         if (!/^\d{9}$/g.test(value)) {
             return false;
