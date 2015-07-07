@@ -412,11 +412,11 @@ var fc = (function ($) {
                 if (defaultValue === undefined) {
                     defaultValue = '';
                 }
-            
+
                 var schema = fc.fieldSchema[fieldId],
                     value = fc.fields[fieldId],
                     functionReference;
-                    
+
                 if (schema !== undefined) {
                     functionReference = getConfig(schema, 'functionReference', '');
                     if (functionReference.length > 0) {
@@ -425,7 +425,7 @@ var fc = (function ($) {
                         }
                     }
                 }
-                
+
                 return value !== undefined ? value : defaultValue;
             },
 
@@ -6010,15 +6010,15 @@ var fc = (function ($) {
             }
 
             summaryHtml = '<h5>Complete verification for: </h5><p>' + nameHtml + '<br>' + addressHtml + '</p>';
-            
+
             // Skip verification
             summaryHtml += '<div class="fc-green-id-skip-container">';
             summaryHtml += '<h5>Skip verification</h5>';
             summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
             summaryHtml += '</div>';
-            
+
             summaryHtml += '<div class="fc-green-id-skipped-container"><div class="alert alert-warning" role="alert">You have skipped verification for this user.</div></div>';
-            
+
             return summaryHtml;
         };
 
@@ -9414,7 +9414,7 @@ var fc = (function ($) {
             // If no value set, return true
             return true;
         }
-    
+
         var hash = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
             total = 0,
             iterator,
@@ -9451,7 +9451,7 @@ var fc = (function ($) {
             // If no value set, return true
             return true;
         }
-        
+
         var hash = [8, 7, 6, 5, 4, 3, 2, 1],
             total = 0,
             iterator,
@@ -9500,7 +9500,7 @@ var fc = (function ($) {
             // If no value set, return true
             return true;
         }
-        
+
         // Test to ensure a 9 digit value
         if (!/^\d{9}$/g.test(value)) {
             return false;
