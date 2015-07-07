@@ -6052,12 +6052,12 @@ var fc = (function ($) {
                     {
                         class: "fc-drivers-license",
                         title: "Drivers Licence",
-                        desc: "Use your state issues drivers licence to help prove your identity."
+                        desc: "Use your state issued drivers licence to help prove your identity."
                     },
                     {
                         class: "fc-passport-verification",
                         title: "Passport",
-                        desc: "Do you have an Australian issued passport? If so, whack in the details below."
+                        desc: "Help confirm your identity using your Australian issued passport."
                     },
                     {
                         class: "fc-visa-verification",
@@ -8706,6 +8706,9 @@ var fc = (function ($) {
                 this.validAbns = [];
                 this.mobileView = isMobile();
 
+                // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
+                jQuery.support.cors = true;
+
                 // Fields to re-render on value change
                 this.reRenderOnValueChange = {};
 
@@ -9369,6 +9372,9 @@ var fc = (function ($) {
              * @returns {boolean}
              */
             validatorMin: function (params, value) {
+                // Replace commas
+                value = value.replace(/\,/g, '');
+
                 if (!$.isNumeric(value)) {
                     return false;
                 }
@@ -9383,6 +9389,9 @@ var fc = (function ($) {
              * @returns {boolean}
              */
             validatorMax: function (params, value) {
+                // Replace commas
+                value = value.replace(/\,/g, '');
+
                 if (!$.isNumeric(value)) {
                     return false;
                 }
