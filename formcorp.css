@@ -816,9 +816,21 @@ div.fc-pagination {
     margin-bottom: 18px;
 }
 
-/**
- * FormCorp Loader
- */
+.fc-skipped-verification .fc-green-id-skip-container {
+    display: none;
+}
+
+.fc-green-id-skipped-container {
+    display: none;
+}
+
+.fc-skipped-verification .fc-green-id-skipped-container {
+    display: block;
+}
+
+    /**
+     * FormCorp Loader
+     */
 
 .fc-loader-content {
     padding-top: 130px;

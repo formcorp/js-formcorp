@@ -402,6 +402,12 @@ var fc = (function ($) {
                 return defaultVal;
             },
 
+            /**
+             * Retrieve the saved value.
+             * @param fieldId
+             * @param defaultValue
+             * @return {mixed}
+             */
             getValue = function (fieldId, defaultValue) {
                 if (defaultValue === undefined) {
                     defaultValue = '';
@@ -6004,7 +6010,15 @@ var fc = (function ($) {
             }
 
             summaryHtml = '<h5>Complete verification for: </h5><p>' + nameHtml + '<br>' + addressHtml + '</p>';
-
+            
+            // Skip verification
+            summaryHtml += '<div class="fc-green-id-skip-container">';
+            summaryHtml += '<h5>Skip verification</h5>';
+            summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
+            summaryHtml += '</div>';
+            
+            summaryHtml += '<div class="fc-green-id-skipped-container"><div class="alert alert-warning" role="alert">You have skipped verification for this user.</div></div>';
+            
             return summaryHtml;
         };
 
@@ -8872,7 +8886,7 @@ var fc = (function ($) {
 
                         // Initialise the channel on the root element
                         if (!$(fc.jQueryContainer).hasClass('fc-channel')) {
-                            $(fc.jQueryContainer).addClass('fc-channel fc-channel-' + fc.channel)
+                            $(fc.jQueryContainer).addClass('fc-channel fc-channel-' + fc.channel);
                         }
 
                         // Register event listeners and load the form schema
