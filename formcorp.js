@@ -402,6 +402,27 @@ var fc = (function ($) {
                 return defaultVal;
             },
 
+            getValue = function (fieldId, defaultValue) {
+                if (defaultValue === undefined) {
+                    defaultValue = '';
+                }
+            
+                var schema = fc.fieldSchema[fieldId],
+                    value = fc.fields[fieldId],
+                    functionReference;
+                    
+                if (schema !== undefined) {
+                    functionReference = getConfig(schema, 'functionReference', '');
+                    if (functionReference.length > 0) {
+                        if (typeof window[functionReference] === 'function') {
+                            return window[functionReference](fieldId);
+                        }
+                    }
+                }
+                
+                return value !== undefined ? value : defaultValue;
+            },
+
             /**
              * Fields optionally have a shortened label for use in summary tables/pdfs.
              * @param field
@@ -1552,7 +1573,7 @@ var fc = (function ($) {
                                 rule.value = '"' + rule.value + '"';
                             }
 
-                            condition += comparisonCondition + comparison + '(fc.fields["' + rule.field + '"], ' + rule.value + ', "' + rule.field + '")';
+                            condition += comparisonCondition + comparison + '(getValue("' + rule.field + '"), ' + rule.value + ', "' + rule.field + '")';
                         }
 
                         // If have nested rules, call recursively
@@ -5709,6 +5730,8 @@ var fc = (function ($) {
                         fieldDOMHTML = renderNumericSliderField(field, prefix);
                         break;
                     case 'groupletReference':
+                    case 'formReference':
+                    case 'functionReference':
                         // Do nothing
                         fieldDOMHTML = '';
                         break;
@@ -9440,4 +9463,47 @@ var fc = (function ($) {
      */
     validAcnOrAbn = function (value) {
         return validAbn(value) || validAcn(value);
+    },
+
+    /**
+     * Checks whether a value is a valid TFN.
+     *
+     * @param value
+     * @returns {boolean}
+     */
+    validTFN = function (value) {
+        // Test to ensure a 9 digit value
+        if (!/^\d{9}$/g.test(value)) {
+            return false;
+        }
+
+        // Test the checksum
+        var hash = [1, 4, 3, 7, 5, 8, 6, 9, 10],
+            total = 0,
+            iterator,
+            exemptionCodes = [
+                '333333333',
+                '444444441',
+                '444444442',
+                '555555555',
+                '666666666',
+                '777777777',
+                '888888888',
+                '987654321',
+                '000000000',
+                '111111111'
+            ];
+
+        // Test if an exemption code supplied
+        if (exemptionCodes.indexOf(value) >= 0) {
+            return true;
+        }
+
+        // Calculate the total
+        for (iterator = 0; iterator < 9; iterator += 1) {
+            total += value[iterator] * hash[iterator];
+        }
+
+        // Return true if divisible by 11
+        return total % 11 === 0;
     };
