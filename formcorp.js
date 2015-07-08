@@ -5903,7 +5903,7 @@ var fc = (function ($) {
             //summaryHtml += '<div class="fc-green-id-skip-container">';
             //summaryHtml += '<h5>Skip verification</h5>';
             //summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
-            //summaryHtml += '</div>';
+            //summaryHtml += '</div>';            
             
             return summaryHtml;
         };
@@ -5955,6 +5955,7 @@ var fc = (function ($) {
                 iterator,
                 contentListField,
                 packageHtml,
+                sourcesRequiredHtml,
                 packages,
                 fieldValue = fc.fields[prefix + getId(field)],
                 licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
@@ -5965,6 +5966,9 @@ var fc = (function ($) {
                 summary = greenIdFieldHeader(prefix + getId(field));
                 html += '<div class="fc-green-id-el fc-green-id-header-summary">' + summary + '</div>';
             }
+            
+            // Sources required
+            html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">To complete digital verification for this individual, you must verify <span></span> from the options below.</p>';
             
             // Skip text
             html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">You have skipped verification for this user.</div></div>';
