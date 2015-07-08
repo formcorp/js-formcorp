@@ -5042,6 +5042,12 @@ var fc = (function ($) {
                     fc.greenID.currentState = 'verifyVisa';
                 };
 
+                // Skip verification callback function
+                callbackFunctions.SkipVerification = function (el) {
+                    var id = el.attr('formcorp-data-id').replace('_rootSelection', '');
+                    fcGreenID.skipVerification(id);
+                };
+                
                 // Event handler for button click
                 $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
                     var id = el.attr('id'),
@@ -5838,7 +5844,6 @@ var fc = (function ($) {
          * @param fieldId
          */
         greenIdFieldHeader = function (fieldId) {
-            console.log(fieldId);
             // Update the summary div
             var summaryHtml = '',
                 nameHtml = '',
@@ -5895,13 +5900,11 @@ var fc = (function ($) {
             summaryHtml = '<h5>Complete verification for: </h5><p>' + nameHtml + '<br>' + addressHtml + '</p>';
 
             // Skip verification
-            summaryHtml += '<div class="fc-green-id-skip-container">';
-            summaryHtml += '<h5>Skip verification</h5>';
-            summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
-            summaryHtml += '</div>';
-
-            summaryHtml += '<div class="fc-green-id-skipped-container"><div class="alert alert-warning" role="alert">You have skipped verification for this user.</div></div>';
-
+            //summaryHtml += '<div class="fc-green-id-skip-container">';
+            //summaryHtml += '<h5>Skip verification</h5>';
+            //summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
+            //summaryHtml += '</div>';
+            
             return summaryHtml;
         };
 
@@ -5943,9 +5946,9 @@ var fc = (function ($) {
                         desc: "Help confirm your identity using your Australian issued passport."
                     },
                     {
-                        class: "fc-visa-verification",
-                        title: "Employment Visa (Foreign Passport)",
-                        desc: "Confirm your details with the Department of Immigration and Citizenship."
+                        class: "fc-skip-verification",
+                        title: "Skip Verification",
+                        desc: "You will be required to manually attach verification documents to your printed application."
                     }
                 ],
                 optionString = '',
@@ -5962,6 +5965,9 @@ var fc = (function ($) {
                 summary = greenIdFieldHeader(prefix + getId(field));
                 html += '<div class="fc-green-id-el fc-green-id-header-summary">' + summary + '</div>';
             }
+            
+            // Skip text
+            html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">You have skipped verification for this user.</div></div>';
             
             // Form the html
             html += '<div class="fc-greenid-successfully-verified fc-green-id-el">You have successfully been verified.</div>';
