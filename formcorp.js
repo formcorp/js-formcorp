@@ -5047,7 +5047,7 @@ var fc = (function ($) {
                     var id = el.attr('formcorp-data-id').replace('_rootSelection', '');
                     fcGreenID.skipVerification(id);
                 };
-                
+
                 // Event handler for button click
                 $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
                     var id = el.attr('id'),
@@ -5904,7 +5904,7 @@ var fc = (function ($) {
             //summaryHtml += '<h5>Skip verification</h5>';
             //summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
             //summaryHtml += '</div>';            
-            
+
             return summaryHtml;
         };
 
@@ -5966,13 +5966,13 @@ var fc = (function ($) {
                 summary = greenIdFieldHeader(prefix + getId(field));
                 html += '<div class="fc-green-id-el fc-green-id-header-summary">' + summary + '</div>';
             }
-            
+
             // Sources required
             html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">To complete digital verification for this individual, you must verify <span></span> from the options below.</p>';
-            
+
             // Skip text
             html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">You have skipped verification for this user.</div></div>';
-            
+
             // Form the html
             html += '<div class="fc-greenid-successfully-verified fc-green-id-el">You have successfully been verified.</div>';
 
@@ -5986,7 +5986,7 @@ var fc = (function ($) {
             html += '<h5>They are correct, what do I do now?</h5>';
             html += '<p>We\'ll have to attempt to verify you manually. Please attach a copy of your drivers licence and/or passport to your printed application and mail it through to us.</p>';
             html += '</div>';
-            
+
             // Only show the options if the field was properly initialised
             if (fieldValue !== undefined && typeof fieldValue.result === 'object' && Object.keys(fieldValue.result).length > 0) {
                 // Generate an options string
@@ -6048,7 +6048,7 @@ var fc = (function ($) {
                         packages.find('.fc-visa-verification').addClass('fc-locked-out');
                     }
                 }
-                
+
                 // Show the packages and the progress bar
                 html += '<div class="fc-greenid-verification-packages fc-green-id-el">';
                 html += packages.prop('outerHTML');
@@ -8842,7 +8842,7 @@ var fc = (function ($) {
              * Retrieve the id for a form field
              */
             getId: getId,
-            
+
             /**
              * greenID: make the following functions/properties visible to the greenID component
              */
