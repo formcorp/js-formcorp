@@ -828,9 +828,15 @@ div.fc-pagination {
     display: block;
 }
 
-    /**
-     * FormCorp Loader
-     */
+.fc-green-failed-initialisation .fc-greenid-reinit, 
+.fc-green-failed-initialisation  .fc-green-id-skip-container {
+    float: left;
+    margin: 0 10px 10px 0;
+}
+
+/**
+ * FormCorp Loader
+ */
 
 .fc-loader-content {
     padding-top: 130px;
