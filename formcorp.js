@@ -8102,8 +8102,8 @@ var fc = (function ($) {
                     order = object[key].order !== undefined ? object[key].order : 0;
                     if (orderedObject[order] === undefined) {
                         orderedObject[order] = [];
-                        orderedObject[order].push(object[key]);
                     }
+                    orderedObject[order].push(object[key]);
                 }
             }
 
