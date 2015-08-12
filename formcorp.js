@@ -302,6 +302,14 @@ var fc = (function ($) {
             },
 
             /**
+             * The JS parser URL
+             * @returns {string}
+             */
+            parserUrl = function () {
+                return cdnUrl() + 'lib/' + (isMinified() ? 'parser.min.js' : 'parser.js');
+            },
+
+            /**
              * HTML encode a string.
              * @param html
              * @returns {*}
@@ -341,13 +349,20 @@ var fc = (function ($) {
              * Load a javascript file
              * @param file
              */
-            loadJsFile = function (filePath) {
-                var file = document.createElement('script');
+            loadJsFile = function (filePath, callback) {
+                var file = document.createElement('script'),
+                    scriptTags = document.getElementsByTagName("script"),
+                    firstScript = scriptTags[scriptTags.length - 1];
 
-                file.setAttribute("type", "text/javascript");
-                file.setAttribute("src", htmlEncode(filePath));
+                file.type = "text/javascript";
+                file.src = htmlEncode(filePath);
+                file.async = 1;
 
-                $('body').append(file);
+                if (typeof callback === 'function') {
+                    file.addEventListener("load", callback);
+                }
+
+                firstScript.parentNode.insertBefore(file, firstScript);
             },
 
             /**
@@ -416,6 +431,9 @@ var fc = (function ($) {
                 var schema = fc.fieldSchema[fieldId],
                     value = fc.fields[fieldId],
                     functionReference;
+
+                console.log(fieldId);
+                console.log(value);
 
                 if (schema !== undefined) {
                     functionReference = getConfig(schema, 'functionReference', '');
@@ -1870,6 +1888,62 @@ var fc = (function ($) {
             },
 
             /**
+             * Returns the amount of values in a repeatable grouplet
+             * @param fieldId
+             * @returns {*}
+             */
+            groupletLength = function (fieldId) {
+                var val = fc.fields[fieldId];
+                if ($.isArray(val)) {
+                    return val.length;
+                }
+
+                return 0;
+            },
+
+            /**
+             * Whether a price is a formula and not static.
+             *
+             * @param price
+             * @returns {boolean}
+             */
+            isFormula = function (price) {
+                var prefixLength = fc.constants.formulaPrefix.length;
+                return price.length > prefixLength && price.substr(0, prefixLength).toLowerCase() === fc.constants.formulaPrefix.toLowerCase();
+            },
+
+            /**
+             * Returns a field id by a human readable tag.
+             *
+             * @param tag
+             * @returns {T}
+             */
+            fieldIdByTag = function (tag) {
+                var fieldTags = getFieldTags();
+
+                return Object.keys(fieldTags).filter(function (key) {
+                    return fieldTags[key] === tag
+                })[0];
+            },
+
+            /**
+             *
+             * @param formula
+             * @returns {*}
+             */
+            formulaToPrice = function (formula) {
+                if (isFormula(formula)) {
+                    formula = formula.substr(fc.constants.formulaPrefix.length);
+                }
+
+                try {
+                    return fc.parser.parse(formula).evaluate()
+                } catch (ignore) {
+                    return 0;
+                }
+            },
+
+            /**
              * Retrieve the payment amount for a credit card field, based on the default and conditional parameters
              *
              * @param fieldId
@@ -1901,6 +1975,14 @@ var fc = (function ($) {
                             }
                         }
                     }
+                }
+
+                // If a price is numeric, return it straight away
+                if ($.isNumeric(price)) {
+                    return price;
+                } else if (isFormula(price)) {
+                    // Otherwise if the price is a formula, proces it
+                    return formulaToPrice(price);
                 }
 
                 return price;
@@ -8710,7 +8792,8 @@ var fc = (function ($) {
                     repeatableLinkedTo: 'repeatableLinkedTo',
 
                     // Function callback type
-                    functionCallbackType: 'functionCallback'
+                    functionCallbackType: 'functionCallback',
+                    formulaPrefix: 'FORMULA:'
                 };
 
                 /**
@@ -8777,6 +8860,14 @@ var fc = (function ($) {
                         return false;
                     }
                     fc.formId = $(fc.jQueryContainer).attr('data-id');
+
+                    // Initialise the parser
+                    loadJsFile(parserUrl(), function () {
+                        fc.parser = new Parser();
+                        fc.parser.functions.groupletLength = groupletLength;
+                        fc.parser.functions.getValue = getValue;
+                        fc.parser.functions.fieldIdByTag = fieldIdByTag;
+                    });
 
                     // Attempt to load the settings from the server
                     loadSettings(function () {
