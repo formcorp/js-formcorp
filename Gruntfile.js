@@ -7,7 +7,9 @@ module.exports = function (grunt) {
                 files: {
                     'analytics.min.js': 'analytics.js',
                     'formcorp.min.js': 'formcorp.js',
-                    'lib/green-id.min.js': 'lib/green-id.js'
+                    'lib/green-id.min.js': 'lib/green-id.js',
+                    'lib/parser.min.js': 'lib/parser.js'
+
                 }
             }
         }
