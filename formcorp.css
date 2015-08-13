@@ -1023,3 +1023,11 @@ div.fc-pagination {
 .fc-email-verification .fc-empty {
     clear: both;
 }
+
+.fc-success-box {
+    display: none;
+}
+
+.fc-error-box {
+    display: none;
+}

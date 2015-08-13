@@ -1023,6 +1023,21 @@ var fc = (function ($) {
             },
 
             /**
+             * Show the success class on the DOM for a given field.
+             * @param dataId
+             */
+            showFieldSuccess = function (dataId) {
+                var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]'),
+                    x,
+                    msg = '';
+
+                // Trigger an event
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldSuccess, [dataId]);
+
+                dataGroup.addClass('fc-field-success');
+            },
+
+            /**
              * Recursively retrieves grouplet field ids.
              * @param field
              * @returns {Array}
@@ -1167,8 +1182,15 @@ var fc = (function ($) {
              * @param dataId
              */
             removeFieldError = function (dataId) {
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldSuccess, [dataId]);
                 $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
+            },
+
+            /**
+             * Remove the success class on the DOM for a given field.
+             * @param dataId
+             */
+            removeFieldSuccess = function (dataId) {
+                $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]').removeClass('fc-field-success');
             },
 
             /**
@@ -1456,6 +1478,7 @@ var fc = (function ($) {
                         });
 
                         errors[dataId] = localErrors;
+                        removeFieldSuccess(dataId);
                         if (showErrors) {
                             showFieldError(dataId, localErrors);
                         }
@@ -1463,6 +1486,7 @@ var fc = (function ($) {
                         if (showErrors) {
                             removeFieldError(dataId);
                         }
+                        showFieldSuccess(dataId);
                     }
                 });
 
@@ -2518,7 +2542,7 @@ var fc = (function ($) {
 
                             html += '<div class="' + cssClass + '">';
                             html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
-                            html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                            html += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option) + '</em></label>';
                             html += '</div>';
                         }
                     }
@@ -2578,7 +2602,7 @@ var fc = (function ($) {
                         }
 
                         html += '>';
-                        html += '<label for="' + id + '">' + htmlEncode(option) + '</label>';
+                        html += '<label for="' + id + '"><span><b><i></i><i></i></b></span><em>' + htmlEncode(option) + '</em></label>';
                         html += '</div>';
                     }
                 }
@@ -2755,8 +2779,12 @@ var fc = (function ($) {
                         });
 
                         // Show the error and return
+                        removeFieldSuccess(dataObjectId);
                         showFieldError(dataObjectId, localErrors);
                         return false;
+                    } else {
+                        showFieldSuccess(dataObjectId);
+                        removeFieldError(dataObjectId);
                     }
 
                     removeFieldError(dataObjectId);
@@ -5643,6 +5671,7 @@ var fc = (function ($) {
                 }
 
                 fieldHtml += '<div class="fc-fieldgroup">';
+                fieldHtml += '<div class="fc-field-element-container">';
 
                 switch (field.type) {
                     case 'text':
@@ -5723,6 +5752,12 @@ var fc = (function ($) {
                 // Append the field DOM html to the total output
                 fieldHtml += fieldDOMHTML;
 
+
+                // Close the field element container
+                fieldHtml += '<div class="fc-success-box"><span></span></div>';
+                fieldHtml += '<div class="fc-error-box"><span></span></div>';
+                fieldHtml += '</div>'; // fc-field-element-container
+
                 // Output error text container
                 fieldHtml += '<div class="fc-error-text"></div>';
 
@@ -5779,8 +5814,8 @@ var fc = (function ($) {
                     }
                 }
 
-                fieldHtml += '<div class="fc-empty"></div></div>';
-                fieldHtml += '</div></div>';
+                fieldHtml += '<div class="fc-empty"></div>';
+                fieldHtml += '</div></div></div>';
                 html += fieldHtml;
             }
 
@@ -6730,11 +6765,13 @@ var fc = (function ($) {
                                 errors: errors
                             });
 
+                            removeFieldSuccess(dataId);
                             showFieldError(dataId, errors);
                             return;
+                        } else {
+                            removeFieldError(dataId);
+                            showFieldSuccess(dataId);
                         }
-
-                        removeFieldError(dataId);
                     }
 
                     // Store the changed value for intermittent saving
@@ -6763,11 +6800,12 @@ var fc = (function ($) {
                             errors: errors
                         });
 
+                        removeFieldSuccess(dataId);
                         showFieldError(dataId, errors);
-                        return;
+                    } else {
+                        showFieldSuccess(dataId);
+                        removeFieldError(dataId);
                     }
-
-                    removeFieldError(dataId);
                 }
 
                 // Store the changed value for intermittent saving
@@ -7117,8 +7155,12 @@ var fc = (function ($) {
 
                     errors[fieldId] = customErrors;
                     if (showErrors) {
+                        removeFieldSuccess(fieldId);
                         showFieldError(fieldId, customErrors);
                     }
+                } else {
+                    showFieldSuccess(fieldId);
+                    removeFieldError(fieldId);
                 }
             });
 
