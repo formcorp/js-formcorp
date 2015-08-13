@@ -645,6 +645,7 @@ div.fc-pagination {
     width: 100%;
     border: 1px solid #e5e5e5;
     margin-top: 2px;
+    background: #fff;
 }
 
 .fc-field-apiLookup .fc-auto-suggest a {
