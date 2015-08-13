@@ -432,9 +432,6 @@ var fc = (function ($) {
                     value = fc.fields[fieldId],
                     functionReference;
 
-                console.log(fieldId);
-                console.log(value);
-
                 if (schema !== undefined) {
                     functionReference = getConfig(schema, 'functionReference', '');
                     if (functionReference.length > 0) {
@@ -9356,7 +9353,13 @@ var fc = (function ($) {
              * @returns {boolean}
              */
             comparisonIs_not_null: function (field) {
-                return field !== undefined;
+                if (field === undefined) {
+                    return false;
+                }
+
+                if (typeof field === 'string') {
+                    return field.length > 0;
+                }
             },
 
             /**
@@ -9365,7 +9368,15 @@ var fc = (function ($) {
              * @returns {boolean}
              */
             comparisonIs_null: function (field) {
-                return field === undefined;
+                if (field === undefined) {
+                    return true;
+                }
+
+                if (typeof field === 'string') {
+                    return field.length === 0;
+                }
+
+                return false;
             },
 
             /**
