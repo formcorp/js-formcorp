@@ -2922,6 +2922,11 @@ var fc = (function ($) {
                     registerCreditCardListeners();
                 }
 
+                if (getConfig(field, 'paymentGateway', '', true)["gateway"] === 'securepay') {
+                    renderSecurePayIFrame(field)
+                    return html += '<div class="fc-securepay-iframe"></div>';
+                }
+
                 // Initialise basic components
                 html += '<div class="fc-payment">';
                 html += '<div class="fc-cc-name"><label>' + fc.lang.creditCardNameText + '</label><input type="text" class="fc-fieldinput"></div>';
@@ -2957,6 +2962,106 @@ var fc = (function ($) {
                 html += '</div>';
                 /*!fc-payment*/
                 return html;
+            },
+
+            /**
+             * Render a SecurePay IFrame
+             */
+            renderSecurePayIFrame = function (field) {
+                var html = '',
+                    fingerprint,
+                    fp_timestamp,
+                    amount,
+                    merchant_id,
+                    primary_ref,
+                    currency,
+                    display_receipt,
+                    return_url,
+                    return_url_text,
+                    return_url_target,
+                    confirmation,
+                    template,
+                    page_header_image,
+                    page_title,
+                    page_style_url,
+                    display_cardholder_name,
+                    txn_type,
+                    defaultprice;
+
+                // Calculate price to send up
+                defaultprice = getConfig(field, 'defaultPrice');
+
+                if (isFormula(defaultprice)) {
+                    amount = formulaToPrice(defaultprice);
+                }
+
+                currency = getConfig(field, 'paymentGateway', '', true)['vars']['currency'];
+                if (currency === '') {
+                    currency = 'AUD';
+                }
+
+                display_receipt = getConfig(field, 'paymentGateway', '', true)['vars']['display_receipt'];
+                if (display_receipt === '') {
+                    display_receipt = 'yes';
+                }
+
+                return_url = getConfig(field, 'paymentGateway', '', true)['vars']['return_url'];
+                return_url_text = getConfig(field, 'paymentGateway', '', true)['vars']['return_url'];
+
+                return_url_target = getConfig(field, 'paymentGateway', '', true)['vars']['return_url_target'];
+                if (return_url_target === '') {
+                    return_url_target = 'self';
+                }
+
+                confirmation = getConfig(field, 'paymentGateway', '', true)['vars']['confirmation'];
+                if (confirmation === '') {
+                    confirmation = 'yes';
+                }
+
+                template = getConfig(field, 'paymentGateway', '', true)['vars']['template'];
+                if (template === '') {
+                    template = 'iframe';
+                }
+
+                page_header_image = getConfig(field, 'paymentGateway', '', true)['vars']['page_header_image'];
+                page_title = getConfig(field, 'paymentGateway', '', true)['vars']['page_title'];
+                page_style_url = getConfig(field, 'paymentGateway', '', true)['vars']['page_style_url'];
+
+                display_cardholder_name = getConfig(field, 'paymentGateway', '', true)['vars']['display_cardholder_name'];
+                if (display_cardholder_name === '') {
+                    display_cardholder_name = 'yes';
+                }
+
+                // Get fingerprint, timestamp, merchant id, amount, primary_ref, txn_type from server
+                api('securepay/default/index', {
+                    'field_id': field._id.$id,
+                    'amount': amount,
+                }, 'POST', function (data) {
+                    html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: 500px" src="';
+                    html += 'https://payment.securepay.com.au/test/v2/invoice?bill_name=transact';
+                    html += '&merchant_id=' + data.merchant_id;
+                    html += '&fingerprint=' + data.fingerprint;
+                    html += '&fp_timestamp=' + data.timestamp;
+                    html += '&primary_ref=' + data.primary_ref;
+                    html += '&amount=' + data.amount;
+                    html += '&txn_type=' + data.txn_type;
+                    html += '&currency=' + currency;
+                    html += '&display_receipt' + display_receipt;
+                    html += '&return_url=' + return_url;
+                    html += '&return_url_text=' + return_url_text;
+                    html += '&return_url_target=' + return_url_target;
+                    html += '&confirmation=' + confirmation;
+                    html += '&template=' + template;
+                    html += '&page_header_image=' + page_header_image;
+                    html += '&page_title=' + page_title;
+                    html += '&page_style_url=' + page_style_url;
+                    html += '&display_cardholder_name=' + display_cardholder_name
+                    html += '"></iframe>';
+
+                    $('.fc-section [fc-data-group="' + data.fieldId + '"] .fc-securepay-iframe').append(html);
+
+                })
+
             },
 
             /**
