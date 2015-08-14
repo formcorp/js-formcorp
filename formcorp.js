@@ -2438,6 +2438,9 @@ var fc = (function ($) {
                         html += '</div>'; //!fc-content-radio-item
                     }
 
+
+                    html += '<div class="fc-clear"></div>'; // Clear the boxes
+
                     html += '</div>'; //!fc-col-x
                 }
 
