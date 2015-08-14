@@ -2986,7 +2986,8 @@ var fc = (function ($) {
                     page_style_url,
                     display_cardholder_name,
                     txn_type,
-                    defaultprice;
+                    defaultprice,
+                    environment;
 
                 // Calculate price to send up
                 defaultprice = getConfig(field, 'defaultPrice');
@@ -3032,13 +3033,19 @@ var fc = (function ($) {
                     display_cardholder_name = 'yes';
                 }
 
+                if (getConfig(field, 'environment') === 'Sandbox') {
+                    environment = 'test';
+                } else {
+                    environment = 'live'
+                }
+
                 // Get fingerprint, timestamp, merchant id, amount, primary_ref, txn_type from server
                 api('securepay/default/index', {
                     'field_id': field._id.$id,
                     'amount': amount,
                 }, 'POST', function (data) {
                     html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: 500px" src="';
-                    html += 'https://payment.securepay.com.au/test/v2/invoice?bill_name=transact';
+                    html += 'https://payment.securepay.com.au/' + environment + '/v2/invoice?bill_name=transact';
                     html += '&merchant_id=' + data.merchant_id;
                     html += '&fingerprint=' + data.fingerprint;
                     html += '&fp_timestamp=' + data.timestamp;
