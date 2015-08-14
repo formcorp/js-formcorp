@@ -1948,6 +1948,45 @@ var fc = (function ($) {
             },
 
             /**
+             * Returns the meta value for the content radio list field.
+             * @param fieldId
+             * @param metaKey
+             * @returns *
+             */
+            getContentRadioListMeta = function (fieldId, metaKey) {
+                var val = getValue(fieldId, ""),
+                    schema = fc.fieldSchema[fieldId],
+                    options = getConfig(schema, 'options', '').split("\n"),
+                    iterator,
+                    json,
+                    meta,
+                    lineItemValue;
+
+                if (val === undefined || val === "") {
+                    return "";
+                }
+
+
+                if ($.isArray(options)) {
+                    for (iterator = 0; iterator < options.length; iterator += 1) {
+                        if (options[iterator].isJson()) {
+                            json = $.parseJSON(options[iterator]);
+                            lineItemValue = json[0];
+
+                            if (typeof lineItemValue === 'string' && lineItemValue === val) {
+                                if (typeof json[5] === 'object') {
+                                    meta = json[5];
+                                    if (meta[metaKey] !== undefined) {
+                                        return meta[metaKey];
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+
+            /**
              *
              * @param formula
              * @returns {*}
@@ -2332,7 +2371,8 @@ var fc = (function ($) {
                     description,
                     help,
                     icon,
-                    htmlClass;
+                    htmlClass,
+                    meta;
 
                 if (options.length > 0) {
                     options = options.split("\n");
@@ -2353,6 +2393,7 @@ var fc = (function ($) {
                         value = "";
                         icon = "";
                         htmlClass = "";
+                        meta = {};
 
                         // Attempt to convert to json object, continue if can not
                         try {
@@ -2368,8 +2409,14 @@ var fc = (function ($) {
                             icon = json[2] || "";
                             help = json[3] || "";
                             htmlClass = json[4] || "";
+                            meta = json[5] || {};
+
+                            if (typeof meta !== 'object') {
+                                meta = {};
+                            }
                         } catch (ignore) {
                         }
+
                         checked = getConfig(field, 'default') === option ? ' checked' : '';
 
                         html += '<div class="fc-content-radio-item fc-col ' + htmlClass + '">';
@@ -8906,6 +8953,7 @@ var fc = (function ($) {
                         fc.parser.functions.groupletLength = groupletLength;
                         fc.parser.functions.getValue = getValue;
                         fc.parser.functions.fieldIdByTag = fieldIdByTag;
+                        fc.parser.functions.getContentRadioListMeta = getContentRadioListMeta;
                     });
 
                     // Attempt to load the settings from the server
