@@ -3269,7 +3269,7 @@ var fc = (function ($) {
 
                 // Update the value in the DOM as required
                 if (updateDom) {
-                    var target = rootElement.find('div[fc-data-group="' + fieldId + '"]');
+                    var target = $(fc.jQueryContainer).find('div[fc-data-group="' + fieldId + '"]');
                     console.log(target.length);
                     if (target.length > 0) {
                         setFieldValue(target, fieldId);
