@@ -3254,6 +3254,30 @@ var fc = (function ($) {
             },
 
             /**
+             * Set the value in the application and the DOM
+             * @param fieldId string
+             * @param value {*}
+             * @param updateDom boolean
+             */
+            setValue = function (fieldId, value, updateDom) {
+                if (typeof updateDom !== 'boolean') {
+                    updateDom = true;
+                }
+
+                // Update the application value
+                forceUpdateFieldValue(fieldId, value);
+
+                // Update the value in the DOM as required
+                if (updateDom) {
+                    var target = rootElement.find('div[fc-data-group="' + fieldId + '"]');
+                    console.log(target.length);
+                    if (target.length > 0) {
+                        setFieldValue(target, fieldId);
+                    }
+                }
+            },
+
+            /**
              * Register the email verification event listeners
              */
             registerEmailVerificationListeners = function () {
@@ -9215,6 +9239,9 @@ var fc = (function ($) {
             setSessionId: function (sessionId) {
                 this.sessionId = sessionId;
             },
+
+            /* Set a value on the application */
+            setValue: setValue,
 
             /**
              * Set class config values.
