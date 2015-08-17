@@ -3271,9 +3271,12 @@ var fc = (function ($) {
                 if (updateDom) {
                     var target = $(fc.jQueryContainer).find('div[fc-data-group="' + fieldId + '"]');
                     if (target.length > 0) {
-                        setFieldValue(target, fieldId);
+                        setDomValue(target, value);
                     }
                 }
+
+                // Call the internal function
+                valueChanged(fieldId, value);
             },
 
             /**
@@ -8253,11 +8256,7 @@ var fc = (function ($) {
                                 }
 
                                 // Set the field value in the DOM
-                                fc.fields[tagId] = val;
-                                fc.saveQueue[tagId] = val;
-                                setDomValue(domObj, val);
-
-                                valueChanged(tagId, val, true);
+                                setValue(tagId, val);
                             }
                         }
                     }
