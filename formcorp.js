@@ -7903,7 +7903,7 @@ var fc = (function ($) {
                             currentRows = rowContainer.find('.fc-repeatable-row').length;
 
                             // Only output and make a change if one or more rows presently exist
-                            if (currentRows > 0 && confirm('Are you sure you want to remove the last investor? (you can not undo this action)')) {
+                            if (currentRows > 0 && confirm(getConfig(schema, 'removeAlertText'))) {
                                 // Confirm the user wants to remove the selected row
                                 html = outputRepeatablePreDetermined(dataId, currentRows - 1, fc.sections[sectionId]);
                                 rowContainer.html(html);
