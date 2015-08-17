@@ -3128,7 +3128,11 @@ var fc = (function ($) {
                         fc.fields[dataId] = data;
                         // Remove iframe and add completed data
                         $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe iframe').remove();
-                        $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe').append(renderCompletedPayment(fc.fields[dataId]));
+                        $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe').append(renderCompletedPayment(data));
+
+                        // Try and load the next page
+                        fc.nextPageButtonClicked = true;
+                        loadNextPage(false);
 
                         return;
                     }
@@ -7564,7 +7568,7 @@ var fc = (function ($) {
 
             logEvent(fc.eventTypes.onNextPageClick);
 
-            if (!validForm()) {
+            if (!validForm(fc.jQueryContainer, showError)) {
                 logEvent(fc.eventTypes.onNextPageError);
 
                 // Scroll to first error
