@@ -6456,7 +6456,8 @@ var fc = (function ($) {
             // Page details
             var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '">',
                 submitText = fc.lang.submitText,
-                nextPageObj;
+                nextPageObj,
+                submitClasses = ['fc-submit'];
 
             pageDiv += '<h1>' + page.stage.label + '</h1>';
             page = page.page;
@@ -6483,6 +6484,7 @@ var fc = (function ($) {
                 // If the next stage is a completion page, alter the submission text
                 if ((isSubmitPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && isSubmitPage(nextPageObj.page))) {
                     submitText = fc.lang.submitFormText;
+                    submitClasses.push('fc-submit-form');
                 }
 
                 // Only render pagination on non-submission pages
@@ -6499,7 +6501,7 @@ var fc = (function ($) {
                     }
 
                     // Output the submit button
-                    pageDiv += '<div class="fc-submit">';
+                    pageDiv += '<div class="' + submitClasses.join(' ') + '">';
                     pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
                     pageDiv += '</div>';
                 }
