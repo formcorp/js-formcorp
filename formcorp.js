@@ -1340,7 +1340,7 @@ var fc = (function ($) {
 
                 // If a credit card payment field, treat uniquely
                 if (field.type === "creditCard") {
-                    if (value.length === 0) {
+                    if (value.length === 0 || value.success == undefined || value.success != true) {
                         errors.push(fc.lang.paymentRequired);
                     }
                     skipCheck = true;
@@ -2952,13 +2952,8 @@ var fc = (function ($) {
 
                 // Retrieve the field value and check to see if it's completed
                 fieldValue = fc.fields[getId(field)];
-                if (fieldValue !== undefined && fieldValue.length > 0) {
-                    // Successfully been completed, return a completion message
-                    html += '<div class="fc-payment">';
-                    html += '<div class="fc-success">' + fc.lang.creditCardSuccess + '</div>';
-                    html += '</div>';
-
-                    return html;
+                if (fieldValue !== undefined && fieldValue['success'] == true) {
+                    return html += renderCompletedPayment(fieldValue);
                 }
 
                 // If an error was passed through, check
@@ -3057,7 +3052,7 @@ var fc = (function ($) {
                 }
 
                 return_url = getConfig(field, 'paymentGateway', '', true)['vars']['return_url'];
-                return_url_text = getConfig(field, 'paymentGateway', '', true)['vars']['return_url'];
+                return_url_text = getConfig(field, 'paymentGateway', '', true)['vars']['return_url_text'];
 
                 return_url_target = getConfig(field, 'paymentGateway', '', true)['vars']['return_url_target'];
                 if (return_url_target === '') {
@@ -3117,8 +3112,49 @@ var fc = (function ($) {
 
                     $('.fc-section [fc-data-group="' + data.fieldId + '"] .fc-securepay-iframe').append(html);
 
+                    waitForSecurePayVerification(data.fieldId);
+
                 })
 
+            },
+
+            /**
+             * Poll the API intermittently to see if the field has been verified (if it has, update in real time)
+             * @param dataId
+             */
+            waitForSecurePayVerification = function (dataId) {
+                // Need to poll the database intermittently and wait for verification
+                api('securepay/default/verify', {fieldId: dataId}, 'POST', function (data) {
+                    if (typeof data === "object" && data.success !== undefined && data.success === true) {
+                        // The field has successfully been verified
+
+                        // Update the field with the new data
+                        fc.fields[dataId] = data;
+                        // Remove iframe and add completed data
+                        $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe iframe').remove();
+                        $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe').append(renderCompletedPayment(fc.fields[dataId]));
+
+                        return;
+                    }
+
+                    // The field has yet to be verified, poll again
+                    setTimeout(function () {
+                        waitForSecurePayVerification(dataId);
+                    }, 5000);
+                });
+            },
+
+            renderCompletedPayment = function (fieldValue) {
+
+                var html = '';
+
+                // Successfully been completed, return a completion message
+                html += '<div class="fc-payment">';
+                html += '<div class="fc-success">' + fc.lang.creditCardSuccess + '</div>';
+                html += '<pre>' + JSON.stringify(fieldValue) + '</pre>';
+                html += '</div>';
+
+                return html;
             },
 
             /**
