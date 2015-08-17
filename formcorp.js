@@ -3032,7 +3032,7 @@ var fc = (function ($) {
                     display_cardholder_name,
                     txn_type,
                     defaultprice,
-                    environment;
+                    url;
 
                 // Calculate price to send up
                 defaultprice = getConfig(field, 'defaultPrice');
@@ -3078,19 +3078,15 @@ var fc = (function ($) {
                     display_cardholder_name = 'yes';
                 }
 
-                if (getConfig(field, 'environment') === 'Sandbox') {
-                    environment = 'test';
-                } else {
-                    environment = 'live'
-                }
+                url = getConfig(field, 'environment', fc.environments.sandbox) === fc.environments.sandbox ? fc.gateways.securepay.action.sandbox : fc.gateways.securepay.action.live;
 
                 // Get fingerprint, timestamp, merchant id, amount, primary_ref, txn_type from server
                 api('securepay/default/index', {
                     'field_id': field._id.$id,
                     'amount': amount,
-                }, 'POST', function (data) {
+                }, fc.gateways.securepay.method, function (data) {
                     html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: 500px" src="';
-                    html += 'https://payment.securepay.com.au/' + environment + '/v2/invoice?bill_name=transact';
+                    html += url;
                     html += '&merchant_id=' + data.merchant_id;
                     html += '&fingerprint=' + data.fingerprint;
                     html += '&fp_timestamp=' + data.timestamp;
@@ -3132,7 +3128,11 @@ var fc = (function ($) {
                         fc.fields[dataId] = data;
                         // Remove iframe and add completed data
                         $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe iframe').remove();
-                        $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe').append(renderCompletedPayment(fc.fields[dataId]));
+                        $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe').append(renderCompletedPayment(data));
+
+                        // Try and load the next page
+                        fc.nextPageButtonClicked = true;
+                        loadNextPage(false);
 
                         return;
                     }
@@ -7570,7 +7570,7 @@ var fc = (function ($) {
 
             logEvent(fc.eventTypes.onNextPageClick);
 
-            if (!validForm()) {
+            if (!validForm(fc.jQueryContainer, showError)) {
                 logEvent(fc.eventTypes.onNextPageError);
 
                 // Scroll to first error
@@ -7905,7 +7905,7 @@ var fc = (function ($) {
                             currentRows = rowContainer.find('.fc-repeatable-row').length;
 
                             // Only output and make a change if one or more rows presently exist
-                            if (currentRows > 0 && confirm('Are you sure you want to remove the last investor? (you can not undo this action)')) {
+                            if (currentRows > 0 && confirm(getConfig(schema, 'removeAlertText'))) {
                                 // Confirm the user wants to remove the selected row
                                 html = outputRepeatablePreDetermined(dataId, currentRows - 1, fc.sections[sectionId]);
                                 rowContainer.html(html);
@@ -9076,6 +9076,13 @@ var fc = (function ($) {
                         action: {
                             sandbox: 'https://test-merchants.paycorp.com.au/paycentre3/makeEntry',
                             live: 'https://merchants.paycorp.com.au/paycentre3/makeEntry'
+                        }
+                    },
+                    securepay: {
+                        method: 'POST',
+                        action: {
+                            sandbox: 'https://payment.securepay.com.au/test/v2/invoice?bill_name=transact',
+                            live: 'https://payment.securepay.com.au/live/v2/invoice?bill_name=transact',
                         }
                     }
                 };
