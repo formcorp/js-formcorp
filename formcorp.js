@@ -9287,6 +9287,15 @@ var fc = (function ($) {
             setValue: setValue,
 
             /**
+             * Retrieve a value
+             * @param id
+             * @returns {*}
+             */
+            getValue: function (id) {
+                return this.fields[id];
+            },
+
+            /**
              * Set class config values.
              * @param data
              */
