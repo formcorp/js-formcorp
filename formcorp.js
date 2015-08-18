@@ -9611,6 +9611,48 @@ var fc = (function ($) {
 
                 return false;
             },
+            
+            /**
+             * Checks to see if a value is not empty.
+             * @param field
+             * @returns {boolean}
+             */
+            comparisonIs_not_empty: function (field) {
+                if (field === undefined) {
+                    return false;
+                }
+
+                if (typeof field === 'string') {
+                    return field.length > 0;
+                } else if (typeof field === 'object') {
+                    if ($.isArray(field)) {
+                        return field.length > 0;
+                    } else {
+                        return Object.keys(field).length > 0;
+                    }
+                }
+            },
+
+            /**
+             * Checks to see if a value is empty.
+             * @param field
+             * @returns {boolean}
+             */
+            comparisonIs_empty: function (field) {
+                if (field === undefined) {
+                    return false;
+                }
+
+                if (typeof field === 'string') {
+                    return field.length === 0;
+                } else if (typeof field === 'object') {
+                    if ($.isArray(field)) {
+                        return field.length === 0;
+                    } else {
+                        return Object.keys(field).length === 0;
+                    }
+                }
+            },
 
             /**
              * Converts a string to camel case.
