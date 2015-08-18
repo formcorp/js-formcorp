@@ -3083,7 +3083,6 @@ var fc = (function ($) {
                 // Get fingerprint, timestamp, merchant id, amount, primary_ref, txn_type from server
                 api('securepay/default/index', {
                     'field_id': field._id.$id,
-                    'amount': amount,
                 }, fc.gateways.securepay.method, function (data) {
                     html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: 500px" src="';
                     html += url;
