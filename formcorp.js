@@ -4169,6 +4169,9 @@ var fc = (function ($) {
                         stateOption,
                         stateCallbacks = {};
 
+                    // Mark the button checked
+                    el.addClass('checked');
+
                     // Fetch the root ID
                     lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
                     rootId = id.substr(0, lastSeparatorIndex);
@@ -5061,6 +5064,9 @@ var fc = (function ($) {
                         countryIterator,
                         countryHtml = '';
 
+                    // Mark the button checked
+                    el.addClass('checked');
+
                     // Fetch the root ID
                     lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
                     rootId = id.substr(0, lastSeparatorIndex);
@@ -5268,6 +5274,9 @@ var fc = (function ($) {
                         childField,
                         inputId;
 
+                    // Mark the button checked
+                    el.addClass('checked');
+
                     // Fetch the root ID
                     lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
                     rootId = id.substr(0, lastSeparatorIndex);
@@ -5383,9 +5392,21 @@ var fc = (function ($) {
                 $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
                     var id = el.attr('id'),
                         value = el.attr('data-field-value'),
-                        verificationTypeClicked = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g) !== null,
-                        verificationFunction = decodeURIComponent(value).replace(/[^a-zA-Z0-9\_]/g, '');
+                        rootSelection = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g),
+                        verificationTypeClicked = rootSelection !== null,
+                        verificationFunction = decodeURIComponent(value).replace(/[^a-zA-Z0-9\_]/g, ''),
+                        lastSeparatorIndex,
+                        rootId;
 
+                    // Fetch the root ID
+                    lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
+                    rootId = id.substr(0, lastSeparatorIndex).replace('_rootSelection', '');
+
+                     // Unselect other buttons
+                     console.log('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-verification-packages button');
+                    $('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-verification-packages button').removeClass('checked');
+
+                    // Look for a verification function
                     if (verificationTypeClicked && typeof callbackFunctions[verificationFunction] === 'function') {
                         // The user selects a verification type
                         return callbackFunctions[verificationFunction](el);
@@ -6275,18 +6296,21 @@ var fc = (function ($) {
                 options = [
                     {
                         class: "fc-drivers-license",
-                        title: "Drivers Licence",
-                        desc: "Use your state issued drivers licence to help prove your identity."
+                        title: fc.lang.greenID.options.driversLicense.title,
+                        desc: fc.lang.greenID.options.driversLicense.body,
+                        icon: fc.lang.greenID.options.driversLicense.icon
                     },
                     {
                         class: "fc-passport-verification",
-                        title: "Passport",
-                        desc: "Help confirm your identity using your Australian issued passport."
+                        title: fc.lang.greenID.options.passport.title,
+                        desc: fc.lang.greenID.options.passport.body,
+                        icon: fc.lang.greenID.options.passport.icon
                     },
                     {
                         class: "fc-skip-verification",
-                        title: "Skip Verification",
-                        desc: "You will be required to manually attach verification documents to your printed application."
+                        title: fc.lang.greenID.options.skip.title,
+                        desc: fc.lang.greenID.options.skip.body,
+                        icon: fc.lang.greenID.options.skip.icon
                     }
                 ],
                 optionString = '',
@@ -6329,7 +6353,7 @@ var fc = (function ($) {
             if (fieldValue !== undefined && typeof fieldValue.result === 'object' && Object.keys(fieldValue.result).length > 0) {
                 // Generate an options string
                 for (iterator = 0; iterator < options.length; iterator += 1) {
-                    optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","", "","' + options[iterator].class + '"]' + "\n";
+                    optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","' + options[iterator].icon + '", "","' + options[iterator].class + '"]' + "\n";
                 }
 
                 // Generate field obj
@@ -9434,7 +9458,26 @@ var fc = (function ($) {
                     helpModalLink: 'what is this?',
                     helpTitle: 'What is this?',
                     requiredAsterisk: '*',
-                    labelColon: ':'
+                    labelColon: ':',
+                    greenID: {
+                        options: {
+                            driversLicense: {
+                                title: 'Drivers Licence',
+                                body: 'Use your state issued drivers licence to help prove your identity.',
+                                icon: 'fa fa-car'
+                            },
+                            passport: {
+                                title: 'Passport',
+                                body: 'Help confirm your identity using your Australian issued passport.',
+                                icon: 'fa fa-globe'
+                            },
+                            skip: {
+                                title: 'Skip Verification',
+                                body: 'You will be required to manually attach verification documents.',
+                                icon: 'fa fa-rocket'
+                            }
+                        }
+                    }
                 };
 
                 // Update with client options
