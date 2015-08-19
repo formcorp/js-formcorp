@@ -9464,17 +9464,17 @@ var fc = (function ($) {
                             driversLicense: {
                                 title: 'Drivers Licence',
                                 body: 'Use your state issued drivers licence to help prove your identity.',
-                                icon: 'fa fa-car'
+                                icon: ''
                             },
                             passport: {
                                 title: 'Passport',
-                                body: 'Help confirm your identity using your Australian issued passport.',
-                                icon: 'fa fa-globe'
+                                body: 'Help confirm your identity using the details on your Australian issued passport.',
+                                icon: ''
                             },
                             skip: {
                                 title: 'Skip Verification',
-                                body: 'You will be required to manually attach verification documents.',
-                                icon: 'fa fa-rocket'
+                                body: 'You will be required to manually attach verification documents upon form submission.',
+                                icon: ''
                             }
                         }
                     }
