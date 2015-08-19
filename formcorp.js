@@ -3925,7 +3925,16 @@ var fc = (function ($) {
                     }
                 } else {
                     // Otherwise just scroll to the field specified in the first parameter
-                    el = $('.fc-field[fc-data-group="' + fromFieldId + '"]');
+                    try {
+                        el = $('.fc-field[fc-data-group="' + fromFieldId + '"]');
+                    } catch (ignore) {
+                    }
+
+                    // If no element was found, try to use the first parameter sent through as an actual selector
+                    if (el === undefined || !el || el.length === 0) {
+                        el = $(fromFieldId);
+                    }
+
                     if (el && el.length > 0) {
                         topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
                         scrollToOffset(topDistance);
@@ -4211,6 +4220,9 @@ var fc = (function ($) {
                     optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').slideUp(300, function () {
                         optionContainer.hide().html(containerHtml).slideDown();
                     });
+
+                    // Auto scroll to the field (vital for mobiles)
+                    autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
 
                     // State callbacks
                     stateCallbacks = {
@@ -5252,6 +5264,9 @@ var fc = (function ($) {
 
                     // Set the current state
                     fc.greenID.currentState = 'verifyPassport';
+
+                    // Auto scroll to the field (vital for mobiles)
+                    autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
                 };
 
                 // Passport button clicked
@@ -5380,6 +5395,9 @@ var fc = (function ($) {
 
                     // Set the current state
                     fc.greenID.currentState = 'verifyVisa';
+
+                    // Auto scroll to the field (vital for mobiles)
+                    autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
                 };
 
                 // Skip verification callback function
@@ -5403,7 +5421,6 @@ var fc = (function ($) {
                     rootId = id.substr(0, lastSeparatorIndex).replace('_rootSelection', '');
 
                      // Unselect other buttons
-                     console.log('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-verification-packages button');
                     $('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-verification-packages button').removeClass('checked');
 
                     // Look for a verification function
