@@ -3151,7 +3151,6 @@ var fc = (function ($) {
                 // Successfully been completed, return a completion message
                 html += '<div class="fc-payment">';
                 html += '<div class="fc-success">' + fc.lang.creditCardSuccess + '</div>';
-                html += '<pre>' + JSON.stringify(fieldValue) + '</pre>';
                 html += '</div>';
 
                 return html;
@@ -9722,6 +9721,35 @@ var fc = (function ($) {
                     }
                 }
             },
+
+            /**
+             * Check if a value does not contain another value.
+             * @param field
+             * @param comparisonValue
+             * @returns boolean
+             */
+            comparisonContains: function (field, comparisonValue) {
+                if (field === undefined) {
+                    return false;
+                }
+
+                return field.indexOf(comparisonValue) > -1;
+            },
+
+            /**
+             * Check if a value contains another value.
+             * @param field
+             * @param comparisonValue
+             * @returns boolean
+             */
+            comparisonNot_contains: function (field, comparisonValue) {
+                if (field === undefined) {
+                    return false;
+                }
+
+                return field.indexOf(comparisonValue) === -1;
+            },
+
 
             /**
              * Converts a string to camel case.
