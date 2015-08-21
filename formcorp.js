@@ -380,6 +380,32 @@ var fc = (function ($) {
                 return "";
             },
 
+
+            /**
+             * Return a unique data id (removes duplicates, i.e. data1_data2_data1 => data1_data2)
+             * @param dataId
+             * @returns string
+             */
+            getDataId = function (dataId) {
+                var parts, iterator, uniqueIds = [];
+
+                // Field IDs should never be in there twice
+                if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+                    parts = dataId.split(fc.constants.prefixSeparator);
+                    for (iterator = 0; iterator < parts.length; iterator += 1) {
+                        if (uniqueIds.indexOf(parts[iterator]) === -1) {
+                            uniqueIds.push(parts[iterator]);
+                        }
+                    }
+
+                    if (uniqueIds.length > 0) {
+                        dataId = uniqueIds.join(fc.constants.prefixSeparator);
+                    }
+                }
+
+                return dataId;
+            },
+
             /**
              * Return a value from the field's configuration options.
              * @param field
@@ -428,9 +454,12 @@ var fc = (function ($) {
                     defaultValue = '';
                 }
 
-                var schema = fc.fieldSchema[fieldId],
-                    value = fc.fields[fieldId],
-                    functionReference;
+                var schema, value, functionReference;
+
+                fieldId = getDataId(fieldId);
+                schema = fc.fieldSchema[fieldId];
+                value = fc.fields[fieldId];
+                functionReference;
 
                 if (schema !== undefined) {
                     functionReference = getConfig(schema, 'functionReference', '');
@@ -3150,7 +3179,6 @@ var fc = (function ($) {
                 // Successfully been completed, return a completion message
                 html += '<div class="fc-payment">';
                 html += '<div class="fc-success">' + fc.lang.creditCardSuccess + '</div>';
-                html += '<pre>' + JSON.stringify(fieldValue) + '</pre>';
                 html += '</div>';
 
                 return html;
@@ -3924,7 +3952,16 @@ var fc = (function ($) {
                     }
                 } else {
                     // Otherwise just scroll to the field specified in the first parameter
-                    el = $('.fc-field[fc-data-group="' + fromFieldId + '"]');
+                    try {
+                        el = $('.fc-field[fc-data-group="' + fromFieldId + '"]');
+                    } catch (ignore) {
+                    }
+
+                    // If no element was found, try to use the first parameter sent through as an actual selector
+                    if (el === undefined || !el || el.length === 0) {
+                        el = $(fromFieldId);
+                    }
+
                     if (el && el.length > 0) {
                         topDistance = parseInt(el.offset().top, 10) + fc.config.scrollOffset;
                         scrollToOffset(topDistance);
@@ -4168,6 +4205,9 @@ var fc = (function ($) {
                         stateOption,
                         stateCallbacks = {};
 
+                    // Mark the button checked
+                    el.addClass('checked');
+
                     // Fetch the root ID
                     lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
                     rootId = id.substr(0, lastSeparatorIndex);
@@ -4207,6 +4247,9 @@ var fc = (function ($) {
                     optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').slideUp(300, function () {
                         optionContainer.hide().html(containerHtml).slideDown();
                     });
+
+                    // Auto scroll to the field (vital for mobiles)
+                    autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
 
                     // State callbacks
                     stateCallbacks = {
@@ -5060,6 +5103,9 @@ var fc = (function ($) {
                         countryIterator,
                         countryHtml = '';
 
+                    // Mark the button checked
+                    el.addClass('checked');
+
                     // Fetch the root ID
                     lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
                     rootId = id.substr(0, lastSeparatorIndex);
@@ -5245,6 +5291,9 @@ var fc = (function ($) {
 
                     // Set the current state
                     fc.greenID.currentState = 'verifyPassport';
+
+                    // Auto scroll to the field (vital for mobiles)
+                    autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
                 };
 
                 // Passport button clicked
@@ -5266,6 +5315,9 @@ var fc = (function ($) {
                         obj,
                         childField,
                         inputId;
+
+                    // Mark the button checked
+                    el.addClass('checked');
 
                     // Fetch the root ID
                     lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
@@ -5370,6 +5422,9 @@ var fc = (function ($) {
 
                     // Set the current state
                     fc.greenID.currentState = 'verifyVisa';
+
+                    // Auto scroll to the field (vital for mobiles)
+                    autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
                 };
 
                 // Skip verification callback function
@@ -5382,9 +5437,20 @@ var fc = (function ($) {
                 $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
                     var id = el.attr('id'),
                         value = el.attr('data-field-value'),
-                        verificationTypeClicked = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g) !== null,
-                        verificationFunction = decodeURIComponent(value).replace(/[^a-zA-Z0-9\_]/g, '');
+                        rootSelection = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g),
+                        verificationTypeClicked = rootSelection !== null,
+                        verificationFunction = decodeURIComponent(value).replace(/[^a-zA-Z0-9\_]/g, ''),
+                        lastSeparatorIndex,
+                        rootId;
 
+                    // Fetch the root ID
+                    lastSeparatorIndex = id.lastIndexOf(fc.constants.prefixSeparator);
+                    rootId = id.substr(0, lastSeparatorIndex).replace('_rootSelection', '');
+
+                     // Unselect other buttons
+                    $('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-verification-packages button').removeClass('checked');
+
+                    // Look for a verification function
                     if (verificationTypeClicked && typeof callbackFunctions[verificationFunction] === 'function') {
                         // The user selects a verification type
                         return callbackFunctions[verificationFunction](el);
@@ -6274,18 +6340,21 @@ var fc = (function ($) {
                 options = [
                     {
                         class: "fc-drivers-license",
-                        title: "Drivers Licence",
-                        desc: "Use your state issued drivers licence to help prove your identity."
+                        title: fc.lang.greenID.options.driversLicense.title,
+                        desc: fc.lang.greenID.options.driversLicense.body,
+                        icon: fc.lang.greenID.options.driversLicense.icon
                     },
                     {
                         class: "fc-passport-verification",
-                        title: "Passport",
-                        desc: "Help confirm your identity using your Australian issued passport."
+                        title: fc.lang.greenID.options.passport.title,
+                        desc: fc.lang.greenID.options.passport.body,
+                        icon: fc.lang.greenID.options.passport.icon
                     },
                     {
                         class: "fc-skip-verification",
-                        title: "Skip Verification",
-                        desc: "You will be required to manually attach verification documents to your printed application."
+                        title: fc.lang.greenID.options.skip.title,
+                        desc: fc.lang.greenID.options.skip.body,
+                        icon: fc.lang.greenID.options.skip.icon
                     }
                 ],
                 optionString = '',
@@ -6328,7 +6397,7 @@ var fc = (function ($) {
             if (fieldValue !== undefined && typeof fieldValue.result === 'object' && Object.keys(fieldValue.result).length > 0) {
                 // Generate an options string
                 for (iterator = 0; iterator < options.length; iterator += 1) {
-                    optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","", "","' + options[iterator].class + '"]' + "\n";
+                    optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","' + options[iterator].icon + '", "","' + options[iterator].class + '"]' + "\n";
                 }
 
                 // Generate field obj
@@ -8220,7 +8289,7 @@ var fc = (function ($) {
             // Map the fields on click
             $(fc.jQueryContainer).on('click', '.fc-suggest-row', function () {
                 var json = JSON.parse(decodeURI($(this).attr('data-suggest'))),
-                    dataId = $(this).attr('data-id'),
+                    dataId = getDataId($(this).attr('data-id')),
                     schema = fc.fieldSchema[dataId],
                     map = getConfig(schema, 'mapResponse', '{}'),
                     mapObj,
@@ -8238,6 +8307,9 @@ var fc = (function ($) {
                     groupletTags,
                     groupletSchema,
                     key,
+                    isRepeatable = false,
+                    groupletFieldId,
+                    tagName,
                     successfulTransaction;
 
                 if (typeof json !== 'object') {
@@ -8256,14 +8328,26 @@ var fc = (function ($) {
 
                 // If the field belongs to a grouplet, need to also match simple grouplet tags to the complex ids
                 if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+
                     parts = dataId.split(fc.constants.prefixSeparator);
                     if (fc.fieldSchema[parts[0]] !== undefined && fc.fieldSchema[parts[0]].type !== undefined && fc.fieldSchema[parts[0]].type === 'grouplet') {
                         // Fetch the grouplet schema
                         groupletSchema = getFieldsSchema(getConfig(fc.fieldSchema[parts[0]], 'grouplet', {'field': []}).field);
+                        
+                        // For non-repeatable grouplets, only want to use the root ID (non-repeatable grouplets of the form ROOTID_GROUPLETFIELDID)
+                        // Repeatable grouplets are of the format ROOTID_INDEX_GROUPLETFIELDID, you therefore need to track the first two
+                        isRepeatable = getConfig(fc.fieldSchema[parts[0]], 'repeatable', false);
+                        parts.splice(isRepeatable ? 2 : 1);
+
                         for (key in groupletSchema) {
                             if (groupletSchema.hasOwnProperty(key)) {
-                                if (getConfig(groupletSchema[key], 'tag', '').length > 0) {
-                                    tags[getConfig(groupletSchema[key], 'tag', '')] = [parts[0], parts[1], key].join(fc.constants.prefixSeparator);
+                                tagName = getConfig(groupletSchema[key], 'tag', '');
+                                if (tagName.length > 0) {
+                                    // Create an array for the groupletfield id
+                                    groupletFieldId = parts.slice();
+                                    groupletFieldId.push(key);
+
+                                    tags[tagName] = getDataId(groupletFieldId.join(fc.constants.prefixSeparator));
                                 }
                             }
                         }
@@ -9291,7 +9375,7 @@ var fc = (function ($) {
              * @returns {*}
              */
             getValue: function (id) {
-                return this.fields[id];
+                return getValue(id);
             },
 
             /**
@@ -9433,7 +9517,26 @@ var fc = (function ($) {
                     helpModalLink: 'what is this?',
                     helpTitle: 'What is this?',
                     requiredAsterisk: '*',
-                    labelColon: ':'
+                    labelColon: ':',
+                    greenID: {
+                        options: {
+                            driversLicense: {
+                                title: 'Drivers Licence',
+                                body: 'Use your state issued drivers licence to help prove your identity.',
+                                icon: ''
+                            },
+                            passport: {
+                                title: 'Passport',
+                                body: 'Help confirm your identity using the details on your Australian issued passport.',
+                                icon: ''
+                            },
+                            skip: {
+                                title: 'Skip Verification',
+                                body: 'You will be required to manually attach verification documents upon form submission.',
+                                icon: ''
+                            }
+                        }
+                    }
                 };
 
                 // Update with client options
@@ -9538,6 +9641,7 @@ var fc = (function ($) {
 
                 // If the field is hidden, should ALWAYS return false (otherwise returns false positives)
                 if (typeof dataId === 'string' && dataId.length > 0) {
+                    dataId = getDataId(dataId);
                     if (!fieldIsVisible(dataId)) {
                         return false;
                     }
@@ -9661,6 +9765,35 @@ var fc = (function ($) {
                     }
                 }
             },
+
+            /**
+             * Check if a value does not contain another value.
+             * @param field
+             * @param comparisonValue
+             * @returns boolean
+             */
+            comparisonContains: function (field, comparisonValue) {
+                if (field === undefined) {
+                    return false;
+                }
+
+                return field.indexOf(comparisonValue) > -1;
+            },
+
+            /**
+             * Check if a value contains another value.
+             * @param field
+             * @param comparisonValue
+             * @returns boolean
+             */
+            comparisonNot_contains: function (field, comparisonValue) {
+                if (field === undefined) {
+                    return false;
+                }
+
+                return field.indexOf(comparisonValue) === -1;
+            },
+
 
             /**
              * Converts a string to camel case.
