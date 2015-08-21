@@ -3001,6 +3001,11 @@ var fc = (function ($) {
                     return html += '<div class="fc-securepay-iframe"></div>';
                 }
 
+                if (getConfig(field, 'paymentGateway', '', true)["gateway"] === 'paycorp') {
+                    renderPayCorpIFrame(field)
+                    return html += '<div class="fc-paycorp-iframe"></div>';
+                }
+
                 // Initialise basic components
                 html += '<div class="fc-payment">';
                 html += '<div class="fc-cc-name"><label>' + fc.lang.creditCardNameText + '</label><input type="text" class="fc-fieldinput"></div>';
@@ -3135,11 +3140,28 @@ var fc = (function ($) {
 
                     html += renderCreditCardIFrame(full_url, 500);
 
-                    $('.fc-section [fc-data-group="' + data.fieldId + '"] .fc-securepay-iframe').append(html);
+                    $('.fc-section [fc-data-group="' + field._id.$id + '"] .fc-securepay-iframe').append(html);
 
                     waitForSecurePayVerification(data.fieldId);
 
-                })
+                });
+
+            },
+
+
+            /**
+             * Render a PayCorp IFrame
+             */
+            renderPayCorpIFrame = function (field) {
+                var html = '';
+
+                // Get the url for the iframe
+                api('paycorp/default/paymentinit', {
+                    'field_id': field._id.$id,
+                }, 'POST', function (data) {
+                    html += renderCreditCardIFrame(data.paymentPageUrl, 500);
+                    $('.fc-section [fc-data-group="' + field._id.$id + '"] .fc-paycorp-iframe').append(html);
+                });
 
             },
 
