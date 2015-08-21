@@ -8290,7 +8290,7 @@ var fc = (function ($) {
             // Map the fields on click
             $(fc.jQueryContainer).on('click', '.fc-suggest-row', function () {
                 var json = JSON.parse(decodeURI($(this).attr('data-suggest'))),
-                    dataId = $(this).attr('data-id'),
+                    dataId = getDataId($(this).attr('data-id')),
                     schema = fc.fieldSchema[dataId],
                     map = getConfig(schema, 'mapResponse', '{}'),
                     mapObj,
@@ -8308,6 +8308,9 @@ var fc = (function ($) {
                     groupletTags,
                     groupletSchema,
                     key,
+                    isRepeatable = false,
+                    groupletFieldId,
+                    tagName,
                     successfulTransaction;
 
                 if (typeof json !== 'object') {
@@ -8326,14 +8329,26 @@ var fc = (function ($) {
 
                 // If the field belongs to a grouplet, need to also match simple grouplet tags to the complex ids
                 if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+
                     parts = dataId.split(fc.constants.prefixSeparator);
                     if (fc.fieldSchema[parts[0]] !== undefined && fc.fieldSchema[parts[0]].type !== undefined && fc.fieldSchema[parts[0]].type === 'grouplet') {
                         // Fetch the grouplet schema
                         groupletSchema = getFieldsSchema(getConfig(fc.fieldSchema[parts[0]], 'grouplet', {'field': []}).field);
+                        
+                        // For non-repeatable grouplets, only want to use the root ID (non-repeatable grouplets of the form ROOTID_GROUPLETFIELDID)
+                        // Repeatable grouplets are of the format ROOTID_INDEX_GROUPLETFIELDID, you therefore need to track the first two
+                        isRepeatable = getConfig(fc.fieldSchema[parts[0]], 'repeatable', false);
+                        parts.splice(isRepeatable ? 2 : 1);
+
                         for (key in groupletSchema) {
                             if (groupletSchema.hasOwnProperty(key)) {
-                                if (getConfig(groupletSchema[key], 'tag', '').length > 0) {
-                                    tags[getConfig(groupletSchema[key], 'tag', '')] = [parts[0], parts[1], key].join(fc.constants.prefixSeparator);
+                                tagName = getConfig(groupletSchema[key], 'tag', '');
+                                if (tagName.length > 0) {
+                                    // Create an array for the groupletfield id
+                                    groupletFieldId = parts.slice();
+                                    groupletFieldId.push(key);
+
+                                    tags[tagName] = getDataId(groupletFieldId.join(fc.constants.prefixSeparator));
                                 }
                             }
                         }
