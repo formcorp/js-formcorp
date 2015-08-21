@@ -3112,7 +3112,6 @@ var fc = (function ($) {
                 // Get fingerprint, timestamp, merchant id, amount, primary_ref, txn_type from server
                 api('securepay/default/index', {
                     'field_id': field._id.$id,
-                    'amount': amount,
                 }, fc.gateways.securepay.method, function (data) {
                     html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: 500px" src="';
                     html += url;
@@ -3123,7 +3122,7 @@ var fc = (function ($) {
                     html += '&amount=' + data.amount;
                     html += '&txn_type=' + data.txn_type;
                     html += '&currency=' + currency;
-                    html += '&display_receipt' + display_receipt;
+                    html += '&display_receipt=' + display_receipt;
                     html += '&return_url=' + return_url;
                     html += '&return_url_text=' + return_url_text;
                     html += '&return_url_target=' + return_url_target;
