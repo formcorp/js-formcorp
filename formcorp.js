@@ -380,6 +380,32 @@ var fc = (function ($) {
                 return "";
             },
 
+
+            /**
+             * Return a unique data id (removes duplicates, i.e. data1_data2_data1 => data1_data2)
+             * @param dataId
+             * @returns string
+             */
+            getDataId = function (dataId) {
+                var parts, iterator, uniqueIds = [];
+
+                // Field IDs should never be in there twice
+                if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+                    parts = dataId.split(fc.constants.prefixSeparator);
+                    for (iterator = 0; iterator < parts.length; iterator += 1) {
+                        if (uniqueIds.indexOf(parts[iterator]) === -1) {
+                            uniqueIds.push(parts[iterator]);
+                        }
+                    }
+
+                    if (uniqueIds.length > 0) {
+                        dataId = uniqueIds.join(fc.constants.prefixSeparator);
+                    }
+                }
+
+                return dataId;
+            },
+
             /**
              * Return a value from the field's configuration options.
              * @param field
@@ -428,9 +454,12 @@ var fc = (function ($) {
                     defaultValue = '';
                 }
 
-                var schema = fc.fieldSchema[fieldId],
-                    value = fc.fields[fieldId],
-                    functionReference;
+                var schema, value, functionReference;
+
+                fieldId = getDataId(fieldId);
+                schema = fc.fieldSchema[fieldId];
+                value = fc.fields[fieldId];
+                functionReference;
 
                 if (schema !== undefined) {
                     functionReference = getConfig(schema, 'functionReference', '');
@@ -9332,7 +9361,7 @@ var fc = (function ($) {
              * @returns {*}
              */
             getValue: function (id) {
-                return this.fields[id];
+                return getValue(id);
             },
 
             /**
@@ -9598,6 +9627,7 @@ var fc = (function ($) {
 
                 // If the field is hidden, should ALWAYS return false (otherwise returns false positives)
                 if (typeof dataId === 'string' && dataId.length > 0) {
+                    dataId = getDataId(dataId);
                     if (!fieldIsVisible(dataId)) {
                         return false;
                     }
