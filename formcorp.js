@@ -3061,7 +3061,8 @@ var fc = (function ($) {
                     display_cardholder_name,
                     txn_type,
                     defaultprice,
-                    url;
+                    url,
+                    full_url = '';
 
                 // Calculate price to send up
                 defaultprice = getConfig(field, 'defaultPrice');
@@ -3113,26 +3114,26 @@ var fc = (function ($) {
                 api('securepay/default/index', {
                     'field_id': field._id.$id,
                 }, fc.gateways.securepay.method, function (data) {
-                    html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: 500px" src="';
-                    html += url;
-                    html += '&merchant_id=' + data.merchant_id;
-                    html += '&fingerprint=' + data.fingerprint;
-                    html += '&fp_timestamp=' + data.timestamp;
-                    html += '&primary_ref=' + data.primary_ref;
-                    html += '&amount=' + data.amount;
-                    html += '&txn_type=' + data.txn_type;
-                    html += '&currency=' + currency;
-                    html += '&display_receipt=' + display_receipt;
-                    html += '&return_url=' + return_url;
-                    html += '&return_url_text=' + return_url_text;
-                    html += '&return_url_target=' + return_url_target;
-                    html += '&confirmation=' + confirmation;
-                    html += '&template=' + template;
-                    html += '&page_header_image=' + page_header_image;
-                    html += '&page_title=' + page_title;
-                    html += '&page_style_url=' + page_style_url;
-                    html += '&display_cardholder_name=' + display_cardholder_name
-                    html += '"></iframe>';
+                    full_url += url;
+                    full_url += '&merchant_id=' + data.merchant_id;
+                    full_url += '&fingerprint=' + data.fingerprint;
+                    full_url += '&fp_timestamp=' + data.timestamp;
+                    full_url += '&primary_ref=' + data.primary_ref;
+                    full_url += '&amount=' + data.amount;
+                    full_url += '&txn_type=' + data.txn_type;
+                    full_url += '&currency=' + currency;
+                    full_url += '&display_receipt=' + display_receipt;
+                    full_url += '&return_url=' + return_url;
+                    full_url += '&return_url_text=' + return_url_text;
+                    full_url += '&return_url_target=' + return_url_target;
+                    full_url += '&confirmation=' + confirmation;
+                    full_url += '&template=' + template;
+                    full_url += '&page_header_image=' + page_header_image;
+                    full_url += '&page_title=' + page_title;
+                    full_url += '&page_style_url=' + page_style_url;
+                    full_url += '&display_cardholder_name=' + display_cardholder_name
+
+                    html += renderCreditCardIFrame(full_url, 500);
 
                     $('.fc-section [fc-data-group="' + data.fieldId + '"] .fc-securepay-iframe').append(html);
 
@@ -3140,6 +3141,19 @@ var fc = (function ($) {
 
                 })
 
+            },
+
+            /**
+             * Renders a credit card iframe
+             */
+            renderCreditCardIFrame = function (url, height) {
+                var html = '';
+
+                html += '<iframe scrolling="no" frameborder="0" style="width: 100%;height: ' + 500 + 'px" src="';
+                html += url;
+                html += '"></iframe>';
+
+                return html;
             },
 
             /**
@@ -3172,6 +3186,9 @@ var fc = (function ($) {
                 });
             },
 
+            /**
+             * Render a payment complete message
+             */
             renderCompletedPayment = function (fieldValue) {
 
                 var html = '';
