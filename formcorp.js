@@ -5805,7 +5805,8 @@ var fc = (function ($) {
                 re,
                 helpTitle,
                 amountOfRows,
-                repeatableStyle;
+                repeatableStyle,
+                fieldClass;
 
             // Field id prefix (for grouplet fields that may be shown multiple times)
             if (prefix === undefined) {
@@ -5852,6 +5853,12 @@ var fc = (function ($) {
                     fieldHtml += 'fc-mobile-field ';
                 } else if (getConfig(field, 'desktopOnly', false) === true) {
                     fieldHtml += 'fc-desktop-field ';
+                }
+
+                // Render the field class
+                fieldClass = getConfig(field, 'class', '');
+                if (fieldClass.length > 0) {
+                    fieldHtml += fieldClass + ' ';
                 }
 
                 fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '"';
@@ -6072,7 +6079,7 @@ var fc = (function ($) {
                                 // If values have already been set, use it for the initial array length
                                 amountOfRows = fc.fields[getId(field)].length;
                             } else {
-                                amountOfRows = 1;
+                                amountOfRows = getConfig(field, fc.constants.repeatableLinkedTo, 1);
                             }
 
                             fieldHtml += outputRepeatablePreDetermined(getId(field), amountOfRows, section);
