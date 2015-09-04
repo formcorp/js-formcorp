@@ -1470,7 +1470,18 @@ var fc = (function ($) {
                         value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                         localErrors = [],
                         skipCheck = false,
+                        target,
+                        parts,
                         prefix = '';
+
+                    // If the field belongs to a grouplet and the grouplet is hidden, not required to validate
+                    if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+                        parts = dataId.split(fc.constants.prefixSeparator);
+                        target = $(rootElement).find('.fc-field[fc-data-group="' + parts[0] + '"]');
+                        if (target.hasClass('fc-hide')) {
+                            return;
+                        }
+                    }
 
                     // Determine the prefix
                     if (field !== undefined && dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
@@ -1515,6 +1526,8 @@ var fc = (function ($) {
                         showFieldSuccess(dataId);
                     }
                 });
+
+                console.log(errors);
 
                 return Object.keys(errors).length === 0;
             },
@@ -7646,6 +7659,7 @@ var fc = (function ($) {
             logEvent(fc.eventTypes.onNextPageClick);
 
             if (!validForm(fc.jQueryContainer, showError)) {
+                console.log("PAGE NOT VALID");
                 logEvent(fc.eventTypes.onNextPageError);
 
                 // Scroll to first error
