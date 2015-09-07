@@ -8491,7 +8491,6 @@ var fc = (function ($) {
                 '<h2>' + fc.lang.addModalHeader + '</h2>' +
                 '</div>' +
                 '<div class="modal-body">' +
-                '<p>One modal example here! :D</p>' +
                 '</div>' +
                 '<div class="modal-footer">' +
                 '<div class="fc-loading fc-hide"></div>' +
