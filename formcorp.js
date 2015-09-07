@@ -8455,7 +8455,12 @@ var fc = (function ($) {
             }
 
             $(fc.jQueryContainer).addClass('fc-container');
-            addModalWindow();
+
+            // Show the modal when required
+            if (!fc.config.hideModal) {
+                addModalWindow();
+            }
+
             $(fc.jQueryContainer).prepend('<div class="fc-loading-screen"><div class="fc-loading-halo"></div></div>');
 
             // Load the required css files
@@ -9453,7 +9458,8 @@ var fc = (function ($) {
                     minSizeForMobile: 479,
                     asterisksOnLabels: true,
                     colonAfterLabel: true,
-                    helpAsModal: false
+                    helpAsModal: false,
+                    hideModal: false
                 };
 
                 // Minimum event queue interval (to prevent server from getting slammed)
