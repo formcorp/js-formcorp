@@ -6506,7 +6506,7 @@ var fc = (function ($) {
                 sectionHtml = '<div class="fc-section fc-section-' + section._id.$id + '" formcorp-data-id="' + section._id.$id + '">';
                 /*jslint nomen: false*/
 
-                html += '<div class="fc-section-header">';
+                sectionHtml += '<div class="fc-section-header">';
 
                 if (typeof section.label === 'string' && section.label.length > 0) {
                     sectionHtml += '<div class="fc-section-label">';
@@ -6520,7 +6520,7 @@ var fc = (function ($) {
                     sectionHtml += '</div>';
                 }
 
-                html += '</div>';
+                sectionHtml += '</div>';
 
                 // Render the fields
                 if (section.field !== undefined && section.field.length > 0) {
