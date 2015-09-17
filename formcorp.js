@@ -6506,13 +6506,21 @@ var fc = (function ($) {
                 sectionHtml = '<div class="fc-section fc-section-' + section._id.$id + '" formcorp-data-id="' + section._id.$id + '">';
                 /*jslint nomen: false*/
 
+                html += '<div class="fc-section-header">';
+
                 if (typeof section.label === 'string' && section.label.length > 0) {
+                    sectionHtml += '<div class="fc-section-label">';
                     sectionHtml += '<h4>' + section.label + '</h4>';
+                    sectionHtml += '</div>';
                 }
 
                 if (typeof section.description === 'string' && section.description.length > 0) {
+                    sectionHtml += '<div class="fc-section-desc">';
                     sectionHtml += '<p>' + section.description + '</p>';
+                    sectionHtml += '</div>';
                 }
+
+                html += '</div>';
 
                 // Render the fields
                 if (section.field !== undefined && section.field.length > 0) {
