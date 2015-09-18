@@ -6004,16 +6004,23 @@ var fc = (function ($) {
 
                             // The title to use for the help link
                             helpTitle = getConfig(field, 'helpTitle', '');
-                            if (helpTitle.length === 0 && fc.config.helpDefaultWhenNoTitleText === false) {
-                                helpTitle = fc.lang.helpModalLink;
+                            if (helpTitle.length === 0) {
+                                if (fc.config.helpDefaultWhenNoTitleText === false) {
+                                    helpTitle = fc.lang.helpModalLink;
+                                }
                             }
 
                             if (helpTitle.length > 0) {
                                 // Push to the data array
                                 fc.helpData.push(getConfig(field, 'help'));
                                 fc.helpTitle.push(helpTitle);
-                                showHelpAsText = false;
 
+                                // Use the static title if forced
+                                if (fc.config.staticHelpModalLink) {
+                                    helpTitle = fc.lang.helpModalLink;
+                                }
+
+                                showHelpAsText = false;
                                 fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
                             } else {
                                 // At this stage, show the help as text instead
@@ -9544,6 +9551,7 @@ var fc = (function ($) {
                     asterisksOnLabels: true,
                     colonAfterLabel: true,
                     helpAsModal: false,
+                    staticHelpModalLink: false,
                     hideModal: false,
                     helpDefaultWhenNoTitleText: true
                 };
