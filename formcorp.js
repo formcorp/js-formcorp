@@ -1449,30 +1449,43 @@ var fc = (function ($) {
 
                 // Test if required fields have a value
                 $(rootElement).find('.fc-field[fc-data-group]').each(function () {
-                    // If a repeatable field, ignore
-                    if ($(this).parent().attr("class").indexOf("repeatable") > -1 && $(this).parent().attr('class').indexOf('fc-repeatable-row') === -1) {
-                        return;
-                    }
-
-                    // If the field is hidden, not required to validate
-                    if ($(this).hasClass('fc-hide')) {
-                        return;
-                    }
-
-                    // If in modal, do nothing
-                    if (inModal($(this))) {
-                        return;
-                    }
-
-                    var dataId = $(this).attr('fc-data-group'),
-                        section = $(this).parent(),
+                    var obj = $(this),
+                        dataId = obj.attr('fc-data-group'),
+                        section = obj.parent(),
                         field = fc.fieldSchema[dataId],
                         value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
                         localErrors = [],
                         skipCheck = false,
                         target,
                         parts,
-                        prefix = '';
+                        prefix = '',
+                        belongsTo;
+
+                    // If a repeatable field, ignore
+                    if (obj.parent().attr("class").indexOf("repeatable") > -1 && obj.parent().attr('class').indexOf('fc-repeatable-row') === -1) {
+                        return;
+                    }
+
+                    // If the field is hidden, not required to validate
+                    if (obj.hasClass('fc-hide')) {
+                        return;
+                    }
+
+                    // If in modal, do nothing
+                    if (inModal(obj)) {
+                        return;
+                    }                   
+
+                    // Check if the section it belongs to is hidden
+                    belongsTo = obj.attr('fc-belongs-to');
+                    if (typeof belongsTo === 'string') {
+                        section = $(fc.jQueryContainer).find('.fc-section[formcorp-data-id="' + belongsTo + '"]');
+
+                        // When the section is hidden, do not validate
+                        if (section.length > 0 && section.hasClass('fc-hide')) {
+                            return;
+                        }
+                    }
 
                     // If the field belongs to a grouplet and the grouplet is hidden, not required to validate
                     if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
@@ -2631,7 +2644,7 @@ var fc = (function ($) {
 
                             html += '<div class="' + cssClass + '">';
                             html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
-                            html += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option) + '</em></label>';
+                            html += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option) + '</em><span class="fc-end-radio-item"></span></label>';
                             html += '</div>';
                         }
                     }
@@ -2691,7 +2704,10 @@ var fc = (function ($) {
                         }
 
                         html += '>';
-                        html += '<label for="' + id + '"><span><b><i></i><i></i></b></span><em>' + htmlEncode(option) + '</em></label>';
+                        html += '<label for="' + id + '">';
+                        html += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(option) + '</em>';
+                        html += '<span class="fc-end-checkbox-item"></span>';
+                        html += '</label>';
                         html += '</div>';
                     }
                 }
@@ -3352,7 +3368,7 @@ var fc = (function ($) {
                 }
 
                 // Call the internal function
-                valueChanged(fieldId, value);
+                valueChanged(fieldId, value, true);
             },
 
             /**
@@ -3366,6 +3382,7 @@ var fc = (function ($) {
                         fieldId;
 
                     elParent.find('.fc-loading').removeClass('fc-hide');
+                    elParent.parent().addClass('loading');
                     fieldId = elParent.parent().attr('fc-belongs-to');
 
                     // Data to send with the request
@@ -3376,6 +3393,7 @@ var fc = (function ($) {
                     // Send the api callback
                     api('verification/callback', data, 'POST', function (data) {
                         elParent.find('.fc-loading').addClass('fc-hide');
+                        elParent.parent().removeClass('loading');
 
                         // On successful request, load a dialog to input the code
                         if (typeof data === "object" && data.success !== undefined && data.success) {
@@ -3385,6 +3403,49 @@ var fc = (function ($) {
                     });
 
                     return false;
+                });
+
+                // Inline e-mail verification
+                $(fc.jQueryContainer).on('click', '.fc-email-verification.fc-verify-inline .fc-email-verification-verify', function () {
+                    console.log('attempt to verify');
+                    var data,
+                        obj = $(this),
+                        parent = obj.parent().parent(),
+                        fieldId = parent.attr('fc-belongs-to'),
+                        val = parent.find('input[type="text"]').val();
+
+                    if (val.length === 0) {
+                        parent.addClass('error');
+                        return;
+                    }
+
+                        // Send the request to the API server
+                    data = {
+                        fieldId: fieldId,
+                        code: val
+                    };
+
+                    parent.removeClass('error').addClass('loading');
+
+                    // Perform the API request
+                    api('verification/verify', data, 'POST', function (data) {
+                        parent.removeClass('loading');
+                        parent.find('input[type="text"]').val("")
+
+                        if (typeof data !== "object" || data.success === undefined) {
+                            // An unknown error occurred
+                            parent.addClass('error');
+                        } else if (!data.success && typeof data.message === "string") {
+                            parent.addClass('error');
+                        } else if (data.success) {
+                            // The field was successfully verified
+                            $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
+                            fc.fields[fieldId] = '1';
+                            valueChanged(fieldId, '1', true);
+                        }
+
+                        $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
+                    });
                 });
 
                 // Open the modal
@@ -3414,7 +3475,8 @@ var fc = (function ($) {
                     fieldValue = fc.fields[getId(field)],
                     verified = fieldValue !== undefined && fieldValue === '1',
                     buttonText = getConfig(field, 'sendButtonText', ''),
-                    verificationButtonText = getConfig(field, 'verificationButtonText', '');
+                    verificationButtonText = getConfig(field, 'verificationButtonText', ''),
+                    verifyClass
 
                 // Default button text
                 if (buttonText.length === 0) {
@@ -3423,19 +3485,22 @@ var fc = (function ($) {
 
                 // If not verified, show the form to verify
                 if (!verified) {
-                    html += '<div class="fc-email-verification" fc-belongs-to="' + getId(field) + '">';
+                    verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline';        
+                    html += '<div class="fc-email-verification ' + verifyClass + '" fc-belongs-to="' + getId(field) + '">';
 
                     // Display the verification button text
-                    if (verificationButtonText.length > 0) {
+                    if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
                         html += '<div class="fc-verify-email"><input class="fc-btn fc-email-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
+                    } else {
+                        html += '<div class="fc-verify-email-input-code"><input type="text" class="fc-verify-email-input fc-fieldinput" value=""></div>';
+                        html += '<div class="fc-verify-email-button"><input class="fc-btn fc-email-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
                     }
 
                     html += '<div class="fc-send-email">';
                     html += '<input class="fc-btn" type="submit" value="' + buttonText + '"><div class="fc-loading fc-hide"></div>';
-                    html += '<div class="fc-clear fc-verification-options">';
-                    //html += '<p><small>Already have a verification code? Click <a href="#" class="fc-email-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
-                    html += '</div></div>';
+                    html += '</div>';
 
+                    html += '<div class="fc-clear"></div>';
                     html += '</div>';
                     /*!fc-email-verification*/
                 }
@@ -4257,9 +4322,7 @@ var fc = (function ($) {
                     containerHtml += renderDropdown(stateOption);
                     containerHtml += '<div class="fc-child-options" data-for="' + rootId + '"></div>';
 
-                    optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').slideUp(300, function () {
-                        optionContainer.hide().html(containerHtml).slideDown();
-                    });
+                    optionContainer.attr('class', '').addClass('fc-greenid-options fc-greenid-drivers-license').hide().html(containerHtml).slideDown();
 
                     // Auto scroll to the field (vital for mobiles)
                     autoScrollToField('.fc-field[fc-data-group="' + rootId + '"] .fc-greenid-options');
@@ -5819,6 +5882,7 @@ var fc = (function ($) {
                 helpTitle,
                 amountOfRows,
                 repeatableStyle,
+                showHelpAsText = true,
                 fieldClass;
 
             // Field id prefix (for grouplet fields that may be shown multiple times)
@@ -5915,6 +5979,7 @@ var fc = (function ($) {
                 fieldHtml += '<div class="fc-fieldcontainer">';
 
                 // Field label - don't show in this position for certain fields
+                helpTitle = '';
                 if (["creditCard"].indexOf(field.type) === -1) {
                     if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                         fieldHtml += '<label>';
@@ -5936,16 +6001,24 @@ var fc = (function ($) {
                                 fc.helpData = [];
                                 fc.helpTitle = [];
                             }
-                            fc.helpData.push(getConfig(field, 'help'));
 
                             // The title to use for the help link
                             helpTitle = getConfig(field, 'helpTitle', '');
-                            if (helpTitle.length === 0) {
+                            if (helpTitle.length === 0 && fc.config.helpDefaultWhenNoTitleText === false) {
                                 helpTitle = fc.lang.helpModalLink;
                             }
-                            fc.helpTitle.push(helpTitle);
 
-                            fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
+                            if (helpTitle.length > 0) {
+                                // Push to the data array
+                                fc.helpData.push(getConfig(field, 'help'));
+                                fc.helpTitle.push(helpTitle);
+                                showHelpAsText = false;
+
+                                fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
+                            } else {
+                                // At this stage, show the help as text instead
+                                showHelpAsText = true;
+                            }
                         }
 
                         fieldHtml += '</label>';
@@ -5973,7 +6046,9 @@ var fc = (function ($) {
                     }
 
                     fieldHtml += '">';
-                    fieldHtml += '<div class="fc-summary"></div>';
+                    if (getConfig(field, 'renderRepeatableTable', false)) {
+                        fieldHtml += '<div class="fc-summary"></div>';
+                    }
                 }
 
                 fieldHtml += '<div class="fc-fieldgroup">';
@@ -6058,7 +6133,6 @@ var fc = (function ($) {
                 // Append the field DOM html to the total output
                 fieldHtml += fieldDOMHTML;
 
-
                 // Close the field element container
                 fieldHtml += '<div class="fc-success-box"><span></span></div>';
                 fieldHtml += '<div class="fc-error-box"><span></span></div>';
@@ -6068,7 +6142,11 @@ var fc = (function ($) {
                 fieldHtml += '<div class="fc-error-text"></div>';
 
                 // Help text
-                if (!fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
+                if (!fc.config.helpAsModal) {
+                    showHelpAsText = true;
+                }
+
+                if (showHelpAsText && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
                     fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
                 }
 
@@ -9466,7 +9544,8 @@ var fc = (function ($) {
                     asterisksOnLabels: true,
                     colonAfterLabel: true,
                     helpAsModal: false,
-                    hideModal: false
+                    hideModal: false,
+                    helpDefaultWhenNoTitleText: true
                 };
 
                 // Minimum event queue interval (to prevent server from getting slammed)
@@ -9570,7 +9649,8 @@ var fc = (function ($) {
                                 icon: ''
                             }
                         }
-                    }
+                    },
+                    verify: 'Verify'
                 };
 
                 // Update with client options
