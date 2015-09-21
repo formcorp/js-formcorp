@@ -2236,7 +2236,8 @@ var fc = (function ($) {
                     schema = fc.fieldSchema[fieldId],
                     iterator,
                     el,
-                    defaultValue;
+                    defaultValue,
+                    unrestorableFieldTypes = ['emailVerification'];
 
                 // If no value found, try and use default
                 value = fc.fields[fieldId];
@@ -2250,6 +2251,11 @@ var fc = (function ($) {
                 // If a value was found, set the value in the DOM
                 if (value !== undefined) {
                     schema = fc.fieldSchema[fieldId];
+
+                    // Check to see if the value shouldn't be restored
+                    if (unrestorableFieldTypes.indexOf(schema.type) >= 0) {
+                        return;
+                    }
 
                     // If read-only and a default value set, use it
                     if (getConfig(schema, 'readOnly', false)) {
@@ -2637,9 +2643,7 @@ var fc = (function ($) {
 
                         for (x = 0; x < options.length; x += 1) {
                             option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-                            /*jslint nomen: true*/
-                            id = field._id.$id + '_' + x;
-                            /*jslint nomen: false*/
+                            id = prefix + getId(field) + '_' + x;
                             checked = getConfig(field, 'default') === option ? ' checked' : '';
 
                             html += '<div class="' + cssClass + '">';
@@ -2693,7 +2697,7 @@ var fc = (function ($) {
                     for (x = 0; x < options.length; x += 1) {
                         option = options[x].replace(/(\r\n|\n|\r)/gm, "");
                         /*jslint nomen: true*/
-                        id = field._id.$id + '_' + x;
+                        id = prefix + getId(field) + '_' + x;
                         /*jslint nomen: false*/
 
                         html += '<div class="' + cssClass + '">';
@@ -3412,10 +3416,13 @@ var fc = (function ($) {
                         obj = $(this),
                         parent = obj.parent().parent(),
                         fieldId = parent.attr('fc-belongs-to'),
-                        val = parent.find('input[type="text"]').val();
+                        el = parent.find('input[type="text"]'),
+                        val = el.val();
 
                     if (val.length === 0) {
+                        console.log('set placeholder');
                         parent.addClass('error');
+                        el.attr('placeholder', fc.lang.verificationErrorPrefix + fc.lang.verificationEmptyCode)
                         return;
                     }
 
@@ -3425,12 +3432,16 @@ var fc = (function ($) {
                         code: val
                     };
 
+                    // Reset the element and container
                     parent.removeClass('error').addClass('loading');
+                    el.attr('placeholder', '');
 
                     // Perform the API request
                     api('verification/verify', data, 'POST', function (data) {
+                        var message = data.message || "";
+
                         parent.removeClass('loading');
-                        parent.find('input[type="text"]').val("")
+                        el.val("").attr('placeholder', fc.lang.verificationErrorPrefix + message);
 
                         if (typeof data !== "object" || data.success === undefined) {
                             // An unknown error occurred
@@ -6790,13 +6801,17 @@ var fc = (function ($) {
                     field,
                     visible;
 
+                console.log(dataId);
                 if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.fieldSchema[dataId] !== 'object') {
+                    console.log('NOT DEFINED: ' + dataId);
                     return;
                 }
 
                 // If field has a visibility configurative set, act on it
                 field = fc.fieldSchema[dataId];
                 if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
+                    //console.log(dataId);
+                    //console.log(toBooleanLogic(field.config.visibility));
                     visible = eval(toBooleanLogic(field.config.visibility));
                     if (typeof visible === 'boolean') {
                         if (visible) {
@@ -9612,6 +9627,9 @@ var fc = (function ($) {
                     creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details",
                     edit: "Edit",
                     delete: "Delete",
+                    error: "Error",
+                    verificationErrorPrefix: "ERROR: ",
+                    verificationEmptyCode: "You must enter a verification code.",
                     defaultModalTitle: 'Information',
                     deleteDialogHeader: "Are you sure?",
                     editDialogHeader: "Edit",
