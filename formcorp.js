@@ -8,7 +8,6 @@
 
 /*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics,escape,fcGreenID*/
 
-
 if (!Date.now) {
     Date.now = function () {
         "use strict";
@@ -1540,8 +1539,6 @@ var fc = (function ($) {
                     }
                 });
 
-                console.log(errors);
-
                 return Object.keys(errors).length === 0;
             },
 
@@ -1704,11 +1701,9 @@ var fc = (function ($) {
 
                 for (iterator = 0; iterator < fields.length; iterator += 1) {
                     field = fields[iterator];
-                    /*jslint nomen: true*/
-                    id = field._id.$id;
-                    /*jslint nomen: false*/
+                    id = getId(field);
 
-                    // Add t field schema if doesn't already exist
+                    // Add to field schema if doesn't already exist
                     if (fc.fieldSchema[id] === undefined) {
                         // Decode configuration strings to json objects as required
                         for (a = 0; a < jsonDecode.length; a += 1) {
@@ -1755,6 +1750,7 @@ var fc = (function ($) {
                     y,
                     key,
                     page,
+                    configKey,
                     section,
                     a;
 
@@ -1787,9 +1783,10 @@ var fc = (function ($) {
 
                             // Are any object keys required to be decoded to a json object?
                             for (a = 0; a < jsonDecode.length; a += 1) {
-                                if (typeof section[jsonDecode[a]] === 'string') {
+                                configKey = jsonDecode[a];
+                                if (typeof section[configKey] === 'string') {
                                     try {
-                                        section[jsonDecode[a]] = $.parseJSON(section[jsonDecode[a]]);
+                                        section[configKey] = $.parseJSON(section[configKey]);
                                     } catch (ignore) {
                                     }
                                 }
@@ -3411,7 +3408,6 @@ var fc = (function ($) {
 
                 // Inline e-mail verification
                 $(fc.jQueryContainer).on('click', '.fc-email-verification.fc-verify-inline .fc-email-verification-verify', function () {
-                    console.log('attempt to verify');
                     var data,
                         obj = $(this),
                         parent = obj.parent().parent(),
@@ -3420,7 +3416,6 @@ var fc = (function ($) {
                         val = el.val();
 
                     if (val.length === 0) {
-                        console.log('set placeholder');
                         parent.addClass('error');
                         el.attr('placeholder', fc.lang.verificationErrorPrefix + fc.lang.verificationEmptyCode)
                         return;
@@ -3997,7 +3992,7 @@ var fc = (function ($) {
                 // If a field is detected, add it
                 /*jslint nomen: true*/
                 if (fields.config && fields.type && fields._id && fields._id.$id) {
-                    fc.fieldSchema[fields._id.$id] = fields;
+                    fc.fieldSchema[getId(fields)] = fields;
                     return;
                 }
                 /*jslint nomen: false*/
@@ -5875,7 +5870,7 @@ var fc = (function ($) {
          * @param section
          * @returns {string}
          */
-        renderFields = function (fields, section, prefix) {
+        renderFields = function (fields, section, prefix, isRepeatableIterator, repeatableIteratorId) {
             var html = '',
                 y,
                 field,
@@ -5895,6 +5890,10 @@ var fc = (function ($) {
                 repeatableStyle,
                 showHelpAsText = true,
                 fieldClass;
+
+            if (typeof isRepeatableIterator !== 'boolean') {
+                isRepeatableIterator = false;
+            }
 
             // Field id prefix (for grouplet fields that may be shown multiple times)
             if (prefix === undefined) {
@@ -5922,9 +5921,13 @@ var fc = (function ($) {
             for (y = 0; y < fields.length; y += 1) {
                 field = fields[y];
                 required = getConfig(field, 'required', false);
-                /*jslint nomen: true*/
-                fieldId = prefix + field._id.$id;
+                fieldId = prefix + getId(field);
                 fieldHtml = '<div class="';
+
+                if (isRepeatableIterator) {
+                    // Mark the field as existing within a repeatable iterator
+                    fc.withinIterator[fieldId] = true;
+                }
 
                 // If field has an associated tag, output it
                 if (getConfig(field, 'tag', '').length > 0) {
@@ -5953,13 +5956,13 @@ var fc = (function ($) {
 
                 // If a section was passed through, track which section the field belongs to
                 if (section !== undefined && typeof section === "object") {
-                    fieldHtml += ' fc-belongs-to="' + section._id.$id + '"';
+                    fieldHtml += ' fc-belongs-to="' + getId(section) + '"';
                 }
 
                 fieldHtml += '>';
 
                 // Fields that belong to a grouplet who have a visibility toggle need updating
-                if (prefix && prefix.length > 0 && getConfig(field, 'visibility', '').length > 0) {
+                if (prefix && prefix.length > 0 && getConfig(field, 'visibility', '').length > 0 && !isRepeatableIterator) {
                     visibility = getConfig(field, 'visibility');
                     matches = visibility.match(/"([a-zA-Z0-9]{24})"/g);
                     if (matches && matches.length > 0) {
@@ -5975,7 +5978,6 @@ var fc = (function ($) {
 
                 // Add to field class variable if doesnt exist
                 dataId = fieldId;
-                /*jslint nomen: false*/
                 if (fc.fieldSchema[dataId] === undefined) {
                     fc.fieldSchema[dataId] = field;
                 }
@@ -6237,9 +6239,8 @@ var fc = (function ($) {
             }
 
             // Initialise variables
-            /*jslint nomen: true*/
             var required = getConfig(field, 'required', false),
-                fieldId = prefix + field._id.$id,
+                fieldId = prefix + getId(field),
                 html = '',
                 sourceField = getConfig(field, 'sourceField', ''),
                 source,
@@ -6250,7 +6251,6 @@ var fc = (function ($) {
                 data,
                 tagValues,
                 row;
-            /*jslint nomen: false*/
 
             // Check to ensure the field exists
             if (fc.fields[sourceField] === undefined) {
@@ -6284,7 +6284,7 @@ var fc = (function ($) {
 
                 // Build row html
                 row = '<div class="fc-iterator-row">';
-                row += renderFields(field.config.targetGrouplet.field, section, [fieldId, iterator]);
+                row += renderFields(field.config.targetGrouplet.field, section, [fieldId, iterator], true, getId(field));
                 row += '</div>';
 
                 // Replace tokens and add to html
@@ -6598,10 +6598,7 @@ var fc = (function ($) {
 
             for (x = 0; x < sections.length; x += 1) {
                 section = sections[x];
-                /*jslint nomen: true*/
-                sectionHtml = '<div class="fc-section fc-section-' + section._id.$id + '" formcorp-data-id="' + section._id.$id + '">';
-                /*jslint nomen: false*/
-
+                sectionHtml = '<div class="fc-section fc-section-' + getId(section) + '" formcorp-data-id="' + getId(section) + '">';
                 sectionHtml += '<div class="fc-section-header">';
 
                 if (typeof section.label === 'string' && section.label.length > 0) {
@@ -6799,26 +6796,79 @@ var fc = (function ($) {
             $(fc.jQueryContainer).find('.fc-field').each(function () {
                 var dataId = $(this).attr('fc-data-group'),
                     field,
-                    visible;
+                    visible,
+                    logic,
+                    logicMatches,
+                    processed = [],
+                    temporaryId,
+                    iter,
+                    parts,
+                    replace,
+                    re;
 
-                console.log(dataId);
                 if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.fieldSchema[dataId] !== 'object') {
-                    console.log('NOT DEFINED: ' + dataId);
                     return;
                 }
 
                 // If field has a visibility configurative set, act on it
                 field = fc.fieldSchema[dataId];
+
+                // Retrieve the logic object
                 if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                    //console.log(dataId);
-                    //console.log(toBooleanLogic(field.config.visibility));
-                    visible = eval(toBooleanLogic(field.config.visibility));
-                    if (typeof visible === 'boolean') {
-                        if (visible) {
-                            $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
-                        } else {
-                            $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
+                    logic = toBooleanLogic(field.config.visibility);
+                } else if (typeof field.config.visibility === 'object') {
+                    logic = field.config.visibility;
+                }
+
+                // Fields that exist within an iterator who have conditional can create problems. They need to be able to respond to
+                // fields that exist within the target grouplet (which have dynamic IDs in the format: iteratorId_iteration_fieldId)
+                // However, they also need to be able to act on fields that exist in a global form scope (i.e. standard form fields).
+                // Therefore the condition has to be dynamic. We can't set a static condition as this won't evaluate fields within 
+                // each iteration.
+                //
+                // The implemented fix below matches all IDs, and checks to see if they exist in a global scope. If they do, it leave
+                // them, however if if no definition is found (fc.fieldSchema[ID]), it is assumed the condition is acting on a dynamic
+                // value within the row iteration, and the condition updated accordingly.
+
+                // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
+                if (typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
+                    // Match all field IDs within the condition
+                    logicMatches = logic.match(/"[a-f0-9]{24}"/g);
+
+                    // If field IDs were found, perform checks on each one
+                    if ($.isArray(logicMatches) && logicMatches.length > 0) {
+                        processed = [];
+
+                        // Iterate through each field ID
+                        for (iter = 0; iter < logicMatches.length; iter += 1) {
+                            temporaryId = logicMatches[iter].replace(/"/g, '', logicMatches[iter]);
+
+                            // If the ID hasn't been processed previously for this condition, check now
+                            if (processed.indexOf(temporaryId) < 0) {
+                                // If the matched field ID doesn't exist in the global/root form definition, assume it belongs to the iteration
+                                if (fc.fieldSchema[temporaryId] === undefined) {
+                                    parts = dataId.split(fc.constants.prefixSeparator);
+
+                                    // Replace with the row iteration id (dynamic - i.e 5th iteration has ID iteratorId_4_fieldId)
+                                    if (parts.length >= 2) {
+                                        replace = [parts[0], parts[1], temporaryId].join(fc.constants.prefixSeparator);
+                                        re = new RegExp(temporaryId, 'g');
+                                        logic = logic.replace(re, replace);
+                                    }
+                                }
+                                processed.push(temporaryId);
+                            }
                         }
+                    }
+                }
+
+                // Evaluate the logic
+                visible = eval(logic);
+                if (typeof visible === 'boolean') {
+                    if (visible) {
+                        $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
+                    } else {
+                        $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
                     }
                 }
 
@@ -6893,7 +6943,6 @@ var fc = (function ($) {
 
             // Store field schema locally
             updateFieldSchema(page.stage);
-
             html += renderPage(page);
 
             if (!fc.config.onePage || isSubmitPage(page.page)) {
@@ -6907,7 +6956,7 @@ var fc = (function ($) {
                 $(fc.jQueryContainer).find('.fc-pagination:last').show();
             }
 
-            // Set values from data array
+            // Set values from data array       
             setFieldValues();
 
             // Flush the field/section visibility
@@ -7767,7 +7816,6 @@ var fc = (function ($) {
             logEvent(fc.eventTypes.onNextPageClick);
 
             if (!validForm(fc.jQueryContainer, showError)) {
-                console.log("PAGE NOT VALID");
                 logEvent(fc.eventTypes.onNextPageError);
 
                 // Scroll to first error
@@ -9160,6 +9208,7 @@ var fc = (function ($) {
                 this.nextPageButtonClicked = false;
                 this.validAbns = [];
                 this.mobileView = isMobile();
+                this.withinIterator = {};
 
                 // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
                 jQuery.support.cors = true;
