@@ -9319,7 +9319,8 @@ var fc = (function ($) {
 
                     // Function callback type
                     functionCallbackType: 'functionCallback',
-                    formulaPrefix: 'FORMULA:'
+                    formulaPrefix: 'FORMULA:',
+                    formLoadedClass: 'fc-form-loaded',
                 };
 
                 /**
@@ -9423,6 +9424,9 @@ var fc = (function ($) {
                         fc.formPosition = $(fc.jQueryContainer).position();
                         logEvent(fc.eventTypes.onFormInit);
                         $(fc.jQueryContainer).trigger(fc.jsEvents.onFormInit);
+
+                        // Mark the form as having been loaded
+                        $(fc.jQueryContainer).addClass(fc.constants.formLoadedClass);
 
                         // Save form fields intermittently
                         if (fc.config.saveInRealTime === true) {
@@ -9599,6 +9603,7 @@ var fc = (function ($) {
                     maxCreditCardCodeLength: 4,
                     descriptionBeforeLabel: true,
                     creditCardErrorUrlParam: 'creditCardError',
+                    forceSignatureLib: false,
                     signatureLibCss: [
                         cdnUrl() + 'dist/signaturepad/assets/jquery.signaturepad.css'
                     ],
