@@ -2234,7 +2234,7 @@ var fc = (function ($) {
                     iterator,
                     el,
                     defaultValue,
-                    unrestorableFieldTypes = ['emailVerification'];
+                    unrestorableFieldTypes = ['emailVerification', 'smsVerification'];
 
                 // If no value found, try and use default
                 value = fc.fields[fieldId];
@@ -3319,7 +3319,7 @@ var fc = (function ($) {
                 // Update the modal html and show it
                 $('.fc-modal .modal-header h2').text("Success!");
                 $('.fc-modal .modal-body').html(modalBody);
-                $('.fc-modal .modal-footer .fc-btn-add').text("Verify email");
+                $('.fc-modal .modal-footer .fc-btn-add').text("Verify").show();
                 $('.fc-modal').addClass('fc-show');
                 return false;
             },
@@ -3566,7 +3566,7 @@ var fc = (function ($) {
                 // Update the modal html and show it
                 $('.fc-modal .modal-header h2').text("Success!");
                 $('.fc-modal .modal-body').html(modalBody);
-                $('.fc-modal .modal-footer .fc-btn-add').text("Verify mobile");
+                $('.fc-modal .modal-footer .fc-btn-add').text("Verify").show();
                 $('.fc-modal').addClass('fc-show');
                 return false;
             },
@@ -3581,7 +3581,8 @@ var fc = (function ($) {
                         data,
                         fieldId;
 
-                    elParent.find('.fc-loading').removeClass('fc-hide');
+                    elParent.find('.fc-loading').removeClass('fc-hide');                    
+                    elParent.parent().addClass('loading');
                     fieldId = elParent.parent().attr('fc-belongs-to');
 
                     // Data to send with the request
@@ -3591,7 +3592,8 @@ var fc = (function ($) {
 
                     // Send the api callback
                     api('verification/callback', data, 'POST', function (data) {
-                        elParent.find('.fc-loading').addClass('fc-hide');
+                        elParent.find('.fc-loading').addClass('fc-hide');                        
+                        elParent.parent().removeClass('loading');
 
                         // On successful request, load a dialog to input the code
                         if (typeof data === "object" && data.success !== undefined && data.success) {
@@ -3602,6 +3604,55 @@ var fc = (function ($) {
 
                     return false;
                 });
+
+                // Inline SMS verification
+                $(fc.jQueryContainer).on('click', '.fc-sms-verification.fc-verify-inline .fc-sms-verification-verify', function () {
+                    var data,
+                        obj = $(this),
+                        parent = obj.parent().parent(),
+                        fieldId = parent.attr('fc-belongs-to'),
+                        el = parent.find('input[type="text"]'),
+                        val = el.val();
+
+                    if (val.length === 0) {
+                        parent.addClass('error');
+                        el.attr('placeholder', fc.lang.verificationErrorPrefix + fc.lang.verificationEmptyCode)
+                        return;
+                    }
+
+                        // Send the request to the API server
+                    data = {
+                        fieldId: fieldId,
+                        code: val
+                    };
+
+                    // Reset the element and container
+                    parent.removeClass('error').addClass('loading');
+                    el.attr('placeholder', '');
+
+                    // Perform the API request
+                    api('verification/verify', data, 'POST', function (data) {
+                        var message = data.message || "";
+
+                        parent.removeClass('loading');
+                        el.val("").attr('placeholder', fc.lang.verificationErrorPrefix + message);
+
+                        if (typeof data !== "object" || data.success === undefined) {
+                            // An unknown error occurred
+                            parent.addClass('error');
+                        } else if (!data.success && typeof data.message === "string") {
+                            parent.addClass('error');
+                        } else if (data.success) {
+                            // The field was successfully verified
+                            $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
+                            fc.fields[fieldId] = '1';
+                            valueChanged(fieldId, '1', true);
+                        }
+
+                        $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
+                    });
+                });
+
 
                 // Open the modal
                 $(fc.jQueryContainer).on('click', '.fc-sms-verification-modal', function () {
@@ -3628,17 +3679,31 @@ var fc = (function ($) {
                 /// Start formatting the html to output
                 var html = '',
                     fieldValue = fc.fields[getId(field)],
-                    verified = fieldValue !== undefined && fieldValue === '1';
+                    verified = fieldValue !== undefined && fieldValue === '1',
+                    verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline';
 
                 // If not verified, show the form to verify
                 if (!verified) {
-                    html += '<div class="fc-sms-verification" fc-belongs-to="' + getId(field) + '">';
+                    html += '<div class="fc-sms-verification ' + verifyClass + '" fc-belongs-to="' + getId(field) + '">';
+
+                    // Display the verification button text
+                    if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
+                        html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
+                    } else {
+                        html += '<div class="fc-verify-sms-input-code"><input type="text" class="fc-verify-sms-input fc-fieldinput" value=""></div>';
+                        html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
+                    }
 
                     html += '<div class="fc-send-sms">';
                     html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
-                    html += '<div class="fc-clear fc-verification-options">';
-                    html += '<p><small>Already have a verification code? Click <a href="#" class="fc-sms-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
-                    html += '</div></div>';
+                    
+                    if (getConfig(field, 'renderAsModal', false)) {
+                        html += '<div class="fc-clear fc-verification-options">';
+                        html += '<p><small>Already have a verification code? Click <a href="#" class="fc-sms-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
+                        html += '</div>';
+                    }
+
+                    html += '</div>';
 
                     html += '</div>';
                     /*!fc-email-verification*/
@@ -3649,6 +3714,26 @@ var fc = (function ($) {
                 html += fc.lang.fieldValidated;
                 html += '</div>';
                 /*!fc-success*/
+
+                // Auto send the email
+                if (!verified && fieldValue === undefined && getConfig(field, 'autoDeliverOnFirstRender', false)) {
+                    // Send the api callback to deliver the email
+                    api('verification/callback', {field: getId(field)}, 'POST', function (data) {
+                        // On successful request, load a dialog to input the code
+                        if (typeof data === "object" && data.success !== undefined && data.success) {
+                            // If the user has opted to automatically show the modal dialog after e-mail delivery, show it
+                            if (getConfig(field, 'autoShowModalDialog', false)) {
+                                showEmailVerificationModal(getId(field));
+                            }
+
+                            // Wait for verification asynchronously in the background
+                            waitForVerification(getId(field));
+
+                            // Update the field value
+                            forceUpdateFieldValue(getId(field), '0');
+                        }
+                    });
+                }
 
                 return html;
             },
