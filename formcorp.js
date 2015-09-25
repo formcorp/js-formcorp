@@ -2944,18 +2944,29 @@ var fc = (function ($) {
 
                 // Table body
                 html += '<tbody>';
-                html += '<tr><td>' + fc.lang.paymentDescription + '<em class="fc-text-right fc-right">' + fc.lang.paymentSubTotal + '</em>';
-                html += '</td><td>' + fc.lang.currencySymbol.concat(parseFloat(price / 11 * 10).toFixed(2)) + '</td></tr>';
+                ;
 
                 // Include the gst?
                 if (getConfig(field, 'includeGST', false)) {
+                    // Show the GST (3 line items)
+                    html += '<tr><td>' + fc.lang.paymentDescription + '<em class="fc-text-right fc-right">' + fc.lang.paymentSubTotal + '</em>';
+                    html += '</td><td>';
+                    html += fc.lang.currencySymbol.concat(parseFloat(price / 11 * 10).toFixed(2));
+                    html += '</td></tr>'
+
                     html += '<tr><td class="fc-text-right"><em>' + fc.lang.paymentGst + '</em></td><td>';
                     html += fc.lang.currencySymbol.concat(parseFloat(price / 11).toFixed(2)) + '</td></tr>';
+                    html += '<tr><td class="fc-text-right"><em>' + fc.lang.paymentTotal + '</em></td><td>' + fc.lang.currencySymbol.concat(price) + '</td></tr>';
+                } else {
+                    // Show a single line item
+                    html += '<tr><td>' + fc.lang.paymentDescription + '<em class="fc-text-right fc-right">' + fc.lang.paymentTotal + '</em>';
+                    html += '</td><td>';
+                    html += fc.lang.currencySymbol.concat(price);
+                    html += '</td></tr>'
                 }
 
-                html += '<tr><td class="fc-text-right"><em>' + fc.lang.paymentTotal + '</em></td><td>' + fc.lang.currencySymbol.concat(price) + '</td></tr>';
+                
                 html += '</tbody>';
-
                 html += '</table>';
                 html += '</div>';
                 /*!fc-table-summary*/
