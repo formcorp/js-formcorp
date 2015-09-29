@@ -7200,6 +7200,9 @@ var fc = (function ($) {
                 index,
                 groupletID;
 
+            // Register the pre-value changed event listener
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onPreValueChange, [dataId, value, force]);
+
             if (typeof force !== 'boolean') {
                 force = false;
             }
@@ -7447,6 +7450,8 @@ var fc = (function ($) {
                     }
                 }
             }
+
+            $(fc.jQueryContainer).trigger(fc.jsEvents.onValueChanged, [dataId, value, force]);
         };
 
         /**
@@ -7541,14 +7546,28 @@ var fc = (function ($) {
                 setValueUpdate($(this));
             });
 
+            // Register the focus event
+            $(fc.jQueryContainer).on('focus', 'input[type=text].fc-fieldinput', function () {
+                var obj = $(this),
+                    val = obj.val(),
+                    id = obj.attr('formcorp-data-id');
+
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldFocus, [id, val, obj]);
+            });
+
             // Input types text changed
             $(fc.jQueryContainer).on('input', 'input[type=range].fc-fieldinput', function () {
                 setRangeValue($(this));
             });
 
+            // On change/paste/blur, update the form field
             $(fc.jQueryContainer).on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput', function () {
-                var val = $(this).val(),
-                    id = $(this).attr('formcorp-data-id');
+                var obj = $(this),
+                    val = obj.val(),
+                    id = obj.attr('formcorp-data-id');
+
+                // Register the blur event
+                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldBlur, [id, val, obj]);
 
                 if (val !== fc.fields[id]) {
                     // Only trigger when the value has truly changed
@@ -9375,7 +9394,11 @@ var fc = (function ($) {
                     onGreenIdLoaded: 'onGreenIdLoaded',
                     onButtonUnknownClick: 'onButtonUnknownClick',
                     onDynamicRowAdded: 'onDynamicRowAdded',
-                    onDynamicRowRemoved: 'onDynamicRowRemoved'
+                    onDynamicRowRemoved: 'onDynamicRowRemoved',
+                    onPreValueChange: 'onPreValueChange',
+                    onValueChanged: 'onValueChanged',
+                    onFieldFocus: 'onFieldFocus',
+                    onFieldBlur: 'onFieldBlur'
                 };
 
                 /**
@@ -9658,6 +9681,15 @@ var fc = (function ($) {
              */
             getValue: function (id) {
                 return getValue(id);
+            },
+
+            /**
+             * Retrieve a field schema by ID
+             * @param id
+             * @returns false|object
+             */
+            getFieldDefinition: function (id) {
+                return fc.fieldSchema[id] || false;
             },
 
             /**
