@@ -7946,6 +7946,10 @@ var fc = (function ($) {
          * @returns {boolean}
          */
         loadNextPage = function (showError) {
+            if (fc.preventNextPageLoad) {
+                return;
+            }
+
             if (showError === undefined) {
                 showError = true;
             }
@@ -8002,6 +8006,8 @@ var fc = (function ($) {
             // Submit the form fields
             $(fc.jQueryContainer).trigger(fc.jsEvents.onLoadingPageStart);
             $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
+
+            fc.preventNextPageLoad = true;
             api('page/submit', data, 'put', function (data) {
                 var lastPage,
                     offset;
@@ -8026,6 +8032,7 @@ var fc = (function ($) {
                                 // If the section exists and is visible, do not proceed to the next stage
                                 if (section.length > 0) {
                                     if (!section.hasClass('fc-hide')) {
+                                        fc.preventNextPageLoad = false;
                                         return;
                                     }
                                     valid = true;
@@ -8033,6 +8040,7 @@ var fc = (function ($) {
 
                                 if (valid === false) {
                                     console.log("[FC](1) Server side validation errors occurred, client should have caught this");
+                                    fc.preventNextPageLoad = false;
                                     return;
                                 }
                             }
@@ -8087,6 +8095,8 @@ var fc = (function ($) {
                             }
                         }
 
+                        fc.preventNextPageLoad = false;
+
                         return;
                     }
 
@@ -8097,6 +8107,8 @@ var fc = (function ($) {
                 } else {
                     logEvent(fc.eventTypes.onNextPageError);
                 }
+
+                fc.preventNextPageLoad = false;
             });
         };
 
@@ -9348,6 +9360,7 @@ var fc = (function ($) {
                 this.validAbns = [];
                 this.mobileView = isMobile();
                 this.withinIterator = {};
+                this.preventNextPageLoad = false;
 
                 // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
                 jQuery.support.cors = true;
