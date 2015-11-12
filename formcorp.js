@@ -5702,6 +5702,7 @@ var fc = (function ($) {
 
             updateMobileFieldsVisibility,
             renderGrouplet,
+            getNumericTagValue,
             outputRepeatablePreDetermined,
             renderFields,
             renderPageSections,
@@ -5898,6 +5899,31 @@ var fc = (function ($) {
         };
 
         /**
+         * Retrieve the numeric tag value.
+         * @param tag
+         * @return number
+         */
+        getNumericTagValue = function(tag) {
+            // If amount of times is not numeric, assume it is a tag
+            if (!$.isNumeric(tag)) {
+                tagValues = getFieldTagValues();
+
+                if (typeof tagValues === 'object' && tagValues[amountOfTimes] !== 'undefined' && $.isNumeric(tagValues[amountOfTimes])) {
+                    return tagValues[amountOfTimes];
+                }
+
+                return 0
+            } else {
+                return tag;
+            }
+
+            // If no amount of times specified, default to 1
+            if (amountOfTimes === undefined || !$.isNumeric(amountOfTimes)) {
+                return 0;
+            }
+        };
+
+        /**
          * Render a repeatable field (x) times
          * @param fieldId
          * @param amountOfTimes
@@ -5923,15 +5949,11 @@ var fc = (function ($) {
                     // If the ID doesn't exist within the array, add it
                     fc.reRenderOnValueChange[amountOfTimes].push(getId(field));
                 }
-
-                if (typeof tagValues === 'object' && tagValues[amountOfTimes] !== 'undefined' && $.isNumeric(tagValues[amountOfTimes])) {
-                    amountOfTimes = tagValues[amountOfTimes];
-                }
             }
 
             // If no amount of times specified, default to 1
             if (amountOfTimes === undefined || !$.isNumeric(amountOfTimes)) {
-                amountOfTimes = 1;
+                amountOfTimes = getNumericTagValue(amoutnOfTimes);
             }
 
             // If no config defined, do nothing
@@ -6308,7 +6330,7 @@ var fc = (function ($) {
 
                     // Remove button (for style '1' - add button in DOM)
                     if (parseInt(repeatableStyle) === 1) {
-                        fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-remove" data-id="' + dataId + '">';
+                        fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-remove fc-hide" data-id="' + dataId + '">';
                         fieldHtml += getConfig(field, 'removeButtonText', '').length > 0 ? getConfig(field, 'removeButtonText') : fc.lang.removeFieldTextValue;
                         fieldHtml += '</a></div>';
                     }
@@ -8265,44 +8287,46 @@ var fc = (function ($) {
                             currentRows = rowContainer.find('.fc-repeatable-row').length;
 
                             // Only output and make a change if one or more rows presently exist
-                            if (currentRows > 0 && confirm(getConfig(schema, 'removeAlertText'))) {
-                                // Confirm the user wants to remove the selected row
-                                html = outputRepeatablePreDetermined(dataId, currentRows - 1, fc.sections[sectionId]);
-                                rowContainer.html(html);
+                            if (currentRows > getNumericTagValue(getConfig(schema, 'repeatableLinkedTo'))) {
+                                if (confirm(getConfig(schema, 'removeAlertText'))) {
+                                    // Confirm the user wants to remove the selected row
+                                    html = outputRepeatablePreDetermined(dataId, currentRows - 1, fc.sections[sectionId]);
+                                    rowContainer.html(html);
 
-                                // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
-                                setFieldValues(rowContainer);
-                                flushFieldVisibility();
-                                flushActivePageForField(dataId, true);
+                                    // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
+                                    setFieldValues(rowContainer);
+                                    flushFieldVisibility();
+                                    flushActivePageForField(dataId, true);
 
-                                // Need to update the values and save
-                                if (fc.fields[dataId] !== undefined && $.isArray(fc.fields[dataId])) {
-                                    if (currentRows - 1 <= 0) {
-                                        // If no rows, reset the array
-                                        fc.fields[dataId] = [];
-                                        fc.saveQueue[dataId] = fc.fields[dataId];
-                                    } else {
-                                        // Otherwise splice it, pop the final value off the end
-                                        fc.fields[dataId].splice(currentRows - 1);
-                                        fc.saveQueue[dataId] = fc.fields[dataId];
+                                    // Need to update the values and save
+                                    if (fc.fields[dataId] !== undefined && $.isArray(fc.fields[dataId])) {
+                                        if (currentRows - 1 <= 0) {
+                                            // If no rows, reset the array
+                                            fc.fields[dataId] = [];
+                                            fc.saveQueue[dataId] = fc.fields[dataId];
+                                        } else {
+                                            // Otherwise splice it, pop the final value off the end
+                                            fc.fields[dataId].splice(currentRows - 1);
+                                            fc.saveQueue[dataId] = fc.fields[dataId];
+                                        }
                                     }
-                                }
 
-                                // Need to delete all of the flat values (prefix_id_fieldid)
-                                fieldPrefix = [dataId, currentRows - 1].join(fc.constants.prefixSeparator);
-                                for (key in fc.fields) {
-                                    if (fc.fields.hasOwnProperty(key) && key.indexOf(fieldPrefix) === 0) {
-                                        delete fc.fields[key];
-                                        fc.saveQueue[key] = '';
+                                    // Need to delete all of the flat values (prefix_id_fieldid)
+                                    fieldPrefix = [dataId, currentRows - 1].join(fc.constants.prefixSeparator);
+                                    for (key in fc.fields) {
+                                        if (fc.fields.hasOwnProperty(key) && key.indexOf(fieldPrefix) === 0) {
+                                            delete fc.fields[key];
+                                            fc.saveQueue[key] = '';
+                                        }
                                     }
-                                }
 
-                                if (currentRows - 1 === 0) {
-                                    // Hide the remove button if zero rows
-                                    fieldContainer.find('.fc-remove').addClass('fc-hide');
-                                } else if (fieldContainer.find('.fc-add.fc-hide')) {
-                                    // Show the add button if its hidden
-                                    fieldContainer.find('.fc-add.fc-hide').removeClass('fc-hide');
+                                    if (currentRows - 1 >= getNumericTagValue(getConfig(schema, 'repeatableLinkedTo'))) {
+                                        // Hide the remove button if zero rows
+                                        fieldContainer.find('.fc-remove').addClass('fc-hide');
+                                    } else if (fieldContainer.find('.fc-add.fc-hide')) {
+                                        // Show the add button if its hidden
+                                        fieldContainer.find('.fc-add.fc-hide').removeClass('fc-hide');
+                                    }
                                 }
                             }
                         }
