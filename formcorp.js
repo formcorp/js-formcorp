@@ -688,6 +688,8 @@ var fc = (function ($) {
                                     } else {
                                         if (fieldTags.hasOwnProperty(fieldId) && fc.fields[fieldId] !== undefined) {
                                             tagValues[fieldId] = fieldTags[fieldId];
+                                        } else {
+                                            tagValues[fieldId] = fieldTags[fieldId];
                                         }
                                     }
                                 }
