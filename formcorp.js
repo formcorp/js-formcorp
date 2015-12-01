@@ -5904,12 +5904,14 @@ var fc = (function ($) {
          * @return number
          */
         getNumericTagValue = function(tag) {
+            var tagValues;
+
             // If amount of times is not numeric, assume it is a tag
             if (!$.isNumeric(tag)) {
                 tagValues = getFieldTagValues();
 
-                if (typeof tagValues === 'object' && tagValues[amountOfTimes] !== 'undefined' && $.isNumeric(tagValues[amountOfTimes])) {
-                    return tagValues[amountOfTimes];
+                if (typeof tagValues === 'object' && tagValues[tag] !== 'undefined' && $.isNumeric(tagValues[tag])) {
+                    return tagValues[tag];
                 }
 
                 return 0
@@ -5953,7 +5955,7 @@ var fc = (function ($) {
 
             // If no amount of times specified, default to 1
             if (amountOfTimes === undefined || !$.isNumeric(amountOfTimes)) {
-                amountOfTimes = getNumericTagValue(amoutnOfTimes);
+                amountOfTimes = getNumericTagValue(amountOfTimes);
             }
 
             // If no config defined, do nothing
