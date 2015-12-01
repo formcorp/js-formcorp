@@ -6154,7 +6154,7 @@ var fc = (function ($) {
                                 }
 
                                 showHelpAsText = false;
-                                fieldHtml += ' <a class="fc-help-link" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
+                                fieldHtml += ' <a class="fc-help-link" tabindex="-1" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
                             } else {
                                 // At this stage, show the help as text instead
                                 showHelpAsText = true;
