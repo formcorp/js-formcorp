@@ -1029,12 +1029,12 @@ var fc = (function ($) {
              * @param errors
              */
             showFieldError = function (dataId, errors) {
-                var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]'),
+                var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]'),
                     x,
                     msg = '';
 
                 // Trigger an event
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldError, [dataId, errors]);
+                fc.domContainer.trigger(fc.jsEvents.onFieldError, [dataId, errors]);
 
                 dataGroup.addClass('fc-error');
 
@@ -1052,12 +1052,12 @@ var fc = (function ($) {
              * @param dataId
              */
             showFieldSuccess = function (dataId) {
-                var dataGroup = $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]'),
+                var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]'),
                     x,
                     msg = '';
 
                 // Trigger an event
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldSuccess, [dataId]);
+                fc.domContainer.trigger(fc.jsEvents.onFieldSuccess, [dataId]);
 
                 dataGroup.addClass('fc-field-success');
             },
@@ -1157,14 +1157,14 @@ var fc = (function ($) {
                     }
                 } else {
                     // Method 2: use the DOM to attempt to find a match
-                    field = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + fieldId + '"]');
+                    field = fc.domContainer.find('.fc-field[fc-data-group="' + fieldId + '"]');
                     if (field.length === 0) {
                         // If can't find the field, do nothing.
                         return '';
                     }
 
                     // Attempt to find the section the field belongs to
-                    section = $(fc.jQueryContainer).find('.fc-section-' + field.attr('fc-belongs-to'));
+                    section = fc.domContainer.find('.fc-section-' + field.attr('fc-belongs-to'));
                     if (section.length === 0) {
                         return '';
                     }
@@ -1207,7 +1207,7 @@ var fc = (function ($) {
              * @param dataId
              */
             removeFieldError = function (dataId) {
-                $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
+                fc.domContainer.find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
             },
 
             /**
@@ -1215,7 +1215,7 @@ var fc = (function ($) {
              * @param dataId
              */
             removeFieldSuccess = function (dataId) {
-                $(fc.jQueryContainer).find('div[fc-data-group="' + dataId + '"]').removeClass('fc-field-success');
+                fc.domContainer.find('div[fc-data-group="' + dataId + '"]').removeClass('fc-field-success');
             },
 
             /**
@@ -1268,7 +1268,7 @@ var fc = (function ($) {
                 }
 
                 // Fetch the cc form
-                ccForm = $(fc.jQueryContainer).find('[fc-data-group="' + dataId + '"]');
+                ccForm = fc.domContainer.find('[fc-data-group="' + dataId + '"]');
                 if (ccForm.length === 0) {
                     console.log("[FC] Unable to locate CC form");
                     return [];
@@ -1478,7 +1478,7 @@ var fc = (function ($) {
                     // Check if the section it belongs to is hidden
                     belongsTo = obj.attr('fc-belongs-to');
                     if (typeof belongsTo === 'string') {
-                        section = $(fc.jQueryContainer).find('.fc-section[formcorp-data-id="' + belongsTo + '"]');
+                        section = fc.domContainer.find('.fc-section[formcorp-data-id="' + belongsTo + '"]');
 
                         // When the section is hidden, do not validate
                         if (section.length > 0 && section.hasClass('fc-hide')) {
@@ -1732,7 +1732,7 @@ var fc = (function ($) {
              * Initialise data analytics
              */
             initAnalytics = function () {
-                $(fc.jQueryContainer).on(fc.jsEvents.onAnalyticsLoaded, function () {
+                fc.domContainer.on(fc.jsEvents.onAnalyticsLoaded, function () {
                     fc.analytics = fcAnalytics;
                     fc.analytics.init();
                 });
@@ -1946,7 +1946,7 @@ var fc = (function ($) {
                 }
 
                 if (el === undefined) {
-                    el = $(fc.jQueryContainer);
+                    el = fc.domContainer;
                 }
 
                 // Perform token replacements
@@ -2298,7 +2298,7 @@ var fc = (function ($) {
 
                 // If no root element found, default (by default will therefore set values on the entire form)
                 if (rootElement === undefined) {
-                    rootElement = $(fc.jQueryContainer);
+                    rootElement = fc.domContainer;
                 }
 
                 // Iterate through each field and set a value
@@ -2854,7 +2854,7 @@ var fc = (function ($) {
              */
             registerCreditCardListeners = function () {
                 // Button to process a payment
-                $(fc.jQueryContainer).on('click', '.fc-submit-payment .fc-btn', function () {
+                fc.domContainer.on('click', '.fc-submit-payment .fc-btn', function () {
                     var dataObjectId, rootElement, gateway, schema, localErrors;
 
                     // Retrieve the field id the payment form belongs to
@@ -3373,7 +3373,7 @@ var fc = (function ($) {
 
                 // Update the value in the DOM as required
                 if (updateDom) {
-                    var target = $(fc.jQueryContainer).find('div[fc-data-group="' + fieldId + '"]');
+                    var target = fc.domContainer.find('div[fc-data-group="' + fieldId + '"]');
                     if (target.length > 0) {
                         setDomValue(target, value);
                     }
@@ -3388,7 +3388,7 @@ var fc = (function ($) {
              */
             registerEmailVerificationListeners = function () {
                 // Send an email to the user
-                $(fc.jQueryContainer).on('click', '.fc-email-verification .fc-send-email input[type=submit]', function () {
+                fc.domContainer.on('click', '.fc-email-verification .fc-send-email input[type=submit]', function () {
                     var elParent = $(this).parent(),
                         data,
                         fieldId;
@@ -3418,7 +3418,7 @@ var fc = (function ($) {
                 });
 
                 // Inline e-mail verification
-                $(fc.jQueryContainer).on('click', '.fc-email-verification.fc-verify-inline .fc-email-verification-verify', function () {
+                fc.domContainer.on('click', '.fc-email-verification.fc-verify-inline .fc-email-verification-verify', function () {
                     var data,
                         obj = $(this),
                         parent = obj.parent().parent(),
@@ -3466,7 +3466,7 @@ var fc = (function ($) {
                 });
 
                 // Open the modal
-                $(fc.jQueryContainer).on('click', '.fc-email-verification-modal', function () {
+                fc.domContainer.on('click', '.fc-email-verification-modal', function () {
                     var dataId = $(this).attr('data-for');
                     showEmailVerificationModal(dataId);
 
@@ -3587,7 +3587,7 @@ var fc = (function ($) {
              */
             registerSmsVerificationListeners = function () {
                 // Send an email to the user
-                $(fc.jQueryContainer).on('click', '.fc-sms-verification .fc-send-sms input[type=submit]', function () {
+                fc.domContainer.on('click', '.fc-sms-verification .fc-send-sms input[type=submit]', function () {
                     var elParent = $(this).parent(),
                         data,
                         fieldId;
@@ -3617,7 +3617,7 @@ var fc = (function ($) {
                 });
 
                 // Inline SMS verification
-                $(fc.jQueryContainer).on('click', '.fc-sms-verification.fc-verify-inline .fc-sms-verification-verify', function () {
+                fc.domContainer.on('click', '.fc-sms-verification.fc-verify-inline .fc-sms-verification-verify', function () {
                     var data,
                         obj = $(this),
                         parent = obj.parent().parent(),
@@ -3666,7 +3666,7 @@ var fc = (function ($) {
 
 
                 // Open the modal
-                $(fc.jQueryContainer).on('click', '.fc-sms-verification-modal', function () {
+                fc.domContainer.on('click', '.fc-sms-verification-modal', function () {
                     var dataId = $(this).attr('data-for');
                     showSmsVerificationModal(dataId);
 
@@ -3924,7 +3924,7 @@ var fc = (function ($) {
 
                 if (changeDom) {
                     $(fc.jQueryContainer + ' .render').html(fc.lang.sessionExpiredHtml);
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onFormExpired);
+                    fc.domContainer.trigger(fc.jsEvents.onFormExpired);
                 }
                 fc.expired = true;
             },
@@ -4204,7 +4204,7 @@ var fc = (function ($) {
              * Auto scroll to the first visible error on the page
              */
             scrollToFirstError = function () {
-                var fieldErrors = $(fc.jQueryContainer).find('.fc-field.fc-error'),
+                var fieldErrors = fc.domContainer.find('.fc-field.fc-error'),
                     dataId,
                     firstError;
 
@@ -4242,7 +4242,7 @@ var fc = (function ($) {
                     },
                     vars = $.extend({}, defaults, config),
                     elements = {
-                        addButton: $(fc.jQueryContainer).find('.fc-modal .modal-footer .fc-btn-add')
+                        addButton: fc.domContainer.find('.fc-modal .modal-footer .fc-btn-add')
                     };
 
                 // Toggle visibility on the add button
@@ -4273,7 +4273,7 @@ var fc = (function ($) {
                     return;
                 }
 
-                var greenIdFields = $(fc.jQueryContainer).find('.fc-field-greenIdVerification');
+                var greenIdFields = fc.domContainer.find('.fc-field-greenIdVerification');
 
                 if (greenIdFields.length > 0) {
                     greenIdFields.each(function () {
@@ -4313,7 +4313,7 @@ var fc = (function ($) {
                 // If the form field has green id verification,
                 if (hasGreenId) {
                     // Initialise the worker and set the event listener
-                    $(fc.jQueryContainer).on(fc.jsEvents.onGreenIdLoaded, function () {
+                    fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
                         fc.greenID = fcGreenID;
                         fc.greenID.init();
                         initGreenIdDOMFields();
@@ -4393,7 +4393,7 @@ var fc = (function ($) {
                     rootId = id.substr(0, lastSeparatorIndex);
 
                     // Fetch the root container
-                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]');
+                    rootContainer = fc.domContainer.find('.fc-field[fc-data-group="' + rootId + '"]');
                     rootSchema = fc.fieldSchema[rootId];
 
                     if (rootContainer.length === 0) {
@@ -4962,7 +4962,7 @@ var fc = (function ($) {
                     };
 
                     // State on click event
-                    $(fc.jQueryContainer).on('change', '.fc-greenid-drivers-license > select', function () {
+                    fc.domContainer.on('change', '.fc-greenid-drivers-license > select', function () {
                         var selectValue = $(this).val(),
                             subContainerHtml = '';
 
@@ -5289,7 +5289,7 @@ var fc = (function ($) {
                     rootId = id.substr(0, lastSeparatorIndex);
 
                     // Fetch the root container
-                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]');
+                    rootContainer = fc.domContainer.find('.fc-field[fc-data-group="' + rootId + '"]');
                     rootSchema = fc.fieldSchema[rootId];
 
                     if (rootContainer.length === 0) {
@@ -5502,7 +5502,7 @@ var fc = (function ($) {
                     rootId = id.substr(0, lastSeparatorIndex);
 
                     // Fetch the root container
-                    rootContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + rootId + '"]');
+                    rootContainer = fc.domContainer.find('.fc-field[fc-data-group="' + rootId + '"]');
                     rootSchema = fc.fieldSchema[rootId];
 
                     if (rootContainer.length === 0) {
@@ -5612,7 +5612,7 @@ var fc = (function ($) {
                 };
 
                 // Event handler for button click
-                $(fc.jQueryContainer).on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
+                fc.domContainer.on(fc.jsEvents.onButtonUnknownClick, function (ev, el) {
                     var id = el.attr('id'),
                         value = el.attr('data-field-value'),
                         rootSelection = id.match(/([a-zA-Z0-9]{24})\_rootSelection\_\d+/g),
@@ -5638,10 +5638,10 @@ var fc = (function ($) {
                 });
 
                 // Event handler for passport country fieldSchema
-                $(fc.jQueryContainer).on('change', '.fc-green-field.country-birth select', function () {
+                fc.domContainer.on('change', '.fc-green-field.country-birth select', function () {
                     var countryCode = $(this).find('option:selected').val(),
                         fieldId = $(this).attr('data-for'),
-                        nonAustralianFieldsContainer = $(fc.jQueryContainer).find('.fc-field-greenIdVerification[fc-data-group="' + fieldId + '"] .fc-non-australia-fields');
+                        nonAustralianFieldsContainer = fc.domContainer.find('.fc-field-greenIdVerification[fc-data-group="' + fieldId + '"] .fc-non-australia-fields');
 
                     // If the fields aren't found, return.
                     if (nonAustralianFieldsContainer.length === 0) {
@@ -5762,10 +5762,10 @@ var fc = (function ($) {
             var sigBlock;
 
             // Event listener for initialising the signature
-            $(fc.jQueryContainer).on(fc.jsEvents.onFinishRender, function () {
+            fc.domContainer.on(fc.jsEvents.onFinishRender, function () {
                 var dataId;
 
-                sigBlock = $(fc.jQueryContainer).find('.' + fc.config.signatureClass);
+                sigBlock = fc.domContainer.find('.' + fc.config.signatureClass);
                 if (sigBlock.length > 0) {
                     sigBlock.each(function () {
                         dataId = $(this).attr('data-for');
@@ -6828,7 +6828,7 @@ var fc = (function ($) {
          * Flushses the visibility component of each section when the form state changes.
          */
         flushSectionVisibility = function () {
-            $(fc.jQueryContainer).find('.fc-section').each(function () {
+            fc.domContainer.find('.fc-section').each(function () {
                 var dataId = $(this).attr('formcorp-data-id'),
                     section,
                     visible;
@@ -6913,7 +6913,7 @@ var fc = (function ($) {
          * certain fields may need to be altered.
          */
         flushFieldVisibility = function () {
-            $(fc.jQueryContainer).find('.fc-field').each(function () {
+            fc.domContainer.find('.fc-field').each(function () {
                 var dataId = $(this).attr('fc-data-group'),
                     field,
                     visible,
@@ -7009,7 +7009,7 @@ var fc = (function ($) {
          * Update mobile fields
          */
         updateMobileFieldsVisibility = function () {
-            $(fc.jQueryContainer).find('.fc-field.fc-mobile-field').each(function () {
+            fc.domContainer.find('.fc-field.fc-mobile-field').each(function () {
                 if (fc.mobileView === true && $(this).hasClass('fc-hide')) {
                     $(this).removeClass('fc-hide');
                 } else if (fc.mobileView === false && !$(this).hasClass('fc-hide')) {
@@ -7018,7 +7018,7 @@ var fc = (function ($) {
             });
 
             // Update desktop fields
-            $(fc.jQueryContainer).find('.fc-field.fc-desktop-field').each(function () {
+            fc.domContainer.find('.fc-field.fc-desktop-field').each(function () {
                 if (fc.mobileView === true && !$(this).hasClass('fc-hide')) {
                     $(this).addClass('fc-hide');
                 } else if (fc.mobileView === false && $(this).hasClass('fc-hide')) {
@@ -7072,8 +7072,8 @@ var fc = (function ($) {
                 // If a one-page form, append to the DOM
                 $(fc.jQueryContainer + ' .render').append(html);
                 fc.pageOrders.push(pageId);
-                $(fc.jQueryContainer).find('.fc-pagination').hide();
-                $(fc.jQueryContainer).find('.fc-pagination:last').show();
+                fc.domContainer.find('.fc-pagination').hide();
+                fc.domContainer.find('.fc-pagination:last').show();
             }
 
             // Set values from data array       
@@ -7092,7 +7092,7 @@ var fc = (function ($) {
             updateMobileFieldsVisibility();
 
             // Fire the event to signal form finished rendering
-            $(fc.jQueryContainer).trigger(fc.jsEvents.onFinishRender);
+            fc.domContainer.trigger(fc.jsEvents.onFinishRender);
 
             // Initialise greenID fields
             initGreenIdDOMFields();
@@ -7225,7 +7225,7 @@ var fc = (function ($) {
                 groupletID;
 
             // Register the pre-value changed event listener
-            $(fc.jQueryContainer).trigger(fc.jsEvents.onPreValueChange, [dataId, value, force]);
+            fc.domContainer.trigger(fc.jsEvents.onPreValueChange, [dataId, value, force]);
 
             if (typeof force !== 'boolean') {
                 force = false;
@@ -7257,7 +7257,7 @@ var fc = (function ($) {
                 return;
             }
 
-            $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
+            fc.domContainer.trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
 
             // Store when not a repeatable value
             if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
@@ -7456,7 +7456,7 @@ var fc = (function ($) {
             if (tag.length > 0 && fc.reRenderOnValueChange[tag] !== undefined) {
                 for (iterator = 0; iterator < fc.reRenderOnValueChange[tag].length; iterator += 1) {
                     tmp = fc.reRenderOnValueChange[tag][iterator];
-                    replaceContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + tmp + '"]');
+                    replaceContainer = fc.domContainer.find('.fc-field[fc-data-group="' + tmp + '"]');
                     if (replaceContainer.length > 0) {
                         // If the field exists, re-render
                         replaceSectionID = replaceContainer.attr('fc-belongs-to');
@@ -7475,7 +7475,7 @@ var fc = (function ($) {
                 }
             }
 
-            $(fc.jQueryContainer).trigger(fc.jsEvents.onValueChanged, [dataId, value, force]);
+            fc.domContainer.trigger(fc.jsEvents.onValueChanged, [dataId, value, force]);
         };
 
         /**
@@ -7523,7 +7523,7 @@ var fc = (function ($) {
         registerValueChangedListeners = function () {
             // On enter pressed, opt to shift focus
             if (fc.config.autoShiftFocusOnEnter) {
-                $(fc.jQueryContainer).on('keypress', 'input[type=text].fc-fieldinput', function (e) {
+                fc.domContainer.on('keypress', 'input[type=text].fc-fieldinput', function (e) {
                     if (e.which === fc.constants.enterKey) {
                         var dataId = $(this).attr('formcorp-data-id'),
                             nextField = nextVisibleField(dataId, false),
@@ -7566,32 +7566,32 @@ var fc = (function ($) {
             }
 
             // Input types text changed
-            $(fc.jQueryContainer).on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+            fc.domContainer.on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
                 setValueUpdate($(this));
             });
 
             // Register the focus event
-            $(fc.jQueryContainer).on('focus', 'input[type=text].fc-fieldinput', function () {
+            fc.domContainer.on('focus', 'input[type=text].fc-fieldinput', function () {
                 var obj = $(this),
                     val = obj.val(),
                     id = obj.attr('formcorp-data-id');
 
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldFocus, [id, val, obj]);
+                fc.domContainer.trigger(fc.jsEvents.onFieldFocus, [id, val, obj]);
             });
 
             // Input types text changed
-            $(fc.jQueryContainer).on('input', 'input[type=range].fc-fieldinput', function () {
+            fc.domContainer.on('input', 'input[type=range].fc-fieldinput', function () {
                 setRangeValue($(this));
             });
 
             // On change/paste/blur, update the form field
-            $(fc.jQueryContainer).on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput', function () {
+            fc.domContainer.on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput', function () {
                 var obj = $(this),
                     val = obj.val(),
                     id = obj.attr('formcorp-data-id');
 
                 // Register the blur event
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onFieldBlur, [id, val, obj]);
+                fc.domContainer.trigger(fc.jsEvents.onFieldBlur, [id, val, obj]);
 
                 if (val !== fc.fields[id]) {
                     // Only trigger when the value has truly changed
@@ -7600,7 +7600,7 @@ var fc = (function ($) {
             });
 
             // Abn verification lookup
-            $(fc.jQueryContainer).on('click', '.fc-field-abnVerification .fc-button', function () {
+            fc.domContainer.on('click', '.fc-field-abnVerification .fc-button', function () {
                 var abn = $(this).parent().find('input.fc-fieldinput'),
                     dataId = abn.attr('formcorp-data-id'),
                     loading = abn.parent().find('.fc-loading'),
@@ -7656,7 +7656,7 @@ var fc = (function ($) {
             });
 
             // Radio button clicks
-            $(fc.jQueryContainer).on('click', 'button.fc-fieldinput.fc-button', function () {
+            fc.domContainer.on('click', 'button.fc-fieldinput.fc-button', function () {
                 var val = $(this).text(),
                     id = $(this).attr('formcorp-data-id'),
                     parent = $(this).parent().parent(),
@@ -7704,19 +7704,19 @@ var fc = (function ($) {
                     return false;
                 } else {
                     // The button couldn't be mapped to a given field, trigger an error
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onButtonUnknownClick, [$(this)]);
+                    fc.domContainer.trigger(fc.jsEvents.onButtonUnknownClick, [$(this)]);
                 }
 
 
             });
 
             // Dropdown box change
-            $(fc.jQueryContainer).on('change', 'select.fc-fieldinput', function () {
+            fc.domContainer.on('change', 'select.fc-fieldinput', function () {
                 valueChanged($(this).attr('formcorp-data-id'), $(this).find('option:selected').val());
             });
 
             // Radio lists
-            $(fc.jQueryContainer).on('change', '.fc-field-checkboxList :checkbox', function () {
+            fc.domContainer.on('change', '.fc-field-checkboxList :checkbox', function () {
                 valueChanged($(this).attr('formcorp-data-id'), getFieldValue($(this)));
             });
         };
@@ -7825,7 +7825,7 @@ var fc = (function ($) {
          */
         registerRepeatableGroupletListeners = function () {
             // Show delete dialog
-            $(fc.jQueryContainer).on('click', '.fc-summary-options .fc-delete', function () {
+            fc.domContainer.on('click', '.fc-summary-options .fc-delete', function () {
                 // Set the modal state
                 fc.modalState = fc.states.DELETE_REPEATABLE;
                 fc.modalMeta = {
@@ -7838,7 +7838,7 @@ var fc = (function ($) {
             });
 
             // Show edit dialog
-            $(fc.jQueryContainer).on('click', '.fc-summary-options .fc-edit', function () {
+            fc.domContainer.on('click', '.fc-summary-options .fc-edit', function () {
                 // Set the modal state
                 fc.modalState = fc.states.EDIT_REPEATABLE;
                 fc.modalMeta = {
@@ -7869,7 +7869,7 @@ var fc = (function ($) {
             modalBody.removeClass('fc-error');
 
             // Build array of values
-            $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
+            fc.domContainer.find('.fc-modal [formcorp-data-id]').each(function () {
                 var dataId = $(this).attr('formcorp-data-id');
                 values[dataId] = getFieldValue($(this));
             });
@@ -7904,7 +7904,7 @@ var fc = (function ($) {
 
             if (selector && selector.length > 0 && validateModal(true)) {
                 // Build array of values
-                $(fc.jQueryContainer).find('.fc-modal [formcorp-data-id]').each(function () {
+                fc.domContainer.find('.fc-modal [formcorp-data-id]').each(function () {
                     var dataId = $(this).attr('formcorp-data-id');
                     values[dataId] = getFieldValue($(this));
                 });
@@ -8006,8 +8006,8 @@ var fc = (function ($) {
             }
 
             // Submit the form fields
-            $(fc.jQueryContainer).trigger(fc.jsEvents.onLoadingPageStart);
-            $(fc.jQueryContainer).find('.fc-loading-screen').addClass('show');
+            fc.domContainer.trigger(fc.jsEvents.onLoadingPageStart);
+            fc.domContainer.find('.fc-loading-screen').addClass('show');
 
             fc.preventNextPageLoad = true;
             api('page/submit', data, 'put', function (data) {
@@ -8017,8 +8017,8 @@ var fc = (function ($) {
                 if (typeof data.success === 'boolean' && data.success) {
                     // Update activity (server last active timestamp updated)
                     fc.lastActivity = (new Date()).getTime();
-                    $(fc.jQueryContainer).find('.fc-loading-screen').removeClass('show');
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onLoadingPageEnd);
+                    fc.domContainer.find('.fc-loading-screen').removeClass('show');
+                    fc.domContainer.trigger(fc.jsEvents.onLoadingPageEnd);
 
                     // If 'critical' errors were returned (validation errors on required fields), need to alert the user
                     if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
@@ -8029,7 +8029,7 @@ var fc = (function ($) {
                             // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
                             if (field.length > 0 && !field.hasClass('fc-hide')) {
                                 sectionId = field.attr("fc-belongs-to");
-                                section = $(fc.jQueryContainer).find('.fc-section[formcorp-data-id=' + sectionId + ']');
+                                section = fc.domContainer.find('.fc-section[formcorp-data-id=' + sectionId + ']');
 
                                 // If the section exists and is visible, do not proceed to the next stage
                                 if (section.length > 0) {
@@ -8057,8 +8057,8 @@ var fc = (function ($) {
                         newPage = fc.currentPage;
 
                         // Trigger the newpage event
-                        $(fc.jQueryContainer).trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
-                        $(fc.jQueryContainer).trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
+                        fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
+                        fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
                         logEvent(fc.eventTypes.onNextPageSuccess, {
                             from: oldPage,
                             to: newPage,
@@ -8069,7 +8069,7 @@ var fc = (function ($) {
 
                         // If the application is complete, raise completion event
                         if (typeof page.page === "object" && isSubmitPage(page.page)) {
-                            $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
+                            fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                             logEvent(fc.eventTypes.onFormComplete);
                         }
 
@@ -8104,7 +8104,7 @@ var fc = (function ($) {
 
                     // Form is deemed complete, output default completion message
                     $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onFormComplete);
+                    fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                     logEvent(fc.eventTypes.onFormComplete);
                 } else {
                     logEvent(fc.eventTypes.onNextPageError);
@@ -8141,7 +8141,7 @@ var fc = (function ($) {
 
                 // If a page was found and its different to the current page, fire off the change in state
                 if (page !== undefined && fc.activePage !== page) {
-                    $(fc.jQueryContainer).trigger(fc.jsEvents.onPageChange, [fc.activePage, page]);
+                    fc.domContainer.trigger(fc.jsEvents.onPageChange, [fc.activePage, page]);
                     fc.activePage = page;
                 }
             });
@@ -8152,7 +8152,7 @@ var fc = (function ($) {
          */
         registerEventListeners = function () {
             // Submit a form page
-            $(fc.jQueryContainer).on('click', 'div.fc-submit input[type=submit]', function () {
+            fc.domContainer.on('click', 'div.fc-submit input[type=submit]', function () {
                 // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
                 fc.nextPageButtonClicked = true;
 
@@ -8162,24 +8162,24 @@ var fc = (function ($) {
 
             // When the form is complete, delete the session
             if (fc.config.deleteSessionOnComplete) {
-                $(fc.jQueryContainer).on(fc.jsEvents.onFormComplete, function () {
+                fc.domContainer.on(fc.jsEvents.onFormComplete, function () {
                     deleteSession(false);
                 });
             }
 
             // Previous page click
-            $(fc.jQueryContainer).on('click', '.fc-prev-page', function () {
+            fc.domContainer.on('click', '.fc-prev-page', function () {
                 if (fc.config.showPrevPageButton !== true) {
                     return false;
                 }
 
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onPrevPage);
+                fc.domContainer.trigger(fc.jsEvents.onPrevPage);
                 window.history.back();
                 return false;
             });
 
             // Description link clicks
-            $(fc.jQueryContainer).on('click', '.fc-desc a', function () {
+            fc.domContainer.on('click', '.fc-desc a', function () {
                 var href = $(this).attr('href');
                 window.open(href);
 
@@ -8191,7 +8191,7 @@ var fc = (function ($) {
             // When the hash changes - navigate forward/backwards
             $(window).on('hashchange', function () {
                 var pageId = window.location.hash.substr(1),
-                    page = $(fc.jQueryContainer).find('.fc-page[data-page-id="' + pageId + '"]');
+                    page = fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]');
 
                 if (page.length === 0 && fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
                     render(pageId);
@@ -8209,7 +8209,7 @@ var fc = (function ($) {
             });
 
             // Add value for a repeatable group
-            $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click.fc-add', function () {
+            fc.domContainer.on('click', '.fc-repeatable a.fc-click.fc-add', function () {
                 var dataId = $(this).attr('data-id'),
                     html = '',
                     schema = fc.fieldSchema[dataId],
@@ -8238,11 +8238,11 @@ var fc = (function ($) {
                         // If already at the limit, do nothing
 
                         // Style '1': drop form field underneath
-                        fieldContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"]');
+                        fieldContainer = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"]');
                         sectionId = fieldContainer.attr('fc-belongs-to');
 
                         //  Append a row on to the end
-                        rowContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"] .fc-repeatable-rows');
+                        rowContainer = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"] .fc-repeatable-rows');
                         if (rowContainer.length > 0) {
                             currentRows = rowContainer.find('.fc-repeatable-row').length;
 
@@ -8268,13 +8268,13 @@ var fc = (function ($) {
                     }
                 }
 
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onDynamicRowAdded);
+                fc.domContainer.trigger(fc.jsEvents.onDynamicRowAdded);
 
                 return false;
             });
 
             // Remove value for a repeatable group
-            $(fc.jQueryContainer).on('click', '.fc-repeatable a.fc-click.fc-remove', function () {
+            fc.domContainer.on('click', '.fc-repeatable a.fc-click.fc-remove', function () {
                 var dataId = $(this).attr('data-id'),
                     html = '',
                     schema = fc.fieldSchema[dataId],
@@ -8292,11 +8292,11 @@ var fc = (function ($) {
 
                     if (repeatableStyle === 1) {
                         // Style '1': drop form field underneath                
-                        fieldContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"]');
+                        fieldContainer = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"]');
                         sectionId = fieldContainer.attr('fc-belongs-to');
 
                         //  Delete the last row
-                        rowContainer = $(fc.jQueryContainer).find('.fc-field[fc-data-group="' + dataId + '"] .fc-repeatable-rows');
+                        rowContainer = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"] .fc-repeatable-rows');
                         if (rowContainer.length > 0) {
                             currentRows = rowContainer.find('.fc-repeatable-row').length;
 
@@ -8347,13 +8347,13 @@ var fc = (function ($) {
                     }
                 }
 
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onDynamicRowRemoved);
+                fc.domContainer.trigger(fc.jsEvents.onDynamicRowRemoved);
 
                 return false;
             });
 
             // Help modal links
-            $(fc.jQueryContainer).on('click', '.fc-help-link', function () {
+            fc.domContainer.on('click', '.fc-help-link', function () {
                 var dataIndex = $(this).attr('data-for');
                 if (fc.helpData && fc.helpData[dataIndex]) {
                     // Set modal information
@@ -8374,13 +8374,13 @@ var fc = (function ($) {
             });
 
             // Hide fc model
-            $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-close', function () {
+            fc.domContainer.on('click', '.fc-modal .fc-btn-close', function () {
                 $('.fc-modal.fc-show').removeClass('fc-show');
                 return false;
             });
 
             // Add the value for the fc modal
-            $(fc.jQueryContainer).on('click', '.fc-modal .fc-btn-add', function () {
+            fc.domContainer.on('click', '.fc-modal .fc-btn-add', function () {
                 if (fc.modalState !== undefined && typeof fc.modalState === "string") {
                     switch (fc.modalState) {
                         case fc.states.DELETE_REPEATABLE:
@@ -8500,7 +8500,7 @@ var fc = (function ($) {
             }
 
             // Trigger an API look up
-            $(fc.jQueryContainer).on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput', function (event) {
+            fc.domContainer.on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput', function (event) {
                 var fieldId = $(this).attr('formcorp-data-id'),
                     fieldContainer = $('.fc-field[fc-data-group="' + fieldId + '"]'),
                     schema = fc.fieldSchema[fieldId],
@@ -8609,7 +8609,7 @@ var fc = (function ($) {
             });
 
             // Close the suggest box
-            $(fc.jQueryContainer).on('click', '.fc-suggest-close a', function () {
+            fc.domContainer.on('click', '.fc-suggest-close a', function () {
                 var dataId = $(this).parent().parent().attr('data-id');
                 removeAutoCompleteWidget(dataId);
 
@@ -8617,7 +8617,7 @@ var fc = (function ($) {
             });
 
             // Map the fields on click
-            $(fc.jQueryContainer).on('click', '.fc-suggest-row', function () {
+            fc.domContainer.on('click', '.fc-suggest-row', function () {
                 var json = JSON.parse(decodeURI($(this).attr('data-suggest'))),
                     dataId = getDataId($(this).attr('data-id')),
                     schema = fc.fieldSchema[dataId],
@@ -8763,14 +8763,14 @@ var fc = (function ($) {
                 loadCssFile(cdnUrl() + cssUri);
             }
 
-            $(fc.jQueryContainer).addClass('fc-container');
+            fc.domContainer.addClass('fc-container');
 
             // Show the modal when required
             if (!fc.config.hideModal) {
                 addModalWindow();
             }
 
-            $(fc.jQueryContainer).prepend('<div class="fc-loading-screen"><div class="fc-loading-halo"></div></div>');
+            fc.domContainer.prepend('<div class="fc-loading-screen"><div class="fc-loading-halo"></div></div>');
 
             // Load the required css files
             for (iterator = 0; iterator < fc.config.signatureLibCss.length; iterator += 1) {
@@ -8812,7 +8812,7 @@ var fc = (function ($) {
                 '</div>';
 
 
-            $(fc.jQueryContainer).prepend($(modal));
+            fc.domContainer.prepend($(modal));
         };
 
         /**
@@ -9272,7 +9272,7 @@ var fc = (function ($) {
                     }
                 }
 
-                $(fc.jQueryContainer).trigger(fc.jsEvents.onConnectionMade);
+                fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
 
                 // Initialise the on schema loaded event
                 onSchemaLoaded();
@@ -9339,6 +9339,7 @@ var fc = (function ($) {
                 this.publicKey = publicKey;
                 this.container = container;
                 this.jQueryContainer = '#' + container;
+                this.domContainer = $(this.jQueryContainer);
 
                 // Temporary placeholders for objects to be populated
                 this.fields = {};
@@ -9543,15 +9544,15 @@ var fc = (function ($) {
                         initAnalytics();
                     }
 
-                    if ($(fc.jQueryContainer).length === 0) {
+                    if (fc.domContainer.length === 0) {
                         return false;
                     }
 
                     // Fetch the form id
-                    if ($(fc.jQueryContainer).attr('data-id') === '') {
+                    if (fc.domContainer.attr('data-id') === '') {
                         return false;
                     }
-                    fc.formId = $(fc.jQueryContainer).attr('data-id');
+                    fc.formId = fc.domContainer.attr('data-id');
 
                     // Initialise the parser
                     loadJsFile(parserUrl(), function () {
@@ -9568,23 +9569,23 @@ var fc = (function ($) {
                         fc.initSession();
 
                         // Initialise the channel on the root element
-                        if (!$(fc.jQueryContainer).hasClass('fc-channel')) {
-                            $(fc.jQueryContainer).addClass('fc-channel fc-channel-' + fc.channel);
+                        if (!fc.domContainer.hasClass('fc-channel')) {
+                            fc.domContainer.addClass('fc-channel fc-channel-' + fc.channel);
                         }
 
                         // Register event listeners and load the form schema
-                        $(fc.jQueryContainer).html('<div class="render"></div>');
+                        fc.domContainer.html('<div class="render"></div>');
                         loadCssFiles();
                         registerEventListeners();
                         loadSchema();
 
                         // Form has been successfully initialised
-                        fc.formPosition = $(fc.jQueryContainer).position();
+                        fc.formPosition = fc.domContainer.position();
                         logEvent(fc.eventTypes.onFormInit);
-                        $(fc.jQueryContainer).trigger(fc.jsEvents.onFormInit);
+                        fc.domContainer.trigger(fc.jsEvents.onFormInit);
 
                         // Mark the form as having been loaded
-                        $(fc.jQueryContainer).addClass(fc.constants.formLoadedClass);
+                        fc.domContainer.addClass(fc.constants.formLoadedClass);
 
                         // Save form fields intermittently
                         if (fc.config.saveInRealTime === true) {
