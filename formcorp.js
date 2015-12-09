@@ -6612,13 +6612,13 @@ var fc = (function ($) {
             }
 
             // Sources required
-            html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">To complete digital verification for this individual, you must verify <span></span> from the options below.</p>';
+            html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">' + fc.lang.greenID.html.completePrefix + '</p>';
 
             // Skip text
-            html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">You have skipped verification for this user.</div></div>';
+            html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.skipped + '</div></div>';
 
             // Form the html
-            html += '<div class="fc-greenid-successfully-verified fc-green-id-el">You have successfully been verified.</div>';
+            html += '<div class="fc-greenid-successfully-verified fc-green-id-el">' + fc.lang.greenID.html.completed + '</div>';
 
             // Verification error html
             html += '<div class="fc-greenid-verification-error fc-green-id-el">';
@@ -9898,6 +9898,11 @@ var fc = (function ($) {
                                 body: 'You will be required to manually attach verification documents upon form submission.',
                                 icon: ''
                             }
+                        },
+                        html: {
+                            completePrefix: 'To complete digital verification for this individual, you must verify <span></span> from the options below.',
+                            skipped: 'You have skipped verification for this user.',
+                            completed: 'You have successfully been verified.'
                         }
                     },
                     verify: 'Verify'
