@@ -1907,16 +1907,21 @@ var fc = (function ($) {
              * @param tokens
              * @returns {*}
              */
-            replaceTokens = function (layout, tokens) {
+            replaceTokens = function (layout, tokens, withSpan) {
                 var replacements = layout.match(/\{\{([^\}]{0,})\}\}/g),
                     replacement,
                     token,
                     index,
-                    re;
+                    re,
+                    replaceHtml;
+
+                if (typeof withSpan !== 'boolean') {
+                    withSpan = false;
+                }
 
                 // If no replacements found, do nothing
                 if (!$.isArray(replacements) || replacements.length === 0) {
-                    return;
+                    return layout;
                 }
 
                 for (index = 0; index < replacements.length; index += 1) {
@@ -1926,10 +1931,18 @@ var fc = (function ($) {
 
                     // If the token exists, perform the replacement, else set to empty
                     if (tokens.hasOwnProperty(token)) {
-                        layout = layout.replace(re, tokens[token]);
+                        replaceHtml = tokens[token];
                     } else {
-                        layout = layout.replace(re, "");
+                        replaceHtml = "";
                     }
+
+                    // Insert a span
+                    if (withSpan) {
+                        replaceHtml = '<span class="fc-token" data-token="' + token + '">' + replaceHtml + '</span>';
+                    }
+
+
+                    layout = layout.replace(re, replaceHtml);
                 }
 
                 return layout;
@@ -2745,7 +2758,7 @@ var fc = (function ($) {
                     return '';
                 }
 
-                var content = replaceTokens(field.config.rich, getFieldTagValues());
+                var content = replaceTokens(field.config.rich, getFieldTagValues(), true);
 
                 return '<div class="fc-richtext">' + content + '</div>';
             },
@@ -5755,6 +5768,7 @@ var fc = (function ($) {
             greenIdFieldHeader,
             renderGreenIdField,
             renderNumericSliderField,
+            renderCustomerRecord,
             registerApiLookupListener,
             renderAutoCompleteWidget,
             removeAutoCompleteWidget;
@@ -6265,6 +6279,9 @@ var fc = (function ($) {
                         // Do nothing
                         fieldDOMHTML = '';
                         break;
+                    case 'customerRecord':
+                        fieldDOMHTML = renderCustomerRecord(field, prefix);
+                        break;
                     default:
                         console.log('Unknown field type: ' + field.type);
                 }
@@ -6463,6 +6480,55 @@ var fc = (function ($) {
             html += '<span class="fc-numeric-outcome"></span>';
 
             return html;
+        };
+
+        /**
+         * Render a customer record field.
+         * @param field
+         * @param prefix
+         */
+        renderCustomerRecord = function (field, prefix) {
+            if (getConfig(field, 'fetchInBg', false)) {
+                var value = fc.fields[getConfig(field, 'populateFrom')],
+                    data = {
+                        id: getId(field),
+                        value: value === undefined ? '' : value
+                    };
+
+                api('customer/gateway/record', data, 'post', function (result) {
+                    if (result && result.success && result.data && typeof result.data.values === 'object') {
+                        var key, val, tags = {}, iterator, field;
+
+                        // Process the tags
+                        for (iterator = 0; iterator < result.fields.length; iterator += 1) {
+                            field = result.fields[iterator];
+                            tags[field.id] = field.machineName;
+                        }
+
+                        // Process each result and make them available within the form
+                        for (key in result.data.values) {
+                            if (result.data.values.hasOwnProperty(key)) {
+                                val = result.data.values[key];
+                                setValue(key, val);
+
+                                fc.fieldSchema[key] = {
+                                    _id: {
+                                        '$id': key
+                                    },
+                                    config: {
+                                        tag: tags[key]
+                                    }
+                                };
+                            }
+                        }
+                    }
+
+                    replaceTokensInDom();
+
+                    // Trigger a result to bind on
+                    fc.domContainer.trigger(fc.jsEvents.onCustomerAuthResult, [result]);
+                });
+            }
         };
 
         /**
@@ -9442,7 +9508,8 @@ var fc = (function ($) {
                     onPreValueChange: 'onPreValueChange',
                     onValueChanged: 'onValueChanged',
                     onFieldFocus: 'onFieldFocus',
-                    onFieldBlur: 'onFieldBlur'
+                    onFieldBlur: 'onFieldBlur',
+                    onCustomerAuthResult: 'onCustomerAuthResult'
                 };
 
                 /**
@@ -9717,6 +9784,9 @@ var fc = (function ($) {
 
             /* Set a value on the application */
             setValue: setValue,
+
+            /* Delete the user session */
+            deleteSession: deleteSession,
 
             /**
              * Retrieve a value
