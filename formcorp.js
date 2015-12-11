@@ -2745,7 +2745,9 @@ var fc = (function ($) {
                     return '';
                 }
 
-                return '<div class="fc-richtext">' + field.config.rich + '</div>';
+                var content = replaceTokens(field.config.rich, getFieldTagValues());
+
+                return '<div class="fc-richtext">' + content + '</div>';
             },
 
             /**
