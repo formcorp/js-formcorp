@@ -1599,7 +1599,10 @@ var fc = (function ($) {
                         if (fc.fields[groupletId] === undefined) {
                             fc.fields[groupletId] = {};
                         }
-                        fc.fields[groupletId][fieldId] = value;
+                        
+                        if (typeof fc.fields[groupletId] === 'object') {
+                            fc.fields[groupletId][fieldId] = value;
+                        }
                     }
                 }
             },
