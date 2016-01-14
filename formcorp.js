@@ -9707,6 +9707,12 @@ var fc = (function ($) {
              */
             renderGreenIdField: renderGreenIdField,
             initGreenIdFieldInDOM: initGreenIdFieldInDOM,
+			
+			/**
+			 * Expose field tag functionality
+			 */
+			getFieldTags: getFieldTags,
+			getFieldTagValues: getFieldTagValues,
 
             /**
              * Retrieve a URL parameter by name
