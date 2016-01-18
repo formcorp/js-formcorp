@@ -36,7 +36,10 @@
     display: block;
 }
 
-.fc-container input[type=text], .fc-container select, .fc-container textarea {
+.fc-container input[type=text],
+.fc-container input[type=password],
+.fc-container select, 
+.fc-container textarea {
     padding-right: 33px;
     padding-left: 12px;
     font-size: 14px;

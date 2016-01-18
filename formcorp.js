@@ -2336,11 +2336,18 @@ var fc = (function ($) {
                     prefix = "";
                 }
 
-                /*jslint nomen: true*/
                 var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-                    fieldId = prefix + field._id.$id,
-                    html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
-                /*jslint nomen: false*/
+                    fieldId = prefix + getId(field),
+                    html = '',
+                    type = 'text';
+                
+                // Render a password field if appropriate
+                if (getConfig(field, 'isPassword', false)) {
+                    type = 'password';
+                }
+                
+                html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+                
                 return html;
             },
 
