@@ -3869,7 +3869,7 @@ var fc = (function ($) {
              * @returns {*}
              */
             renderReviewTable = function (fieldId) {
-                var html, stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml;
+                var html, stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml, fieldHtml;
 
                 html = '<div class="fc-form-summary fc-review-table">';
                 html += '<table class="fc-table"><thead><tr><th class="fc-field-col">Field</th><th>Value</th></tr></thead><tbody>';
@@ -3906,14 +3906,22 @@ var fc = (function ($) {
                             // Iterate through each field
                             for (fieldIterator = 0; fieldIterator < section.field.length; fieldIterator += 1) {
                                 field = section.field[fieldIterator];
-
-                                pageHtml += renderSummaryField(field);
+                                
+                                // Fetch the field html
+                                fieldHtml = $('<div></div>').append(renderSummaryField(field));
+                                
+                                // Append page, section and field meta data to the container
+                                if (fieldHtml.find('tr').length > 0) {
+                                    fieldHtml.find('tr').attr('data-page', getId(page)).attr('data-section', getId(section)).attr('data-id', getId(field));
+                                }
+                                
+                                pageHtml += fieldHtml.html();
                             }
                         }
 
                         // If the page rendered any fields, display it
                         if (pageHtml.length > 0) {
-                            html += "<tr><th colspan='2'>" + htmlEncode(page.label) + "</th></tr>";
+                            html += "<tr><th colspan='2' data-page=" + getId(page) + ">" + htmlEncode(page.label) + "</th></tr>";
                             html += pageHtml;
                         }
                     }
@@ -5876,9 +5884,13 @@ var fc = (function ($) {
             // Retrieve the id of the field and its value
             id = getId(field);
             if (value === undefined) {
-                value = fc.fields[id];
+                if (getConfig(field, 'isPassword', true)) {
+                    value = fc.lang['passwordHidden'];
+                } else {
+                    value = fc.fields[id];
+                }
             }
-
+            
             // If the valid is valid, proceed
             if (value !== undefined) {
                 isValidObject = typeof value === "object" && (($.isArray(value) && value.length > 0) || !$.isEmptyObject(value));
@@ -9993,7 +10005,8 @@ var fc = (function ($) {
                             completed: 'You have successfully been verified.'
                         }
                     },
-                    verify: 'Verify'
+                    verify: 'Verify',
+                    passwordHidden: 'Hidden'
                 };
 
                 // Update with client options
