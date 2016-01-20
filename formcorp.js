@@ -5884,7 +5884,7 @@ var fc = (function ($) {
             // Retrieve the id of the field and its value
             id = getId(field);
             if (value === undefined) {
-                if (getConfig(field, 'isPassword', true)) {
+                if (getConfig(field, 'isPassword', false)) {
                     value = fc.lang['passwordHidden'];
                 } else {
                     value = fc.fields[id];
