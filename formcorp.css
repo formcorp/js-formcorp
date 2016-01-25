@@ -1035,3 +1035,45 @@ div.fc-pagination {
 .fc-error-box {
     display: none;
 }
+
+.fc-dev-status {
+    background: #444;
+    border-bottom-left-radius: 2px;
+    color: #eee;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 4px 10px 4px 0;
+    position: absolute;
+    right: 0;
+    text-transform: uppercase;
+    top: 0;  
+    z-index: 10;
+}
+.fc-dev-status::before {
+    background: orange;
+    border-radius: 50%;
+    content: '';
+    display: inline-block;
+    height: 5px;
+    margin: 7px 5px 0 10px;
+    vertical-align: top;
+    width: 5px;
+    animation: formStatus 6s infinite;
+}
+
+@-webkit-keyframes formStatus {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.1; }
+}
+@-moz-keyframes formStatus {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.1; }
+}
+@-o-keyframes formStatus {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.1; }
+}
+@keyframes formStatus {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.1; }
+}

@@ -1203,6 +1203,14 @@ var fc = (function ($) {
                     }
                 }
             },
+            
+            /**
+             * Whether or not the current branch should be considered a development branch.
+             * @returns boolean
+             */
+            isDevelopmentBranch = function () {
+                return fc.branch && typeof fc.branch === 'string' && fc.branch.length > 0 && fc.developmentBranches.indexOf(fc.branch) > -1;
+            },
 
             /**
              * Remove the error on the DOM for a given field.
@@ -4273,20 +4281,28 @@ var fc = (function ($) {
                 var defaults = {
                         addButton: true,
                         body: '',
-                        title: fc.lang.defaultModalTitle
+                        title: fc.lang.defaultModalTitle,
+                        addButtonText: fc.lang.addModalText,
+                        closeButtonText: fc.lang.closeModalText
                     },
                     vars = $.extend({}, defaults, config),
                     elements = {
-                        addButton: fc.domContainer.find('.fc-modal .modal-footer .fc-btn-add')
+                        addButton: fc.domContainer.find('.fc-modal .modal-footer .fc-btn-add'),
+                        closeButton: fc.domContainer.find('.fc-modal .modal-footer .fc-btn-close')
                     };
 
                 // Toggle visibility on the add button
                 if (elements.addButton.length > 0) {
+                    elements.addButton.html(vars.addButtonText);
                     if (vars.addButton === false) {
                         elements.addButton.hide();
                     } else {
                         elements.addButton.show();
                     }
+                }
+                
+                if (elements.closeButton.length > 0) {
+                    elements.closeButton.html(vars.closeButtonText);
                 }
 
                 // Show the title
@@ -8037,15 +8053,21 @@ var fc = (function ($) {
         /**
          * Load the next page
          * @param showError
+         * @param forceSubmit
          * @returns {boolean}
          */
-        loadNextPage = function (showError) {
+        loadNextPage = function (showError, forceSubmit) {
             if (fc.preventNextPageLoad) {
                 return;
             }
 
             if (showError === undefined) {
                 showError = true;
+            }
+            
+            // Default force submit to false
+            if (typeof forceSubmit === 'undefined') {
+                forceSubmit = false;
             }
 
             logEvent(fc.eventTypes.onNextPageClick);
@@ -8095,6 +8117,22 @@ var fc = (function ($) {
 
             if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
                 data.complete = true;
+                
+                if (!forceSubmit && isDevelopmentBranch()) {
+                    // Set modal information
+                    fc.modalState = fc.states.SUBMIT_DEVELOPMENT_BRANCH;
+
+                    // Show the modal
+                    showModal({
+                        addButton: true,
+                        addButtonText: fc.lang.yes,
+                        closeButtonText: fc.lang.no,
+                        body: fc.lang.confirmSubmitDevelopment,
+                        title: fc.lang.areSureHeader
+                    });
+                    
+                    return false;
+                }
             }
 
             // Submit the form fields
@@ -8102,6 +8140,7 @@ var fc = (function ($) {
             fc.domContainer.find('.fc-loading-screen').addClass('show');
 
             fc.preventNextPageLoad = true;
+            
             api('page/submit', data, 'put', function (data) {
                 var lastPage,
                     offset;
@@ -8489,6 +8528,10 @@ var fc = (function ($) {
                             break;
                         case fc.states.EDIT_REPEATABLE:
                             editRepeatableRow();
+                            break;
+                        case fc.states.SUBMIT_DEVELOPMENT_BRANCH:
+                            hideModal();
+                            loadNextPage(true, true);
                             break;
                     }
                 }
@@ -9456,6 +9499,7 @@ var fc = (function ($) {
                 this.mobileView = isMobile();
                 this.withinIterator = {};
                 this.preventNextPageLoad = false;
+                this.developmentBranches = ['Staging', 'Development', 'Dev'];
 
                 // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
                 jQuery.support.cors = true;
@@ -9481,7 +9525,8 @@ var fc = (function ($) {
                     EDIT_REPEATABLE: 'editRepeatableRow',
                     EMAIL_VERIFICATION_CODE: 'emailVerificationCode',
                     SMS_VERIFICATION_CODE: 'smsVerificationCode',
-                    MODAL_TEXT: 'modalText'
+                    MODAL_TEXT: 'modalText',
+                    SUBMIT_DEVELOPMENT_BRANCH: 'submitDevelopmentBranch'
                 };
 
                 /**
@@ -9679,6 +9724,17 @@ var fc = (function ($) {
 
                         // Mark the form as having been loaded
                         fc.domContainer.addClass(fc.constants.formLoadedClass);
+                        
+                        // Initialise in dev mode
+                        if (isDevelopmentBranch()) {
+                            fc.domContainer.on(fc.jsEvents.onFinishRender, function () {
+                                var devHtml = $('<div></div>');
+                                devHtml.attr('class', 'fc-dev-status');
+                                devHtml.append('<span></span>');
+                                devHtml.find('span').html('in development');
+                                $(document).find('body').append(devHtml);                                
+                            });
+                        }
 
                         // Save form fields intermittently
                         if (fc.config.saveInRealTime === true) {
@@ -9746,6 +9802,23 @@ var fc = (function ($) {
                 var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
                     results = regex.exec(location.search);
                 return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+            },
+            
+            /**
+             * Sets the list of protected development branches.
+             * @param branches array
+             */
+            setDevelopmentBranches: function (branches) {
+                if ($.isArray(branches)) {
+                    fc.developmentBranches = branches;
+                }
+            },
+            
+            /**
+             * Retrieve the list of 'protected' development branches
+             */
+            getDevelopmentBranches: function () {
+                return fc.developmentBranches;
             },
 
             /**
@@ -10006,7 +10079,11 @@ var fc = (function ($) {
                         }
                     },
                     verify: 'Verify',
-                    passwordHidden: 'Hidden'
+                    passwordHidden: 'Hidden',
+                    yes: 'Yes',
+                    no: 'No',
+                    confirmSubmitDevelopment: 'The form is currently on a <em>development branch</em>. Are you sure you want to submit?',
+                    areSureHeader: 'Are you sure?'
                 };
 
                 // Update with client options
