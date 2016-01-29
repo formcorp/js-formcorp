@@ -2063,6 +2063,84 @@ var fc = (function ($) {
                     }
                 }
             },
+            
+            /**
+             * Retrieve a variable from the hash in the URL
+             * @param prefix
+             * @returns string
+             */
+            getHashVar = function (prefix, defaultVal) {
+                var hash = window.location.hash,
+                    start = hash.indexOf(prefix),
+                    end;
+                    
+                // Set a default value
+                if (typeof defaultVal === 'undefined') {
+                    defaultVal = '';
+                }
+                
+                // If the prefix wasn't found, return the default value
+                if (start < 0) {
+                    return defaultVal;
+                }
+                
+                start += prefix.length;
+                end = hash.indexOf(fc.config.hashSeparator, start);
+
+                    
+                if (end < 0) {
+                    // No prefix found, default to hash length
+                    end = hash.length;
+                }
+                    
+                return hash.substring(start, end);
+            },
+            
+            /**
+              * Set a hash variable
+              * @param prefix string
+              * @param value string
+              * @param updateHash boolean
+              * @returns string
+              */
+            setHashVar = function (prefix, value, updateHash) {
+                var currentHash = window.location.hash,
+                    updatedHash = currentHash,
+                    start, end,
+                    startString = '', endString = '';
+                    
+                // Default update hash to true
+                if (typeof updateHash !== 'boolean') {
+                    updateHash = true;
+                }
+                
+                if (getHashVar(prefix).length === 0) {
+                    // Currently doesn't exist in the hash
+                    if (currentHash.length > 0) {
+                        updatedHash += fc.config.hashSeparator;
+                    }
+                    
+                    updatedHash += prefix + value;
+                } else {
+                    // Exists, need to do a replacement
+                    start = updatedHash.indexOf(prefix) + prefix.length,
+                    end = updatedHash.indexOf(fc.config.hashSeparator, start);
+                    
+                    startString = updatedHash.substr(0, start);
+                    if (end >= 0) {
+                        endString = updatedHash.substr(start + getHashVar(prefix).length);
+                    }
+                    
+                    updatedHash = startString + value + endString;
+                }
+                  
+                if (updateHash) {
+                    // Force update the hash if necessary
+                    window.location.hash = updatedHash;
+                }
+                
+                return updatedHash;
+            },
 
             /**
              *
@@ -6526,6 +6604,25 @@ var fc = (function ($) {
          * @param prefix
          */
         renderCustomerRecord = function (field, prefix) {
+            console.log(field);
+            console.log(getConfig(field, 'showLoadingScreen', false));
+            if (getConfig(field, 'showLoadingScreen', false)) {
+                fc.domContainer.find('.fc-loading-screen').addClass('show');
+            }
+            
+            if (getConfig(field, 'fetchIdentifierFromUrl', false)) {
+                // Fetch from a unique identifier in the url
+                console.log('fetch from the URL');
+                
+                if (getConfig(field, 'preventRenderUntilComplete', false)) {
+                    //while (true) {}
+                    var now = new Date().getTime();
+                    //while(new Date().getTime() < now + 2000){ /* do nothing */ } 
+                    console.log('prevent render');
+                }
+                
+                return;
+            }
             if (getConfig(field, 'fetchInBg', false)) {
                 var value = fc.fields[getConfig(field, 'populateFrom')],
                     data = {
@@ -7193,7 +7290,7 @@ var fc = (function ($) {
             // Update the hash, and ignore the hash change event
             fc.ignoreHashChangeEvent = true;
             if (fc.config.updateHash) {
-                window.location.hash = pageId;
+                setHashVar(fc.config.hashPrefix, pageId);
             }
 
             // Update mobile visibility
@@ -8321,9 +8418,9 @@ var fc = (function ($) {
 
             // When the hash changes - navigate forward/backwards
             $(window).on('hashchange', function () {
-                var pageId = window.location.hash.substr(1),
+                var pageId = getHashVar(fc.config.hashPrefix),
                     page = fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]');
-
+                    
                 if (page.length === 0 && fc.ignoreHashChangeEvent === false && fc.oldHash !== pageId && typeof fc.pages[pageId] === 'object') {
                     render(pageId);
                 }
@@ -9298,7 +9395,7 @@ var fc = (function ($) {
 
                 // Update the browser hash when required
                 if (fc.config.updateHash) {
-                    window.location.hash = id;
+                    setHashVar(fc.config.hashPrefix, id);
                 }
 
                 // Store field schema locally
@@ -9965,7 +10062,9 @@ var fc = (function ($) {
                     helpAsModal: false,
                     staticHelpModalLink: false,
                     hideModal: false,
-                    helpDefaultWhenNoTitleText: true
+                    helpDefaultWhenNoTitleText: true,
+                    hashPrefix: 'h:',
+                    hashSeparator: ','
                 };
 
                 // Minimum event queue interval (to prevent server from getting slammed)
