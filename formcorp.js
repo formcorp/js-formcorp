@@ -5828,6 +5828,21 @@ var fc = (function ($) {
                     fc.pageOrders = fc.pageOrders.splice(0, fc.pageOrders.indexOf(fc.currentPage) + 1);
                 }
             },
+            
+            /**
+             * Update the active form state
+             * @param state
+             */
+            setFormState = function (state) {
+                // Update the form values
+                var oldState = fc.formState;
+                fc.formState = state;
+                
+                // Trigger an event to react on
+                fc.domContainer.attr('data-form-state', state);
+                fc.domContainer.find('[data-form-state]').attr('data-form-state', state);
+                fc.domContainer.trigger(fc.jsEvents.onFormStateChange, [state, oldState]);
+            },
 
             updateMobileFieldsVisibility,
             renderGrouplet,
@@ -6206,7 +6221,7 @@ var fc = (function ($) {
                     fieldHtml += fieldClass + ' ';
                 }
 
-                fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '"';
+                fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '" data-field-count="' + fc.fieldCount + '" data-form-state="' + fc.formState + '"';
 
                 // If a section was passed through, track which section the field belongs to
                 if (section !== undefined && typeof section === "object") {
@@ -6401,6 +6416,9 @@ var fc = (function ($) {
                     default:
                         console.log('Unknown field type: ' + field.type);
                 }
+                
+                // Increment the field count
+                fc.fieldCount += 1;
 
                 // If no field value returned, do nothing
                 if (fieldDOMHTML === undefined || (typeof fieldDOMHTML === 'string' && fieldDOMHTML.length === 0)) {
@@ -6604,65 +6622,78 @@ var fc = (function ($) {
          * @param prefix
          */
         renderCustomerRecord = function (field, prefix) {
-            console.log(field);
-            console.log(getConfig(field, 'showLoadingScreen', false));
             if (getConfig(field, 'showLoadingScreen', false)) {
                 fc.domContainer.find('.fc-loading-screen').addClass('show');
             }
             
+            /**
+             * @param result
+             */
+            var entityRecordCallback = function (result) {                
+                if (result && result.success && result.data && typeof result.data.values === 'object') {
+                    var key, val, tags = {}, iterator, field;
+
+                    // Process the tags
+                    for (iterator = 0; iterator < result.fields.length; iterator += 1) {
+                        field = result.fields[iterator];
+                        tags[field.id] = field.machineName;
+                    }
+
+                    // Process each result and make them available within the form
+                    for (key in result.data.values) {
+                        if (result.data.values.hasOwnProperty(key)) {
+                            val = result.data.values[key];
+                            setValue(key, val);
+
+                            fc.fieldSchema[key] = {
+                                _id: {
+                                    '$id': key
+                                },
+                                config: {
+                                    tag: tags[key],
+                                    type: 'entityRecord'
+                                }
+                            };
+                        }
+                    }
+                    
+                    setFormState('');
+                }
+
+                replaceTokensInDom();
+
+                // Trigger a result to bind on
+                fc.domContainer.trigger(fc.jsEvents.onCustomerAuthResult, [result]);
+            };
+            
+            // Prevent rendering of further fields until complete
+            if (getConfig(field, 'preventRenderUntilComplete', false)) {
+                setFormState(fc.constants.stateLoadingEntityRecord);
+            }
+                
             if (getConfig(field, 'fetchIdentifierFromUrl', false)) {
                 // Fetch from a unique identifier in the url
-                console.log('fetch from the URL');
-                
-                if (getConfig(field, 'preventRenderUntilComplete', false)) {
-                    //while (true) {}
-                    var now = new Date().getTime();
-                    //while(new Date().getTime() < now + 2000){ /* do nothing */ } 
-                    console.log('prevent render');
+                var identifier = getHashVar(fc.config.entityPrefix);
+                if (typeof identifier === 'string' && identifier.length > 0) {
+                    var data = {
+                        method: 'url',
+                        id: getId(field),
+                        identifier: identifier
+                    };
+                    
+                    api('customer/gateway/record', data, 'post', entityRecordCallback);
                 }
                 
                 return;
-            }
-            if (getConfig(field, 'fetchInBg', false)) {
+            } else if (getConfig(field, 'fetchInBg', false)) {
+                // Fetch from data sources
                 var value = fc.fields[getConfig(field, 'populateFrom')],
                     data = {
                         id: getId(field),
                         value: value === undefined ? '' : value
                     };
 
-                api('customer/gateway/record', data, 'post', function (result) {
-                    if (result && result.success && result.data && typeof result.data.values === 'object') {
-                        var key, val, tags = {}, iterator, field;
-
-                        // Process the tags
-                        for (iterator = 0; iterator < result.fields.length; iterator += 1) {
-                            field = result.fields[iterator];
-                            tags[field.id] = field.machineName;
-                        }
-
-                        // Process each result and make them available within the form
-                        for (key in result.data.values) {
-                            if (result.data.values.hasOwnProperty(key)) {
-                                val = result.data.values[key];
-                                setValue(key, val);
-
-                                fc.fieldSchema[key] = {
-                                    _id: {
-                                        '$id': key
-                                    },
-                                    config: {
-                                        tag: tags[key]
-                                    }
-                                };
-                            }
-                        }
-                    }
-
-                    replaceTokensInDom();
-
-                    // Trigger a result to bind on
-                    fc.domContainer.trigger(fc.jsEvents.onCustomerAuthResult, [result]);
-                });
+                api('customer/gateway/record', data, 'post', entityRecordCallback);
             }
         };
 
@@ -6923,7 +6954,7 @@ var fc = (function ($) {
 
             for (x = 0; x < sections.length; x += 1) {
                 section = sections[x];
-                sectionHtml = '<div class="fc-section fc-section-' + getId(section) + '" formcorp-data-id="' + getId(section) + '">';
+                sectionHtml = '<div class="fc-section fc-section-' + getId(section) + '" formcorp-data-id="' + getId(section) + '" data-form-state="' + fc.formState + '">';
                 sectionHtml += '<div class="fc-section-header">';
 
                 if (typeof section.label === 'string' && section.label.length > 0) {
@@ -6968,7 +6999,7 @@ var fc = (function ($) {
          */
         renderPage = function (page) {
             // Page details
-            var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '">',
+            var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '">',
                 submitText = fc.lang.submitText,
                 nextPageObj,
                 submitClasses = ['fc-submit'];
@@ -7003,7 +7034,7 @@ var fc = (function ($) {
 
                 // Only render pagination on non-submission pages
                 if (!isSubmitPage(page)) {
-                    pageDiv += '<div class="fc-pagination">';
+                    pageDiv += '<div class="fc-pagination" data-form-state="' + fc.formState + '">';
 
                     // Show the prev stage button
                     if (fc.config.showPrevPageButton === true) {
@@ -9597,6 +9628,8 @@ var fc = (function ($) {
                 this.withinIterator = {};
                 this.preventNextPageLoad = false;
                 this.developmentBranches = ['Staging', 'Development', 'Dev'];
+                this.fieldCount = 0;
+                this.formState = '';
 
                 // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
                 jQuery.support.cors = true;
@@ -9673,7 +9706,8 @@ var fc = (function ($) {
                     onValueChanged: 'onValueChanged',
                     onFieldFocus: 'onFieldFocus',
                     onFieldBlur: 'onFieldBlur',
-                    onCustomerAuthResult: 'onCustomerAuthResult'
+                    onCustomerAuthResult: 'onCustomerAuthResult',
+                    onFormStateChange: 'onFormStateChange'
                 };
 
                 /**
@@ -9715,6 +9749,9 @@ var fc = (function ($) {
                     functionCallbackType: 'functionCallback',
                     formulaPrefix: 'FORMULA:',
                     formLoadedClass: 'fc-form-loaded',
+                    
+                    // Form states
+                    stateLoadingEntityRecord: 'loadingEntityRecord'
                 };
 
                 /**
@@ -10064,7 +10101,11 @@ var fc = (function ($) {
                     hideModal: false,
                     helpDefaultWhenNoTitleText: true,
                     hashPrefix: 'h:',
-                    hashSeparator: ','
+                    hashSeparator: ',',
+                    entityPrefix: 'ent:',
+                    css: {
+                        entityRecordLoadingClass: 'entity-record-loading'
+                    }
                 };
 
                 // Minimum event queue interval (to prevent server from getting slammed)
