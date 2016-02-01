@@ -6629,35 +6629,48 @@ var fc = (function ($) {
             /**
              * @param result
              */
-            var entityRecordCallback = function (result) {                
-                if (result && result.success && result.data && typeof result.data.values === 'object') {
-                    var key, val, tags = {}, iterator, field;
+            var entityRecordCallback = function (field, result) {                
+                if (result) {
+                    if (result.success && result.data && typeof result.data.values === 'object') {
+                        var key, val, tags = {}, iterator, field, obj;
+                        
+                        obj = fc.domContainer.find('[fc-data-group="' + getId(field) + '"]');
 
-                    // Process the tags
-                    for (iterator = 0; iterator < result.fields.length; iterator += 1) {
-                        field = result.fields[iterator];
-                        tags[field.id] = field.machineName;
-                    }
+                        // Process the tags
+                        for (iterator = 0; iterator < result.fields.length; iterator += 1) {
+                            field = result.fields[iterator];
+                            tags[field.id] = field.machineName;
+                        }
 
-                    // Process each result and make them available within the form
-                    for (key in result.data.values) {
-                        if (result.data.values.hasOwnProperty(key)) {
-                            val = result.data.values[key];
-                            setValue(key, val);
+                        // Process each result and make them available within the form
+                        for (key in result.data.values) {
+                            if (result.data.values.hasOwnProperty(key)) {
+                                val = result.data.values[key];
+                                setValue(key, val);
 
-                            fc.fieldSchema[key] = {
-                                _id: {
-                                    '$id': key
-                                },
-                                config: {
-                                    tag: tags[key],
-                                    type: 'entityRecord'
-                                }
-                            };
+                                fc.fieldSchema[key] = {
+                                    _id: {
+                                        '$id': key
+                                    },
+                                    config: {
+                                        tag: tags[key],
+                                        type: 'entityRecord'
+                                    }
+                                };
+                            }
+                        }
+                        
+                        setFormState('');
+                        
+                        if (obj.length > 0) {
+                            obj.addClass('fc-hide');
+                        }
+                    } else if (!result.success) {
+                        var obj = fc.domContainer.find('[fc-data-group="' + getId(field) + '"]');
+                        if (obj.length > 0) {
+                            obj.find('.fc-entity-record').addClass('fc-error').html('<label>' + result.message + '</label>');
                         }
                     }
-                    
-                    setFormState('');
                 }
 
                 replaceTokensInDom();
@@ -6681,10 +6694,10 @@ var fc = (function ($) {
                         identifier: identifier
                     };
                     
-                    api('customer/gateway/record', data, 'post', entityRecordCallback);
+                    api('customer/gateway/record', data, 'post', function (result) {
+                        entityRecordCallback(field, result);
+                    });
                 }
-                
-                return;
             } else if (getConfig(field, 'fetchInBg', false)) {
                 // Fetch from data sources
                 var value = fc.fields[getConfig(field, 'populateFrom')],
@@ -6693,8 +6706,12 @@ var fc = (function ($) {
                         value: value === undefined ? '' : value
                     };
 
-                api('customer/gateway/record', data, 'post', entityRecordCallback);
+                api('customer/gateway/record', data, 'post', function (result) {
+                    entityRecordCallback(field, result);
+                });
             }
+            
+            return '<div class="fc-entity-record">' + fc.lang.loading + '</div>';
         };
 
         /**
@@ -10223,7 +10240,8 @@ var fc = (function ($) {
                     yes: 'Yes',
                     no: 'No',
                     confirmSubmitDevelopment: 'The form is currently on a <em>development branch</em>. Are you sure you want to submit?',
-                    areSureHeader: 'Are you sure?'
+                    areSureHeader: 'Are you sure?',
+                    loading: 'Loading...'
                 };
 
                 // Update with client options
