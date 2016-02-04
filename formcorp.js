@@ -2338,14 +2338,27 @@ var fc = (function ($) {
                     iterator,
                     el,
                     defaultValue,
+                    populateFromId,
+                    populateValue,
                     unrestorableFieldTypes = ['emailVerification', 'smsVerification'];
 
                 // If no value found, try and use default
                 value = fc.fields[fieldId];
                 if (value === undefined && schema !== undefined) {
-                    defaultValue = getConfig(schema, 'default', '');
-                    if (defaultValue.length > 0) {
-                        value = defaultValue;
+                    // If the pre-populate from config option is set, try to populate from that field
+                    populateFromId = getConfig(schema, 'populateFrom', '');
+                    if (populateFromId.length > 0) {
+                        if (fc.fields[populateFromId] !== undefined) {
+                            value = fc.fields[populateFromId];
+                        }
+                    }
+                    
+                    // Otherwise use the default
+                    if (value === undefined) {
+                        defaultValue = getConfig(schema, 'default', '');
+                        if (defaultValue.length > 0) {
+                            value = defaultValue;
+                        }
                     }
                 }
 
@@ -6634,6 +6647,12 @@ var fc = (function ($) {
                     if (result.success && result.data && typeof result.data.values === 'object') {
                         var key, val, tags = {}, iterator, field, obj;
                         
+                        // Hide the loading screen
+                        if (getConfig(field, 'showLoadingScreen', false)) {
+                            console.log(1);
+                            fc.domContainer.find('.fc-loading-screen').removeClass('show');
+                        }
+                        
                         obj = fc.domContainer.find('[fc-data-group="' + getId(field) + '"]');
 
                         // Process the tags
@@ -6665,6 +6684,11 @@ var fc = (function ($) {
                         if (obj.length > 0) {
                             obj.addClass('fc-hide');
                         }
+                        
+                        // Update the form fields as required (fields might be linked)
+                        setFieldValues();
+                        flushVisibility();
+
                     } else if (!result.success) {
                         var obj = fc.domContainer.find('[fc-data-group="' + getId(field) + '"]');
                         if (obj.length > 0) {
