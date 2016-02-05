@@ -2301,7 +2301,7 @@ var fc = (function ($) {
              */
             setDomValue = function (obj, value) {
                 var fieldGroup = $(obj).find('.fc-fieldgroup'),
-                    valInputs = fieldGroup.find('input[type=text],textarea,input[type=range]'),
+                    valInputs = fieldGroup.find('input[type=text],textarea,input[type=range],input[type=hidden]'),
                     selector;
 
                 if (valInputs.length > 0) {
