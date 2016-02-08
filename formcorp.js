@@ -5908,6 +5908,7 @@ var fc = (function ($) {
             greenIdFieldHeader,
             renderGreenIdField,
             renderNumericSliderField,
+            renderMatrixField,
             renderCustomerRecord,
             registerApiLookupListener,
             renderAutoCompleteWidget,
@@ -6417,6 +6418,9 @@ var fc = (function ($) {
                     case 'numericSlider':
                         fieldDOMHTML = renderNumericSliderField(field, prefix);
                         break;
+                    case 'matrix':
+                        fieldDOMHTML= renderMatrixField(field, prefix);
+                        break;
                     case 'groupletReference':
                     case 'formReference':
                     case 'functionReference':
@@ -6626,6 +6630,49 @@ var fc = (function ($) {
             // Render the outcome/value
             html += '<span class="fc-numeric-outcome"></span>';
 
+            return html;
+        };
+
+        /**
+         * Render a matrix field.
+         * @param field
+         * @returns {string}
+         */
+        renderMatrixField = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                fieldId = prefix + getId(field),
+                html = '',
+                type = 'text';
+
+            html = '';
+
+            if (field.config.headers.length > 0 && field.config.fields.length > 0) {
+                var headers = field.config.headers.split('|');
+                var fields = field.config.fields.split('|');
+                var width = 75 / (headers.length);
+                if (headers.length > 0 && fields.length > 0) {
+                    html = '<table style="width:100%;">';
+                    html += '<tr>';
+                    html += '<th style="width:25%;">' + field.config.title + '</th>';
+                    for (var j = 0; j < headers.length; j++) {
+                        html += '<th style="width:' + width + '%; text-align:center">' + headers[j] + '</>';
+                    }
+                    html += '</tr>';
+                    for (var i = 0; i < fields.length; i++) {
+                        html += '<tr>';
+                        html += '<td>' + fields[i] + '</td>';
+                        for (var j = 0; j < headers.length; j++) {
+                            html += '<td><input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '[' + fields[i] + '][' + headers[j] + ']" data-required="' + required + '"></td>';
+                        }
+                        html += '</tr>';
+                    }
+                    html += '<table>';
+                }
+            }
             return html;
         };
 
