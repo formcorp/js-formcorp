@@ -6655,22 +6655,30 @@ var fc = (function ($) {
                 var fields = field.config.fields.split('|');
                 var width = 75 / (headers.length);
                 if (headers.length > 0 && fields.length > 0) {
-                    html = '<table style="width:100%;">';
+                    html = '<table class="fc-matrixtable">';
                     html += '<tr>';
                     html += '<th style="width:25%;">' + field.config.title + '</th>';
                     for (var j = 0; j < headers.length; j++) {
-                        html += '<th style="width:' + width + '%; text-align:center">' + headers[j] + '</>';
+                        html += '<th style="width:' + width + '%;" class="fc-matrix-headerrow">' + headers[j] + '</>';
                     }
                     html += '</tr>';
                     for (var i = 0; i < fields.length; i++) {
                         html += '<tr>';
-                        html += '<td>' + fields[i] + '</td>';
+                        html += '<td class="fc-matrix-fieldcolumn">' + fields[i] + '</td>';
                         for (var j = 0; j < headers.length; j++) {
-                            html += '<td><input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '[' + fields[i] + '][' + headers[j] + ']" data-required="' + required + '"></td>';
+                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '[' + fields[i] + '][' + headers[j] + ']" data-required="' + required + '"></td>';
                         }
                         html += '</tr>';
                     }
-                    html += '<table>';
+                    if (field.config.summaryWidget == true) {
+                        html += '<tr>';
+                        html += '<th class="fc-matrix-fieldcolumn">Total</th>';
+                        for (var j = 0; j < headers.length; j++) {
+                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput" type="text"></td>';
+                        }
+                        html += '</tr>';
+                    }
+                    html += '</table>';
                 }
             }
             return html;

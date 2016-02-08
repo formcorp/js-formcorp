@@ -614,6 +614,24 @@ div.fc-pagination {
     display: inline;
 }
 
+.fc-fieldcontainer .fc-matrixtable  {
+    width: 100%;
+    box-shadow: none;
+}
+
+.fc-fieldcontainer .fc-matrixtable .fc-matrix-headerrow {
+    text-align:center;
+}
+
+.fc-fieldcontainer .fc-matrixtable .fc-matrix-fieldcolumn {
+    vertical-align:middle !important;
+}
+
+.fc-fieldcontainer .fc-matrixtable .fc-matrix-field .fc-fieldinput {
+    padding: 12px 10px !important;
+    text-align:center;
+}
+
 /**
  * 4 column
  */
