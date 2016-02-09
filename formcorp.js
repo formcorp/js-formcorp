@@ -6666,7 +6666,7 @@ var fc = (function ($) {
                         html += '<tr>';
                         html += '<td class="fc-matrix-fieldcolumn">' + fields[i] + '</td>';
                         for (var j = 0; j < headers.length; j++) {
-                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '[' + fields[i] + '][' + headers[j] + ']" data-required="' + required + '"></td>';
+                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-matrixfieldinput" data-matrix-name="fc-' + headers[j] + '" type="text" formcorp-data-id="' + fieldId + '[' + fields[i] + '][' + headers[j] + ']" data-required="' + required + '"></td>';
                         }
                         html += '</tr>';
                     }
@@ -6674,11 +6674,26 @@ var fc = (function ($) {
                         html += '<tr>';
                         html += '<th class="fc-matrix-fieldcolumn">Total</th>';
                         for (var j = 0; j < headers.length; j++) {
-                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput" type="text"></td>';
+                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput" type="text" data-matrix-total="fc-' + headers[j] + '" value="0" readonly="true"></td>';
                         }
                         html += '</tr>';
                     }
                     html += '</table>';
+
+                    fc.domContainer.on('change', '.fc-matrixfieldinput', function() {
+                        if ($.isNumeric($(this).val())) {
+                            var total = 0;
+                            $('input[data-matrix-name^="' + $(this).data('matrix-name') + '"]').each(function () {
+                                if ($.isNumeric($(this).val())) {
+                                    total += parseFloat($(this).val());
+                                }
+                            });
+                            $('input[data-matrix-total^="' + $(this).data('matrix-name') + '"]').val(total);
+                        } else {
+                            alert('Value must be numeric.');
+                            $(this).val('');
+                        }
+                    });
                 }
             }
             return html;
