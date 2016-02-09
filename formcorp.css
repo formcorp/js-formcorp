@@ -632,6 +632,10 @@ div.fc-pagination {
     text-align:center;
 }
 
+.fc-fieldcontainer .fc-matrixtable .fc-matrix-field .fc-headerstotal {
+    font-weight:800;
+}
+
 /**
  * 4 column
  */

@@ -6674,7 +6674,7 @@ var fc = (function ($) {
                         html += '<tr>';
                         html += '<th class="fc-matrix-fieldcolumn">Total</th>';
                         for (var j = 0; j < headers.length; j++) {
-                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput" type="text" data-matrix-total="fc-' + headers[j] + '" value="0" readonly="true"></td>';
+                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-headerstotal" type="text" data-matrix-total="fc-' + headers[j] + '" value="0" readonly="true"></td>';
                         }
                         html += '</tr>';
                     }
