@@ -6714,6 +6714,7 @@ var fc = (function ($) {
                                 }
                             });
                             $('input[data-matrix-total^="' + $(this).data('matrix-name') + '"]').val(total);
+                            setValue($(this).attr('formcorp-data-id'), $(this).val());
                         } else {
                             alert('Value must be numeric.');
                             $(this).val('');
