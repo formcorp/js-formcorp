@@ -6650,6 +6650,12 @@ var fc = (function ($) {
 
             html = '';
 
+            try {
+                var validation = $.parseJSON(field.config.validation);
+            } catch (exception) {
+                var validation = null;
+            }
+
             if (field.config.headers.length > 0 && field.config.fields.length > 0) {
                 var headers = field.config.headers.split('|');
                 var fields = field.config.fields.split('|');
@@ -6682,6 +6688,25 @@ var fc = (function ($) {
 
                     fc.domContainer.on('change', '.fc-matrixfieldinput', function() {
                         if ($.isNumeric($(this).val())) {
+                            /** perform field validation **/
+                            try {
+                                if (typeof validation.fields.field.min != 'undefined') {
+                                    if (parseFloat($(this).val()) < parseFloat(validation.fields.field.min)) {
+                                        alert('Field values can be no less than ' + validation.fields.field.min);
+                                        $(this).val('');
+                                        return;
+                                    }
+                                }
+                            } catch (exception) { }
+                            try {
+                                if (typeof validation.fields.field.max != 'undefined') {
+                                    if (parseFloat($(this).val()) > parseFloat(validation.fields.field.max)) {
+                                        alert('Field values can be no greater than ' + validation.fields.field.max);
+                                        $(this).val('');
+                                        return;
+                                    }
+                                }
+                            } catch (exception) { }
                             var total = 0;
                             $('input[data-matrix-name^="' + $(this).data('matrix-name') + '"]').each(function () {
                                 if ($.isNumeric($(this).val())) {
