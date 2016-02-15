@@ -6655,6 +6655,7 @@ var fc = (function ($) {
             try {
                 var validation = $.parseJSON(field.config.validation);
             } catch (exception) {
+                console.log('Malformed JSON string passed for validatoin');
                 return errors;
             }
 
@@ -6671,37 +6672,39 @@ var fc = (function ($) {
                 });
             }
 
-            if (validation.headers !== undefined) {
-                if (validation.headers.header !== undefined) {
-                    if (validation.headers.header.min !== undefined) {
-
+            for (var header in matrixObject) {
+                var total = 0;
+                for (var field in matrixObject[header]) {
+                    if (validation.headers !== undefined) {
+                        if (validation.headers.header !== undefined) {
+                            if (validation.headers.header.min !== undefined) {
+                                if (parseFloat(matrixObject[header][field]) < validation.headers.header.min) {
+                                    errors.push('Field values for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
+                                }
+                            }
+                            if (validation.headers.header.max !== undefined) {
+                                if (parseFloat(matrixObject[header][field]) > validation.headers.header.max) {
+                                    errors.push('Field values for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
+                                }
+                            }
+                        }
                     }
-                    if (validation.headers.header.max !== undefined) {
-
-                    }
+                    total += parseFloat(matrixObject[header][field]);
                 }
                 if (validation.headers.total !== undefined) {
-                    for (var header in matrixObject) {
-                        var total = 0;
-                        for (var field in matrixObject[header]) {
-                            if ($.isNumeric(matrixObject[header][field])) {
-                                total += parseFloat(matrixObject[header][field]);
-                            }
+                    if (validation.headers.total.equals !== undefined) {
+                        if (total != validation.headers.total.equals) {
+                            errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
                         }
-                        if (validation.headers.total.equals !== undefined) {
-                            if (total != validation.headers.total.equals) {
-                                errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
-                            }
+                    }
+                    if (validation.headers.total.min !== undefined) {
+                        if (total < validation.headers.total.min) {
+                            errors.push('Totals for ' + header + ' can be no less than ' + validation.headers.total.min);
                         }
-                        if (validation.headers.total.min !== undefined) {
-                            if (total < validation.headers.total.min) {
-                                errors.push('Totals for ' + header + ' can be no less than ' + validation.headers.total.equals);
-                            }
-                        }
-                        if (validation.headers.total.max !== undefined) {
-                            if (total > validation.headers.total.max) {
-                                errors.push('Totals for ' + header + ' can be no greater than ' + validation.headers.total.equals);
-                            }
+                    }
+                    if (validation.headers.total.max !== undefined) {
+                        if (total > validation.headers.total.max) {
+                            errors.push('Totals for ' + header + ' can be no greater than ' + validation.headers.total.max);
                         }
                     }
                 }
@@ -6777,6 +6780,7 @@ var fc = (function ($) {
             try {
                 var validation = $.parseJSON(field.config.validation);
             } catch (exception) {
+                console.log('Malformed JSON string passed for validatoin');
                 var validation = null;
             }
 
