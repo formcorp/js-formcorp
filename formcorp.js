@@ -1000,6 +1000,8 @@ var fc = (function ($) {
                         errors.push(fc.lang.validAbnRequired);
                         return errors;
                     }
+                } else if (field.type === 'matrix') {
+                    return validateMatrixField(field);
                 } else {
                     // Test required data
                     dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
@@ -1517,7 +1519,10 @@ var fc = (function ($) {
 
                     // If not required, do nothing
                     if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
-                        return;
+                        // Check matrix field validation
+                        if (field.type !== 'matrix') {
+                            return;
+                        }
                     }
 
                     // Check if the field requires a value
@@ -5916,6 +5921,7 @@ var fc = (function ($) {
             greenIdFieldHeader,
             renderGreenIdField,
             renderNumericSliderField,
+            validateMatrixField,
             loadMatrixFieldValues,
             parseMatrixField,
             renderMatrixField,
@@ -6643,6 +6649,67 @@ var fc = (function ($) {
             return html;
         };
 
+        validateMatrixField = function (field) {
+            var errors = [];
+
+            try {
+                var validation = $.parseJSON(field.config.validation);
+            } catch (exception) {
+                return errors;
+            }
+
+            if (validation !== undefined) {
+                var matrix = $('input[formcorp-data-id=' + field._id.$id + ']');
+                var matrixObject = {};
+                matrix.each(function() {
+                    var matrixHeader = $(this).attr('formcorp-matrix-header');
+                    var matrixField = $(this).attr('formcorp-matrix-field');
+                    if (matrixObject[matrixHeader] === undefined) {
+                        matrixObject[matrixHeader] = {};
+                    }
+                    matrixObject[matrixHeader][matrixField] = $(this).val();
+                });
+            }
+
+            if (validation.headers !== undefined) {
+                if (validation.headers.header !== undefined) {
+                    if (validation.headers.header.min !== undefined) {
+
+                    }
+                    if (validation.headers.header.max !== undefined) {
+
+                    }
+                }
+                if (validation.headers.total !== undefined) {
+                    for (var header in matrixObject) {
+                        var total = 0;
+                        for (var field in matrixObject[header]) {
+                            if ($.isNumeric(matrixObject[header][field])) {
+                                total += parseFloat(matrixObject[header][field]);
+                            }
+                        }
+                        if (validation.headers.total.equals !== undefined) {
+                            if (total != validation.headers.total.equals) {
+                                errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
+                            }
+                        }
+                        if (validation.headers.total.min !== undefined) {
+                            if (total < validation.headers.total.min) {
+                                errors.push('Totals for ' + header + ' can be no less than ' + validation.headers.total.equals);
+                            }
+                        }
+                        if (validation.headers.total.max !== undefined) {
+                            if (total > validation.headers.total.max) {
+                                errors.push('Totals for ' + header + ' can be no greater than ' + validation.headers.total.equals);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return errors;
+        };
+
         /**
          * Load Matrix Values from JSON string and load them into the form
          *
@@ -6676,7 +6743,6 @@ var fc = (function ($) {
         parseMatrixField = function (field, json) {
             var matrix = $('input[formcorp-data-id=' + $(field).attr('formcorp-data-id') + ']');
             var matrixObject = { };
-            console.log(matrix);
             matrix.each(function () {
                 var matrixHeader = $(this).attr('formcorp-matrix-header');
                 var matrixField = $(this).attr('formcorp-matrix-field');
@@ -6745,10 +6811,10 @@ var fc = (function ($) {
                     html += '</table>';
 
                     fc.domContainer.on('change', '.fc-matrixfieldinput', function() {
-                        if ($.isNumeric($(this).val())) {
+                        if ($.isNumeric($(this).val()) || $(this).val() == '') {
                             /** perform field validation **/
                             try {
-                                if (typeof validation.fields.field.min != 'undefined') {
+                                if (typeof validation.headers.header.min != 'undefined') {
                                     if (parseFloat($(this).val()) < parseFloat(validation.fields.field.min)) {
                                         alert('Field values can be no less than ' + validation.fields.field.min);
                                         $(this).val('');
@@ -6757,7 +6823,7 @@ var fc = (function ($) {
                                 }
                             } catch (exception) { }
                             try {
-                                if (typeof validation.fields.field.max != 'undefined') {
+                                if (typeof validation.headers.header.max != 'undefined') {
                                     if (parseFloat($(this).val()) > parseFloat(validation.fields.field.max)) {
                                         alert('Field values can be no greater than ' + validation.fields.field.max);
                                         $(this).val('');
