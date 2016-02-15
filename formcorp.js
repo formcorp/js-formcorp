@@ -6675,16 +6675,19 @@ var fc = (function ($) {
             for (var header in matrixObject) {
                 var total = 0;
                 for (var field in matrixObject[header]) {
+                    if (!$.isNumeric(matrixObject[header][field]) || matrixObject[header][field] == '') {
+                        errors.push('Field value for ' + header + '-' + field + ' must be numeric');
+                    }
                     if (validation.headers !== undefined) {
                         if (validation.headers.header !== undefined) {
                             if (validation.headers.header.min !== undefined) {
                                 if (parseFloat(matrixObject[header][field]) < validation.headers.header.min) {
-                                    errors.push('Field values for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
+                                    errors.push('Field value for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
                                 }
                             }
                             if (validation.headers.header.max !== undefined) {
                                 if (parseFloat(matrixObject[header][field]) > validation.headers.header.max) {
-                                    errors.push('Field values for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
+                                    errors.push('Field value for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
                                 }
                             }
                         }
@@ -6816,25 +6819,6 @@ var fc = (function ($) {
 
                     fc.domContainer.on('change', '.fc-matrixfieldinput', function() {
                         if ($.isNumeric($(this).val()) || $(this).val() == '') {
-                            /** perform field validation **/
-                            try {
-                                if (typeof validation.headers.header.min != 'undefined') {
-                                    if (parseFloat($(this).val()) < parseFloat(validation.fields.field.min)) {
-                                        alert('Field values can be no less than ' + validation.fields.field.min);
-                                        $(this).val('');
-                                        return;
-                                    }
-                                }
-                            } catch (exception) { }
-                            try {
-                                if (typeof validation.headers.header.max != 'undefined') {
-                                    if (parseFloat($(this).val()) > parseFloat(validation.fields.field.max)) {
-                                        alert('Field values can be no greater than ' + validation.fields.field.max);
-                                        $(this).val('');
-                                        return;
-                                    }
-                                }
-                            } catch (exception) { }
                             var total = 0;
                             $('input[data-matrix-name^="' + $(this).data('matrix-name') + '"]').each(function () {
                                 if ($.isNumeric($(this).val())) {
@@ -6842,9 +6826,6 @@ var fc = (function ($) {
                                 }
                             });
                             $('input[data-matrix-total^="' + $(this).data('matrix-name') + '"]').val(total);
-                        } else {
-                            alert('Value must be numeric.');
-                            $(this).val('');
                         }
                     });
                 }
