@@ -6649,6 +6649,12 @@ var fc = (function ($) {
             return html;
         };
 
+        /**
+         * Validates a matrix field using the JSON validation string in the field config
+         *
+         * @param field
+         * @returns {Array}
+         */
         validateMatrixField = function (field) {
             var errors = [];
 
