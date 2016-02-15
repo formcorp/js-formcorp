@@ -770,6 +770,11 @@ var fc = (function ($) {
                     }
 
                     dataId = $(field).attr('formcorp-data-id');
+
+                    if (fc.fieldSchema[dataId].type === 'matrix') {
+                        return parseMatrixField(field, true);
+                    }
+
                     if (fc.fieldSchema[dataId] !== undefined) {
                         // If read-only, do not record a value
                         return getConfig(fc.fieldSchema[dataId], 'readOnly', false) ? '' : field.val();
@@ -2399,7 +2404,10 @@ var fc = (function ($) {
                                 el.addClass('checked');
                             }
                         }
-                    } else {
+                    } else if (schema.type === 'matrix') {
+                        loadMatrixFieldValues(fieldId, value);
+                    }
+                    else {
                         // Otherwise set standard value in the DOM
                         setDomValue(obj, value);
                     }
@@ -5908,6 +5916,8 @@ var fc = (function ($) {
             greenIdFieldHeader,
             renderGreenIdField,
             renderNumericSliderField,
+            loadMatrixFieldValues,
+            parseMatrixField,
             renderMatrixField,
             renderCustomerRecord,
             registerApiLookupListener,
@@ -6634,6 +6644,54 @@ var fc = (function ($) {
         };
 
         /**
+         * Load Matrix Values from JSON string and load them into the form
+         *
+         * @param fieldId
+         * @param data
+         */
+        loadMatrixFieldValues = function (fieldId, data) {
+            data = JSON.parse(data);
+            var matrix = $('input[formcorp-data-id=' + fieldId + ']');
+            matrix.each(function() {
+                var matrixHeader = $(this).attr('formcorp-matrix-header');
+                var matrixField = $(this).attr('formcorp-matrix-field');
+                $(this).val(data[matrixHeader][matrixField]);
+                var total = 0;
+                $('input[data-matrix-name^="fc-' + $(this).attr('formcorp-matrix-header') + '"]').each(function () {
+                    if ($.isNumeric($(this).val())) {
+                        total += parseFloat($(this).val());
+                    }
+                });
+                $('input[data-matrix-total^="fc-' + $(this).attr('formcorp-matrix-header') + '"]').val(total);
+            });
+        };
+
+        /**
+         * Parse Matrix Field values and return them as either JSON Object or string
+         *
+         * @param field
+         * @param json
+         * @returns {{string | Object}}
+         */
+        parseMatrixField = function (field, json) {
+            var matrix = $('input[formcorp-data-id=' + $(field).attr('formcorp-data-id') + ']');
+            var matrixObject = { };
+            console.log(matrix);
+            matrix.each(function () {
+                var matrixHeader = $(this).attr('formcorp-matrix-header');
+                var matrixField = $(this).attr('formcorp-matrix-field');
+                if (matrixObject[matrixHeader] === undefined) {
+                    matrixObject[matrixHeader] = {};
+                }
+                matrixObject[matrixHeader][matrixField] = $(this).val();
+            });
+            if (json === true) {
+                return JSON.stringify(matrixObject);
+            }
+            return matrixObject;
+        };
+
+        /**
          * Render a matrix field.
          * @param field
          * @returns {string}
@@ -6672,7 +6730,7 @@ var fc = (function ($) {
                         html += '<tr>';
                         html += '<td class="fc-matrix-fieldcolumn">' + fields[i] + '</td>';
                         for (var j = 0; j < headers.length; j++) {
-                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-matrixfieldinput" data-matrix-name="fc-' + headers[j] + '" type="text" formcorp-data-id="' + fieldId + '[' + fields[i] + '][' + headers[j] + ']" data-required="' + required + '"></td>';
+                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-matrixfieldinput" data-matrix-name="fc-' + headers[j] + '" type="text" formcorp-matrix-header="' + headers[j] + '" formcorp-matrix-field="' + fields[i] + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '"></td>';
                         }
                         html += '</tr>';
                     }
@@ -6714,7 +6772,6 @@ var fc = (function ($) {
                                 }
                             });
                             $('input[data-matrix-total^="' + $(this).data('matrix-name') + '"]').val(total);
-                            setValue($(this).attr('formcorp-data-id'), $(this).val());
                         } else {
                             alert('Value must be numeric.');
                             $(this).val('');
@@ -7881,6 +7938,11 @@ var fc = (function ($) {
                 // Need to update the stored value to ensure proper validation
                 fc.fields[id] = val;
 
+                return;
+            }
+
+            if (schema && schema.type && schema.type === 'matrix') {
+                valueChanged(id, parseMatrixField(obj, true));
                 return;
             }
 
@@ -9645,7 +9707,6 @@ var fc = (function ($) {
                     for (key in data.data) {
                         if (data.data.hasOwnProperty(key)) {
                             fc.fields[key] = data.data[key];
-
                             // If an ABN field, assume valid if previously set
                             if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
                                 fc.validAbns.push(fc.fields[key]);
