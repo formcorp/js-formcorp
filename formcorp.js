@@ -6684,21 +6684,19 @@ var fc = (function ($) {
                     if (!$.isNumeric(matrixObject[header][field]) && matrixObject[header][field] != '') {
                         errors.push('Field value for ' + header + '-' + field + ' must be numeric');
                     }
-                    if (validation.headers !== undefined) {
-                        if (validation.headers.header !== undefined) {
-                            if (validation.headers.header.min !== undefined) {
-                                if (parseFloat(matrixObject[header][field]) < validation.headers.header.min
-                                    && matrixObject[header][field] != ''
-                                ) {
-                                    errors.push('Field value for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
-                                }
+                    if (validation.headers !== undefined && validation.headers.header !== undefined) {
+                        if (validation.headers.header.min !== undefined) {
+                            if (parseFloat(matrixObject[header][field]) < validation.headers.header.min
+                                && matrixObject[header][field] != ''
+                            ) {
+                                errors.push('Field value for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
                             }
-                            if (validation.headers.header.max !== undefined) {
-                                if (parseFloat(matrixObject[header][field]) > validation.headers.header.max
-                                    && matrixObject[header][field] != ''
-                                ) {
-                                    errors.push('Field value for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
-                                }
+                        }
+                        if (validation.headers.header.max !== undefined) {
+                            if (parseFloat(matrixObject[header][field]) > validation.headers.header.max
+                                && matrixObject[header][field] != ''
+                            ) {
+                                errors.push('Field value for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
                             }
                         }
                     }
@@ -6706,7 +6704,7 @@ var fc = (function ($) {
                         total += parseFloat(matrixObject[header][field]);
                     }
                 }
-                if (validation.headers.total !== undefined) {
+                if (validation.headers !== undefined && validation.headers.total !== undefined) {
                     if (validation.headers.total.equals !== undefined) {
                         if (total != validation.headers.total.equals) {
                             errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
