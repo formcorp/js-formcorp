@@ -6688,6 +6688,11 @@ var fc = (function ($) {
                         errors.push('Field value for ' + header + '-' + field + ' must be numeric');
                     }
                     if (validation.headers !== undefined && validation.headers.header !== undefined) {
+                        if (validation.headers.header.integerOnly !== undefined && validation.headers.header.integerOnly == 'true') {
+                            if ($.isNumeric(matrixObject[header][field]) && Math.floor(matrixObject[header][field]) != matrixObject[header][field]) {
+                                errors.push('Field value for ' + header + '-' + field + ' must be an integer');
+                            }
+                        }
                         if (validation.headers.header.min !== undefined) {
                             if (parseFloat(matrixObject[header][field]) < validation.headers.header.min
                                 && matrixObject[header][field] != ''
