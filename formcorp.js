@@ -6680,7 +6680,10 @@ var fc = (function ($) {
 
             for (var header in matrixObject) {
                 var total = 0;
+                var headersOrdered = [];
+                var fieldsLength = 0;
                 for (var field in matrixObject[header]) {
+                    fieldsLength++;
                     if (!$.isNumeric(matrixObject[header][field]) && matrixObject[header][field] != '') {
                         errors.push('Field value for ' + header + '-' + field + ' must be numeric');
                     }
@@ -6702,6 +6705,29 @@ var fc = (function ($) {
                     }
                     if ($.isNumeric(matrixObject[header][field])) {
                         total += parseFloat(matrixObject[header][field]);
+                    }
+                    if (validation.headers !== undefined &&
+                        validation.headers.header !== undefined &&
+                        validation.headers.header.ordered !== undefined &&
+                        validation.headers.header.ordered == 'true'
+                    ) {
+                        headersOrdered.push(parseFloat(matrixObject[header][field]));
+                    }
+                }
+
+                if (validation.headers !== undefined &&
+                    validation.headers.header !== undefined &&
+                    validation.headers.header.ordered !== undefined &&
+                    validation.headers.header.ordered == 'true'
+                ) {
+                    var validOrder = true;
+                    for (var i = 1; i <= fieldsLength; i++) {
+                        if (headersOrdered.indexOf(i) == -1) {
+                            validOrder = false;
+                        }
+                    }
+                    if (validOrder == false) {
+                        errors.push('Fields values for ' + header + ' are not in order from 1 to ' + fieldsLength);
                     }
                 }
                 if (validation.headers !== undefined && validation.headers.total !== undefined) {
