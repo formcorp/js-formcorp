@@ -297,7 +297,7 @@ var fc = (function ($) {
              * @type {string}
              */
             analyticsUrl = function () {
-                return cdnUrl() + (isMinified() ? 'analytics.min.js' : 'analytics.js');
+                return cdnUrl() + (isMinified() ? 'realtime.min.js' : 'realtime.js');
             },
 
             /**

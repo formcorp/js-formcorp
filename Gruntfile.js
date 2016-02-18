@@ -5,7 +5,7 @@ module.exports = function (grunt) {
         uglify: {
             build: {
                 files: {
-                    'analytics.min.js': 'analytics.js',
+                    'realtime.min.js': 'realtime.js',
                     'formcorp.min.js': 'formcorp.js',
                     'lib/green-id.min.js': 'lib/green-id.js',
                     'lib/parser.min.js': 'lib/parser.js'
