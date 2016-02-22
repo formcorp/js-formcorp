@@ -6680,76 +6680,80 @@ var fc = (function ($) {
             }
 
             for (var header in matrixObject) {
-                var total = 0;
-                var headersOrdered = [];
-                var fieldsLength = 0;
-                for (var field in matrixObject[header]) {
-                    fieldsLength++;
-                    if (!$.isNumeric(matrixObject[header][field]) && matrixObject[header][field] != '') {
-                        errors.push('Field value for ' + header + '-' + field + ' must be numeric');
-                    }
-                    if (validation.headers !== undefined && validation.headers.header !== undefined) {
-                        if (validation.headers.header.integerOnly !== undefined && validation.headers.header.integerOnly == 'true') {
-                            if ($.isNumeric(matrixObject[header][field]) && Math.floor(matrixObject[header][field]) != matrixObject[header][field]) {
-                                errors.push('Field value for ' + header + '-' + field + ' must be an integer');
+                if (matrixObject.hasOwnProperty(header)) {
+                    var total = 0;
+                    var headersOrdered = [];
+                    var fieldsLength = 0;
+                    for (var field in matrixObject[header]) {
+                        if (matrixObject[header].hasOwnProperty(field)) {
+                            fieldsLength++;
+                            if (!$.isNumeric(matrixObject[header][field]) && matrixObject[header][field] != '') {
+                                errors.push('Field value for ' + header + '-' + field + ' must be numeric');
                             }
-                        }
-                        if (validation.headers.header.min !== undefined) {
-                            if (parseFloat(matrixObject[header][field]) < validation.headers.header.min
-                                && matrixObject[header][field] != ''
+                            if (validation.headers !== undefined && validation.headers.header !== undefined) {
+                                if (validation.headers.header.integerOnly !== undefined && validation.headers.header.integerOnly == 'true') {
+                                    if ($.isNumeric(matrixObject[header][field]) && Math.floor(matrixObject[header][field]) != matrixObject[header][field]) {
+                                        errors.push('Field value for ' + header + '-' + field + ' must be an integer');
+                                    }
+                                }
+                                if (validation.headers.header.min !== undefined) {
+                                    if (parseFloat(matrixObject[header][field]) < validation.headers.header.min
+                                        && matrixObject[header][field] != ''
+                                    ) {
+                                        errors.push('Field value for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
+                                    }
+                                }
+                                if (validation.headers.header.max !== undefined) {
+                                    if (parseFloat(matrixObject[header][field]) > validation.headers.header.max
+                                        && matrixObject[header][field] != ''
+                                    ) {
+                                        errors.push('Field value for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
+                                    }
+                                }
+                            }
+                            if ($.isNumeric(matrixObject[header][field])) {
+                                total += parseFloat(matrixObject[header][field]);
+                            }
+                            if (validation.headers !== undefined &&
+                                validation.headers.header !== undefined &&
+                                validation.headers.header.ordered !== undefined &&
+                                validation.headers.header.ordered == 'true'
                             ) {
-                                errors.push('Field value for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
-                            }
-                        }
-                        if (validation.headers.header.max !== undefined) {
-                            if (parseFloat(matrixObject[header][field]) > validation.headers.header.max
-                                && matrixObject[header][field] != ''
-                            ) {
-                                errors.push('Field value for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
+                                headersOrdered.push(parseFloat(matrixObject[header][field]));
                             }
                         }
                     }
-                    if ($.isNumeric(matrixObject[header][field])) {
-                        total += parseFloat(matrixObject[header][field]);
-                    }
+
                     if (validation.headers !== undefined &&
                         validation.headers.header !== undefined &&
                         validation.headers.header.ordered !== undefined &&
                         validation.headers.header.ordered == 'true'
                     ) {
-                        headersOrdered.push(parseFloat(matrixObject[header][field]));
-                    }
-                }
-
-                if (validation.headers !== undefined &&
-                    validation.headers.header !== undefined &&
-                    validation.headers.header.ordered !== undefined &&
-                    validation.headers.header.ordered == 'true'
-                ) {
-                    var validOrder = true;
-                    for (var i = 1; i <= fieldsLength; i++) {
-                        if (headersOrdered.indexOf(i) == -1) {
-                            validOrder = false;
+                        var validOrder = true;
+                        for (var i = 1; i <= fieldsLength; i++) {
+                            if (headersOrdered.indexOf(i) == -1) {
+                                validOrder = false;
+                            }
+                        }
+                        if (validOrder == false) {
+                            errors.push('Fields values for ' + header + ' are not in order from 1 to ' + fieldsLength);
                         }
                     }
-                    if (validOrder == false) {
-                        errors.push('Fields values for ' + header + ' are not in order from 1 to ' + fieldsLength);
-                    }
-                }
-                if (validation.headers !== undefined && validation.headers.total !== undefined) {
-                    if (validation.headers.total.equals !== undefined) {
-                        if (total != validation.headers.total.equals) {
-                            errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
+                    if (validation.headers !== undefined && validation.headers.total !== undefined) {
+                        if (validation.headers.total.equals !== undefined) {
+                            if (total != validation.headers.total.equals) {
+                                errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
+                            }
                         }
-                    }
-                    if (validation.headers.total.min !== undefined) {
-                        if (total < validation.headers.total.min) {
-                            errors.push('Totals for ' + header + ' can be no less than ' + validation.headers.total.min);
+                        if (validation.headers.total.min !== undefined) {
+                            if (total < validation.headers.total.min) {
+                                errors.push('Totals for ' + header + ' can be no less than ' + validation.headers.total.min);
+                            }
                         }
-                    }
-                    if (validation.headers.total.max !== undefined) {
-                        if (total > validation.headers.total.max) {
-                            errors.push('Totals for ' + header + ' can be no greater than ' + validation.headers.total.max);
+                        if (validation.headers.total.max !== undefined) {
+                            if (total > validation.headers.total.max) {
+                                errors.push('Totals for ' + header + ' can be no greater than ' + validation.headers.total.max);
+                            }
                         }
                     }
                 }
@@ -6805,6 +6809,16 @@ var fc = (function ($) {
             return matrixObject;
         };
 
+        /**
+         * Builds the matrix table.
+         * @param field
+         * @param headers
+         * @param fieldSchema
+         * @param width
+         * @param fieldId
+         * @param type
+         * @param required
+         */
         buildMatrixTable = function(field, headers, fields, width, fieldId, type, required) {
             var html = '<table class="fc-matrixtable">';
             html += '<tr>';
