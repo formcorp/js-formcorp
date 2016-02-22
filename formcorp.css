@@ -636,6 +636,10 @@ div.fc-pagination {
     font-weight:800;
 }
 
+.fc-field-matrix .fc-error-text {
+    position:relative !important;
+}
+
 /**
  * 4 column
  */
