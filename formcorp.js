@@ -5924,6 +5924,7 @@ var fc = (function ($) {
             validateMatrixField,
             loadMatrixFieldValues,
             parseMatrixField,
+            buildMatrixTable,
             renderMatrixField,
             renderCustomerRecord,
             registerApiLookupListener,
@@ -6804,6 +6805,35 @@ var fc = (function ($) {
             return matrixObject;
         };
 
+        buildMatrixTable = function(field, headers, fields, width, fieldId, type, required) {
+            var html = '<table class="fc-matrixtable">';
+            html += '<tr>';
+            html += '<th style="width:25%;">' + field.config.title + '</th>';
+            for (var j = 0; j < headers.length; j++) {
+                html += '<th style="width:' + width + '%;" class="fc-matrix-headerrow">' + headers[j] + '</>';
+            }
+            html += '</tr>';
+            for (var i = 0; i < fields.length; i++) {
+                html += '<tr>';
+                html += '<td class="fc-matrix-fieldcolumn">' + fields[i] + '</td>';
+                for (var j = 0; j < headers.length; j++) {
+                    html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-matrixfieldinput" data-matrix-name="fc-' + headers[j] + '" type="text" formcorp-matrix-header="' + headers[j] + '" formcorp-matrix-field="' + fields[i] + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '"></td>';
+                }
+                html += '</tr>';
+            }
+            if (field.config.summaryWidget == true) {
+                html += '<tr>';
+                html += '<th class="fc-matrix-fieldcolumn">Total</th>';
+                for (var j = 0; j < headers.length; j++) {
+                    html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-headerstotal" type="text" data-matrix-total="fc-' + headers[j] + '" value="0" readonly="true"></td>';
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+
+            return html;
+        };
+
         /**
          * Render a matrix field.
          * @param field
@@ -6824,8 +6854,14 @@ var fc = (function ($) {
             try {
                 var validation = $.parseJSON(field.config.validation);
             } catch (exception) {
-                console.log('Malformed JSON string passed for validatoin');
+                console.log('Malformed JSON string passed for validation');
                 var validation = null;
+            }
+
+            if ($.isNumeric(field.config.columns) && field.config.columns > 1) {
+                var displayColumns = parseInt(field.config.columns);
+            } else {
+                var displayColumns = 1;
             }
 
             if (field.config.headers.length > 0 && field.config.fields.length > 0) {
@@ -6833,30 +6869,19 @@ var fc = (function ($) {
                 var fields = field.config.fields.split('|');
                 var width = 75 / (headers.length);
                 if (headers.length > 0 && fields.length > 0) {
-                    html = '<table class="fc-matrixtable">';
-                    html += '<tr>';
-                    html += '<th style="width:25%;">' + field.config.title + '</th>';
-                    for (var j = 0; j < headers.length; j++) {
-                        html += '<th style="width:' + width + '%;" class="fc-matrix-headerrow">' + headers[j] + '</>';
-                    }
-                    html += '</tr>';
-                    for (var i = 0; i < fields.length; i++) {
-                        html += '<tr>';
-                        html += '<td class="fc-matrix-fieldcolumn">' + fields[i] + '</td>';
-                        for (var j = 0; j < headers.length; j++) {
-                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-matrixfieldinput" data-matrix-name="fc-' + headers[j] + '" type="text" formcorp-matrix-header="' + headers[j] + '" formcorp-matrix-field="' + fields[i] + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '"></td>';
+                    if (displayColumns > 1) {
+                        var numberOfFields = Math.ceil(fields.length / displayColumns);
+                        var fieldsToSend = fields;
+                        html = '';
+                        for (var i = 0; i < displayColumns; i++) {
+                            var fts = fieldsToSend.splice(0, numberOfFields);
+                            html += '<div class="fc-matrixtable-column" style="float:left; padding-left:15px; padding-right: 15px; width:' + (100 / displayColumns) + '%;">';
+                            html += buildMatrixTable(field, headers, fts, width, fieldId, type, required);
+                            html += '</div>';
                         }
-                        html += '</tr>';
+                    } else {
+                        html = buildMatrixTable(field, headers, fields, width, fieldId, type, required);
                     }
-                    if (field.config.summaryWidget == true) {
-                        html += '<tr>';
-                        html += '<th class="fc-matrix-fieldcolumn">Total</th>';
-                        for (var j = 0; j < headers.length; j++) {
-                            html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-headerstotal" type="text" data-matrix-total="fc-' + headers[j] + '" value="0" readonly="true"></td>';
-                        }
-                        html += '</tr>';
-                    }
-                    html += '</table>';
 
                     fc.domContainer.on('change', '.fc-matrixfieldinput', function() {
                         if ($.isNumeric($(this).val()) || $(this).val() == '') {
