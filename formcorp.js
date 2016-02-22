@@ -6871,9 +6871,13 @@ var fc = (function ($) {
                 if (headers.length > 0 && fields.length > 0) {
                     if (displayColumns > 1) {
                         var numberOfFields = Math.ceil(fields.length / displayColumns);
+                        var fieldsModulus = fields.length % displayColumns;
                         var fieldsToSend = fields;
                         html = '';
                         for (var i = 0; i < displayColumns; i++) {
+                            if (i == fieldsModulus) {
+                                numberOfFields--;
+                            }
                             var fts = fieldsToSend.splice(0, numberOfFields);
                             html += '<div class="fc-matrixtable-column" style="float:left; padding-left:15px; padding-right: 15px; width:' + (100 / displayColumns) + '%;">';
                             html += buildMatrixTable(field, headers, fts, width, fieldId, type, required);
