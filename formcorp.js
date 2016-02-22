@@ -770,6 +770,11 @@ var fc = (function ($) {
                     }
 
                     dataId = $(field).attr('formcorp-data-id');
+
+                    if (fc.fieldSchema[dataId].type === 'matrix') {
+                        return parseMatrixField(field, true);
+                    }
+
                     if (fc.fieldSchema[dataId] !== undefined) {
                         // If read-only, do not record a value
                         return getConfig(fc.fieldSchema[dataId], 'readOnly', false) ? '' : field.val();
@@ -995,6 +1000,8 @@ var fc = (function ($) {
                         errors.push(fc.lang.validAbnRequired);
                         return errors;
                     }
+                } else if (field.type === 'matrix') {
+                    return validateMatrixField(field);
                 } else {
                     // Test required data
                     dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
@@ -1512,7 +1519,10 @@ var fc = (function ($) {
 
                     // If not required, do nothing
                     if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
-                        return;
+                        // Check matrix field validation
+                        if (field.type !== 'matrix') {
+                            return;
+                        }
                     }
 
                     // Check if the field requires a value
@@ -2399,7 +2409,10 @@ var fc = (function ($) {
                                 el.addClass('checked');
                             }
                         }
-                    } else {
+                    } else if (schema.type === 'matrix') {
+                        loadMatrixFieldValues(fieldId, value);
+                    }
+                    else {
                         // Otherwise set standard value in the DOM
                         setDomValue(obj, value);
                     }
@@ -5908,6 +5921,11 @@ var fc = (function ($) {
             greenIdFieldHeader,
             renderGreenIdField,
             renderNumericSliderField,
+            validateMatrixField,
+            loadMatrixFieldValues,
+            parseMatrixField,
+            buildMatrixTable,
+            renderMatrixField,
             renderCustomerRecord,
             registerApiLookupListener,
             renderAutoCompleteWidget,
@@ -6417,6 +6435,9 @@ var fc = (function ($) {
                     case 'numericSlider':
                         fieldDOMHTML = renderNumericSliderField(field, prefix);
                         break;
+                    case 'matrix':
+                        fieldDOMHTML= renderMatrixField(field, prefix);
+                        break;
                     case 'groupletReference':
                     case 'formReference':
                     case 'functionReference':
@@ -6626,6 +6647,259 @@ var fc = (function ($) {
             // Render the outcome/value
             html += '<span class="fc-numeric-outcome"></span>';
 
+            return html;
+        };
+
+        /**
+         * Validates a matrix field using the JSON validation string in the field config
+         *
+         * @param field
+         * @returns {Array}
+         */
+        validateMatrixField = function (field) {
+            var errors = [];
+
+            try {
+                var validation = $.parseJSON(field.config.validation);
+            } catch (exception) {
+                console.log('Malformed JSON string passed for validatoin');
+                return errors;
+            }
+
+            if (validation !== undefined) {
+                var matrix = $('input[formcorp-data-id=' + field._id.$id + ']');
+                var matrixObject = {};
+                matrix.each(function() {
+                    var matrixHeader = $(this).attr('formcorp-matrix-header');
+                    var matrixField = $(this).attr('formcorp-matrix-field');
+                    if (matrixObject[matrixHeader] === undefined) {
+                        matrixObject[matrixHeader] = {};
+                    }
+                    matrixObject[matrixHeader][matrixField] = $(this).val();
+                });
+            }
+
+            for (var header in matrixObject) {
+                var total = 0;
+                var headersOrdered = [];
+                var fieldsLength = 0;
+                for (var field in matrixObject[header]) {
+                    fieldsLength++;
+                    if (!$.isNumeric(matrixObject[header][field]) && matrixObject[header][field] != '') {
+                        errors.push('Field value for ' + header + '-' + field + ' must be numeric');
+                    }
+                    if (validation.headers !== undefined && validation.headers.header !== undefined) {
+                        if (validation.headers.header.integerOnly !== undefined && validation.headers.header.integerOnly == 'true') {
+                            if ($.isNumeric(matrixObject[header][field]) && Math.floor(matrixObject[header][field]) != matrixObject[header][field]) {
+                                errors.push('Field value for ' + header + '-' + field + ' must be an integer');
+                            }
+                        }
+                        if (validation.headers.header.min !== undefined) {
+                            if (parseFloat(matrixObject[header][field]) < validation.headers.header.min
+                                && matrixObject[header][field] != ''
+                            ) {
+                                errors.push('Field value for ' + header + '-' + field + ' can be no less than ' + validation.headers.header.min);
+                            }
+                        }
+                        if (validation.headers.header.max !== undefined) {
+                            if (parseFloat(matrixObject[header][field]) > validation.headers.header.max
+                                && matrixObject[header][field] != ''
+                            ) {
+                                errors.push('Field value for ' + header + '-' + field + ' can be no greater than ' + validation.headers.header.max);
+                            }
+                        }
+                    }
+                    if ($.isNumeric(matrixObject[header][field])) {
+                        total += parseFloat(matrixObject[header][field]);
+                    }
+                    if (validation.headers !== undefined &&
+                        validation.headers.header !== undefined &&
+                        validation.headers.header.ordered !== undefined &&
+                        validation.headers.header.ordered == 'true'
+                    ) {
+                        headersOrdered.push(parseFloat(matrixObject[header][field]));
+                    }
+                }
+
+                if (validation.headers !== undefined &&
+                    validation.headers.header !== undefined &&
+                    validation.headers.header.ordered !== undefined &&
+                    validation.headers.header.ordered == 'true'
+                ) {
+                    var validOrder = true;
+                    for (var i = 1; i <= fieldsLength; i++) {
+                        if (headersOrdered.indexOf(i) == -1) {
+                            validOrder = false;
+                        }
+                    }
+                    if (validOrder == false) {
+                        errors.push('Fields values for ' + header + ' are not in order from 1 to ' + fieldsLength);
+                    }
+                }
+                if (validation.headers !== undefined && validation.headers.total !== undefined) {
+                    if (validation.headers.total.equals !== undefined) {
+                        if (total != validation.headers.total.equals) {
+                            errors.push('Totals for ' + header + ' do not equal ' + validation.headers.total.equals);
+                        }
+                    }
+                    if (validation.headers.total.min !== undefined) {
+                        if (total < validation.headers.total.min) {
+                            errors.push('Totals for ' + header + ' can be no less than ' + validation.headers.total.min);
+                        }
+                    }
+                    if (validation.headers.total.max !== undefined) {
+                        if (total > validation.headers.total.max) {
+                            errors.push('Totals for ' + header + ' can be no greater than ' + validation.headers.total.max);
+                        }
+                    }
+                }
+            }
+
+            return errors;
+        };
+
+        /**
+         * Load Matrix Values from JSON string and load them into the form
+         *
+         * @param fieldId
+         * @param data
+         */
+        loadMatrixFieldValues = function (fieldId, data) {
+            data = JSON.parse(data);
+            var matrix = $('input[formcorp-data-id=' + fieldId + ']');
+            matrix.each(function() {
+                var matrixHeader = $(this).attr('formcorp-matrix-header');
+                var matrixField = $(this).attr('formcorp-matrix-field');
+                $(this).val(data[matrixHeader][matrixField]);
+                var total = 0;
+                $('input[data-matrix-name^="fc-' + $(this).attr('formcorp-matrix-header') + '"]').each(function () {
+                    if ($.isNumeric($(this).val())) {
+                        total += parseFloat($(this).val());
+                    }
+                });
+                $('input[data-matrix-total^="fc-' + $(this).attr('formcorp-matrix-header') + '"]').val(total);
+            });
+        };
+
+        /**
+         * Parse Matrix Field values and return them as either JSON Object or string
+         *
+         * @param field
+         * @param json
+         * @returns {{string | Object}}
+         */
+        parseMatrixField = function (field, json) {
+            var matrix = $('input[formcorp-data-id=' + $(field).attr('formcorp-data-id') + ']');
+            var matrixObject = { };
+            matrix.each(function () {
+                var matrixHeader = $(this).attr('formcorp-matrix-header');
+                var matrixField = $(this).attr('formcorp-matrix-field');
+                if (matrixObject[matrixHeader] === undefined) {
+                    matrixObject[matrixHeader] = {};
+                }
+                matrixObject[matrixHeader][matrixField] = $(this).val();
+            });
+            if (json === true) {
+                return JSON.stringify(matrixObject);
+            }
+            return matrixObject;
+        };
+
+        buildMatrixTable = function(field, headers, fields, width, fieldId, type, required) {
+            var html = '<table class="fc-matrixtable">';
+            html += '<tr>';
+            html += '<th style="width:25%;">' + field.config.title + '</th>';
+            for (var j = 0; j < headers.length; j++) {
+                html += '<th style="width:' + width + '%;" class="fc-matrix-headerrow">' + headers[j] + '</>';
+            }
+            html += '</tr>';
+            for (var i = 0; i < fields.length; i++) {
+                html += '<tr>';
+                html += '<td class="fc-matrix-fieldcolumn">' + fields[i] + '</td>';
+                for (var j = 0; j < headers.length; j++) {
+                    html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-matrixfieldinput" data-matrix-name="fc-' + headers[j] + '" type="text" formcorp-matrix-header="' + headers[j] + '" formcorp-matrix-field="' + fields[i] + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '"></td>';
+                }
+                html += '</tr>';
+            }
+            if (field.config.summaryWidget == true) {
+                html += '<tr>';
+                html += '<th class="fc-matrix-fieldcolumn">Total</th>';
+                for (var j = 0; j < headers.length; j++) {
+                    html += '<td class="fc-matrix-field"><input class="fc-fieldinput fc-headerstotal" type="text" data-matrix-total="fc-' + headers[j] + '" value="0" readonly="true"></td>';
+                }
+                html += '</tr>';
+            }
+            html += '</table>';
+
+            return html;
+        };
+
+        /**
+         * Render a matrix field.
+         * @param field
+         * @returns {string}
+         */
+        renderMatrixField = function (field, prefix) {
+            if (prefix === undefined) {
+                prefix = "";
+            }
+
+            var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+                fieldId = prefix + getId(field),
+                html = '',
+                type = 'text';
+
+            html = '';
+
+            try {
+                var validation = $.parseJSON(field.config.validation);
+            } catch (exception) {
+                console.log('Malformed JSON string passed for validation');
+                var validation = null;
+            }
+
+            if ($.isNumeric(field.config.columns) && field.config.columns > 1) {
+                var displayColumns = parseInt(field.config.columns);
+            } else {
+                var displayColumns = 1;
+            }
+
+            if (field.config.headers.length > 0 && field.config.fields.length > 0) {
+                var headers = field.config.headers.split('|');
+                var fields = field.config.fields.split('|');
+                var width = 75 / (headers.length);
+                if (headers.length > 0 && fields.length > 0) {
+                    if (displayColumns > 1) {
+                        var numberOfFields = Math.ceil(fields.length / displayColumns);
+                        var fieldsModulus = fields.length % displayColumns;
+                        var fieldsToSend = fields;
+                        html = '';
+                        for (var i = 0; i < displayColumns; i++) {
+                            if (i == fieldsModulus) {
+                                numberOfFields--;
+                            }
+                            var fts = fieldsToSend.splice(0, numberOfFields);
+                            html += '<div class="fc-matrixtable-column" style="float:left; padding-left:15px; padding-right: 15px; width:' + (100 / displayColumns) + '%;">';
+                            html += buildMatrixTable(field, headers, fts, width, fieldId, type, required);
+                            html += '</div>';
+                        }
+                    } else {
+                        html = buildMatrixTable(field, headers, fields, width, fieldId, type, required);
+                    }
+
+                    fc.domContainer.on('change', '.fc-matrixfieldinput', function() {
+                        if ($.isNumeric($(this).val()) || $(this).val() == '') {
+                            var total = 0;
+                            $('input[data-matrix-name^="' + $(this).data('matrix-name') + '"]').each(function () {
+                                if ($.isNumeric($(this).val())) {
+                                    total += parseFloat($(this).val());
+                                }
+                            });
+                            $('input[data-matrix-total^="' + $(this).data('matrix-name') + '"]').val(total);
+                        }
+                    });
+                }
+            }
             return html;
         };
 
@@ -7798,6 +8072,11 @@ var fc = (function ($) {
                 // Need to update the stored value to ensure proper validation
                 fc.fields[id] = val;
 
+                return;
+            }
+
+            if (schema && schema.type && schema.type === 'matrix') {
+                valueChanged(id, parseMatrixField(obj, true));
                 return;
             }
 
@@ -9562,7 +9841,6 @@ var fc = (function ($) {
                     for (key in data.data) {
                         if (data.data.hasOwnProperty(key)) {
                             fc.fields[key] = data.data[key];
-
                             // If an ABN field, assume valid if previously set
                             if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
                                 fc.validAbns.push(fc.fields[key]);
