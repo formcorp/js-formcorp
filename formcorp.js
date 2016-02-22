@@ -6645,7 +6645,20 @@ var fc = (function ($) {
             var entityRecordCallback = function (field, result) {                
                 if (result) {
                     if (result.success && result.data && typeof result.data.values === 'object') {
-                        var key, val, tags = {}, iterator, field, obj;
+                        var key, val, tags = {}, iterator, field, obj, entityFields;
+                        
+                        // Update the entities for the given submission
+                        entityFields = fc.fields['entities'];
+                        if (typeof entityFields === 'undefined') {
+                            // If not defined, default to empty array
+                            entityFields = [];
+                        }                        
+                        if (entityFields.indexOf(result.recordId)) {
+                            // If array does not contain the record id, add it
+                            entityFields.push(result.recordId);
+                        }                        
+                        // Update the value
+                        setValue('entities', entityFields);
                         
                         // Hide the loading screen
                         if (getConfig(field, 'showLoadingScreen', false)) {
