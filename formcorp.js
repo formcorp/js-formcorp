@@ -6875,7 +6875,7 @@ var fc = (function ($) {
                         var fieldsToSend = fields;
                         html = '';
                         for (var i = 0; i < displayColumns; i++) {
-                            if (i == fieldsModulus) {
+                            if (fieldsModulus > 0 && i == fieldsModulus) {
                                 numberOfFields--;
                             }
                             var fts = fieldsToSend.splice(0, numberOfFields);
