@@ -619,6 +619,10 @@ div.fc-pagination {
     box-shadow: none;
 }
 
+.fc-fieldcontainer .fc-matrixtable td  {
+    vertical-align: middle !important;
+}
+
 .fc-fieldcontainer .fc-matrixtable .fc-matrix-headerrow {
     text-align:center;
 }
