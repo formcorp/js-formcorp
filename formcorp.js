@@ -2097,7 +2097,6 @@ var fc = (function ($) {
         start += prefix.length;
         end = hash.indexOf(fc.config.hashSeparator, start);
 
-
         if (end < 0) {
           // No prefix found, default to hash length
           end = hash.length;
@@ -9765,6 +9764,9 @@ var fc = (function ($) {
 
     /**
      * Returns true if a field is valid.
+     * Fields that are hidden are always deemed valid (i.e. through visibility
+     * and field tags.)
+     *
      * @param dataId
      * @param value
      * @returns {boolean}
@@ -9793,6 +9795,11 @@ var fc = (function ($) {
           return true;
         }
       } catch (ignore) {
+      }
+
+      if (objectHasTag(schema.config) && !hasTags(schema.config.tags)) {
+        // If the object has tags, check to see if it should be visible
+        return true;
       }
 
       // If the field isn't visible, return true - it doesn't matter what the value is
@@ -10987,6 +10994,11 @@ var fc = (function ($) {
 
         return field.indexOf(comparisonValue) === -1;
       },
+
+      /**
+       * Expose get hashvar
+       */
+       getHashVar: getHashVar,
 
       /**
        * Tag getter/setter functions
