@@ -7861,20 +7861,38 @@ var fc = (function ($) {
       for (x = 0; x < fc.schema.stage.length; x += 1) {
         stage = fc.schema.stage[x];
 
+        // If the stage has field tags, check to see if it should be ignored
+        if (objectHasTag(stage) && !hasTags(stage.tags)) {
+          // Do nothing if has tags but they don't match
+          continue;
+        }
+
         if (!fc.config.renderOnlyVertical) {
           // Look horizontally as well
           if (getId(stage) === getId(currentPage.stage)) {
             if (typeof stage.page === 'object' && stage.page.length > 0) {
               for (y = 0; y < stage.page.length; y += 1) {
                 if (foundPage && typeof pageToRender === 'undefined') {
-                  pageToRender = stage.page[y];
-                  break;
+                  if (objectHasTag(stage.page[y])) {
+                    // If the object has tags, check to see if it should be rendered
+                    if (hasTags(stage.page[y].tags)) {
+                      pageToRender = stage.page[y];
+                      break;
+                    }
+                  } else {
+                    // If the page doesn't have tags, it should always be rendered
+                    pageToRender = stage.page[y];
+                    break;
+                  }
                 }
 
                 if (getId(stage.page[y]) == getId(currentPage.page)) {
                   foundPage = true;
                 }
               }
+
+              // After the loop is complete, default back to false
+              foundPage = false;
             }
           }
         }
@@ -7882,8 +7900,17 @@ var fc = (function ($) {
         // If the stage that is to be rendered has been found, do so
         if (typeof pageToRender === 'undefined' && foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
           // Only mark this page as the one to render if it hasn't been previously defined
-          pageToRender = stage.page[0];
-          break;
+          if (objectHasTag(stage.page[0])) {
+            // If the object has tags, check to see if it should be rendered
+            if (hasTags(stage.page[0].tags)) {
+              pageToRender = stage.page[0];
+              break;
+            }
+          } else {
+            // If the page doesn't have tags, it should always be rendered
+            pageToRender = stage.page[0];
+            break;
+          }
         }
 
         // If the current iterative stage is the stage of the currently rendered page, mark the next stage to be rendered
