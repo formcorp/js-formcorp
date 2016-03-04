@@ -7520,13 +7520,25 @@ var fc = (function ($) {
         }
 
         section = fc.sections[dataId];
-        if (typeof section.visibility === 'string' && section.visibility.length > 0) {
-          visible = eval(section.visibility);
-          if (visible) {
-            $('div.fc-section[formcorp-data-id=' + dataId + ']').removeClass('fc-hide');
+        if (objectHasTag(section)) {
+          // If the object has tags, check to see if it should be visible
+          visible = hasTags(section.tags);
+        }
+
+        if (typeof visible !== 'boolean') {
+          // Only perform a visibility check if hasn't previously been determined
+          if (typeof section.visibility === 'string' && section.visibility.length > 0) {
+            visible = eval(section.visibility);
           } else {
-            $('div.fc-section[formcorp-data-id=' + dataId + ']').addClass('fc-hide');
+            // Default section visibility to true
+            visible = true;
           }
+        }
+
+        if (visible) {
+          $('div.fc-section[formcorp-data-id=' + dataId + ']').removeClass('fc-hide');
+        } else {
+          $('div.fc-section[formcorp-data-id=' + dataId + ']').addClass('fc-hide');
         }
       });
     };
