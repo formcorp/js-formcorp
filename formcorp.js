@@ -5921,6 +5921,60 @@ var fc = (function ($) {
         return fc.tags;
       },
 
+      /**
+       * Test to see whether or not an object has a set of tags.
+       * @param obj object
+       * @param key string
+       * @return boolean
+       */
+      objectHasTag = function (obj, key) {
+        if (typeof key !== 'string') {
+          key = 'tags';
+        }
+
+        return typeof obj === 'object' && typeof obj[key] === 'object' && $.isArray(obj[key]) && obj[key].length > 0;
+      },
+
+      /**
+       * Check whether or not the form has the tags
+       * @param tag
+       * @return boolean
+       */
+      hasTag = function (tag) {
+        if (typeof tag !== 'string' || typeof fc.tags === 'undefined') {
+          return false;
+        }
+
+        return fc.tags.indexOf(tag) >= 0;
+      },
+
+      /**
+       * Check to see whether form has all tags set.
+       * @param tags array
+       * @return boolean
+       */
+      hasTags = function (tags) {
+        if (typeof tags !== 'object' || !$.isArray(tags) || typeof fc.tags === 'undefined') {
+          return false;
+        }
+
+        for (var x = tags.length; x;) {
+          if (!hasTag(tags[--x])) {
+            return false;
+          }
+        }
+
+        return true;
+      },
+
+      /**
+        * Check to see whether tags have been set on the form.
+        * return @boolean
+        */
+      haveTags = function () {
+        return typeof fc.tags === 'object' && fc.tags.length > 0;
+      },
+
       updateMobileFieldsVisibility,
       renderGrouplet,
       getNumericTagValue,
@@ -7001,7 +7055,6 @@ var fc = (function ($) {
 
             // Hide the loading screen
             if (getConfig(field, 'showLoadingScreen', false)) {
-              console.log(1);
               fc.domContainer.find('.fc-loading-screen').removeClass('show');
             }
 
@@ -7561,58 +7614,68 @@ var fc = (function ($) {
 
         // If field has a visibility configurative set, act on it
         field = fc.fieldSchema[dataId];
-
-        // Retrieve the logic object
-        if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-          logic = toBooleanLogic(field.config.visibility);
-        } else if (typeof field.config.visibility === 'object') {
-          logic = field.config.visibility;
+        if (objectHasTag(field.config)) {
+          visible = hasTags(field.config.tags);
         }
 
-        // Fields that exist within an iterator who have conditional can create problems. They need to be able to respond to
-        // fields that exist within the target grouplet (which have dynamic IDs in the format: iteratorId_iteration_fieldId)
-        // However, they also need to be able to act on fields that exist in a global form scope (i.e. standard form fields).
-        // Therefore the condition has to be dynamic. We can't set a static condition as this won't evaluate fields within
-        // each iteration.
-        //
-        // The implemented fix below matches all IDs, and checks to see if they exist in a global scope. If they do, it leave
-        // them, however if if no definition is found (fc.fieldSchema[ID]), it is assumed the condition is acting on a dynamic
-        // value within the row iteration, and the condition updated accordingly.
+        //======================================================================
+        // PUT OTHER VISIBILITY CHECKS HERE
+        //======================================================================
 
-        // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
-        if (typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
-          // Match all field IDs within the condition
-          logicMatches = logic.match(/"[a-f0-9]{24}"/g);
+        if (typeof visible !== 'boolean') {
+          // Retrieve the logic object
+          if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
+            logic = toBooleanLogic(field.config.visibility);
+          } else if (typeof field.config.visibility === 'object') {
+            logic = field.config.visibility;
+          }
 
-          // If field IDs were found, perform checks on each one
-          if ($.isArray(logicMatches) && logicMatches.length > 0) {
-            processed = [];
+          // Fields that exist within an iterator who have conditional can create problems. They need to be able to respond to
+          // fields that exist within the target grouplet (which have dynamic IDs in the format: iteratorId_iteration_fieldId)
+          // However, they also need to be able to act on fields that exist in a global form scope (i.e. standard form fields).
+          // Therefore the condition has to be dynamic. We can't set a static condition as this won't evaluate fields within
+          // each iteration.
+          //
+          // The implemented fix below matches all IDs, and checks to see if they exist in a global scope. If they do, it leave
+          // them, however if if no definition is found (fc.fieldSchema[ID]), it is assumed the condition is acting on a dynamic
+          // value within the row iteration, and the condition updated accordingly.
 
-            // Iterate through each field ID
-            for (iter = 0; iter < logicMatches.length; iter += 1) {
-              temporaryId = logicMatches[iter].replace(/"/g, '', logicMatches[iter]);
+          // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
+          if (typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
+            // Match all field IDs within the condition
+            logicMatches = logic.match(/"[a-f0-9]{24}"/g);
 
-              // If the ID hasn't been processed previously for this condition, check now
-              if (processed.indexOf(temporaryId) < 0) {
-                // If the matched field ID doesn't exist in the global/root form definition, assume it belongs to the iteration
-                if (fc.fieldSchema[temporaryId] === undefined) {
-                  parts = dataId.split(fc.constants.prefixSeparator);
+            // If field IDs were found, perform checks on each one
+            if ($.isArray(logicMatches) && logicMatches.length > 0) {
+              processed = [];
 
-                  // Replace with the row iteration id (dynamic - i.e 5th iteration has ID iteratorId_4_fieldId)
-                  if (parts.length >= 2) {
-                    replace = [parts[0], parts[1], temporaryId].join(fc.constants.prefixSeparator);
-                    re = new RegExp(temporaryId, 'g');
-                    logic = logic.replace(re, replace);
+              // Iterate through each field ID
+              for (iter = 0; iter < logicMatches.length; iter += 1) {
+                temporaryId = logicMatches[iter].replace(/"/g, '', logicMatches[iter]);
+
+                // If the ID hasn't been processed previously for this condition, check now
+                if (processed.indexOf(temporaryId) < 0) {
+                  // If the matched field ID doesn't exist in the global/root form definition, assume it belongs to the iteration
+                  if (fc.fieldSchema[temporaryId] === undefined) {
+                    parts = dataId.split(fc.constants.prefixSeparator);
+
+                    // Replace with the row iteration id (dynamic - i.e 5th iteration has ID iteratorId_4_fieldId)
+                    if (parts.length >= 2) {
+                      replace = [parts[0], parts[1], temporaryId].join(fc.constants.prefixSeparator);
+                      re = new RegExp(temporaryId, 'g');
+                      logic = logic.replace(re, replace);
+                    }
                   }
+                  processed.push(temporaryId);
                 }
-                processed.push(temporaryId);
               }
             }
           }
+
+          // Evaluate the logic
+          visible = eval(logic);
         }
 
-        // Evaluate the logic
-        visible = eval(logic);
         if (typeof visible === 'boolean') {
           if (visible) {
             $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
@@ -10027,7 +10090,11 @@ var fc = (function ($) {
         this.developmentBranches = ['Staging', 'Development', 'Dev'];
         this.fieldCount = 0;
         this.formState = '';
-        this.tags = [];
+
+        // Set the tags (may have previously been set)
+        if (typeof this.tags === 'undefined') {
+          this.tags = [];
+        }
 
         // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
         jQuery.support.cors = true;
