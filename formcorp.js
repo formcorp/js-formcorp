@@ -7833,8 +7833,11 @@ var fc = (function ($) {
         id,
         foundStage = false,
         x,
+        y,
         condition,
-        stage;
+        stage,
+        foundPage = false,
+        pageToRender;
 
       if (!currentPage || !currentPage.page) {
         return;
@@ -7859,18 +7862,43 @@ var fc = (function ($) {
       for (x = 0; x < fc.schema.stage.length; x += 1) {
         stage = fc.schema.stage[x];
 
-        // If the stage that is to be rendered has been found, do so
-        if (foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
-          if (shouldRender) {
-            render(getId(stage.page[0]), true);
+        if (!fc.config.renderOnlyVertical) {
+          // Look horizontally as well
+          if (getId(stage) === getId(currentPage.stage)) {
+            if (typeof stage.page === 'object' && stage.page.length > 0) {
+              for (y = 0; y < stage.page.length; y += 1) {
+                if (foundPage && typeof pageToRender === 'undefined') {
+                  pageToRender = stage.page[y];
+                  break;
+                }
+
+                if (getId(stage.page[y]) == getId(currentPage.page)) {
+                  foundPage = true;
+                }
+              }
+            }
           }
-          return returnPage ? getPageById(getId(stage.page[0])) : true;
+        }
+
+        // If the stage that is to be rendered has been found, do so
+        if (typeof pageToRender === 'undefined' && foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
+          // Only mark this page as the one to render if it hasn't been previously defined
+          pageToRender = stage.page[0];
+          break;
         }
 
         // If the current iterative stage is the stage of the currently rendered page, mark the next stage to be rendered
         if (getId(stage) === getId(currentPage.stage)) {
           foundStage = true;
         }
+      }
+
+      if (typeof pageToRender === 'object') {
+        // If found a page, render/return it
+        if (shouldRender) {
+          render(getId(pageToRender), true);
+        }
+        return returnPage ? getPageById(getId(pageToRender)) : true;
       }
 
       return false;
@@ -10582,7 +10610,8 @@ var fc = (function ($) {
           entityPrefix: 'ent:',
           css: {
             entityRecordLoadingClass: 'entity-record-loading'
-          }
+          },
+          renderOnlyVertical: true
         };
 
         // Minimum event queue interval (to prevent server from getting slammed)
