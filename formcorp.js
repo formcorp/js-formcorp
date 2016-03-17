@@ -1202,6 +1202,29 @@ var fc = (function ($) {
       },
 
       /**
+        * Set the entity tokens.
+        * @param tokens
+        */
+      setEntityTokens = function (tokens) {
+        if (typeof tokens === 'object' && !$.isArray(tokens)) {
+          fc.entityTokens = tokens;
+        }
+      },
+
+      /**
+       * Set a specific entity tokens
+       * @param id
+       * @param val
+       */
+      setEntityToken = function (id, val) {
+        if (typeof fc.entityTokens === 'undefined') {
+          fc.entityTokens = {};
+        }
+
+        fc.entityTokens[id] = val;
+      },
+
+      /**
        * Returns a field by tag
        * @param tag
        * @returns {*}
@@ -7044,8 +7067,11 @@ var fc = (function ($) {
        */
       var entityRecordCallback = function (field, result) {
         if (result) {
+          console.log(2);
+          console.log(result);
           if (result.success && result.data && typeof result.data.values === 'object') {
             var key, val, tags = {}, iterator, field, obj, entityFields;
+            console.log(1);
 
             // Update the entities for the given submission
             entityFields = fc.fields['entities'];
@@ -7091,6 +7117,7 @@ var fc = (function ($) {
               }
             }
 
+            console.log('set form state');
             setFormState('');
 
             if (obj.length > 0) {
@@ -7120,7 +7147,25 @@ var fc = (function ($) {
         setFormState(fc.constants.stateLoadingEntityRecord);
       }
 
-      if (getConfig(field, 'fetchIdentifierFromUrl', false)) {
+      var unique = '';
+      if (getConfig(field, 'fetchFromSecureToken', false) && (unique = getConfig(field, 'uniqueIdentifier')).length > 0) {
+        var token = fc.entityTokens[unique];
+        if (typeof token === 'string') {
+          var data = {
+            method: 'token',
+            token: token,
+            id: getId(field),
+            group: getConfig(field, 'customerGroupId', 0)
+          };
+
+          api('customer/gateway/record', data, 'post', function (result) {
+            entityRecordCallback(field, result);
+          });
+        } else {
+          console.log('Missing token for id: ' + unique);
+        }
+
+      } else if (getConfig(field, 'fetchIdentifierFromUrl', false)) {
         // Fetch from a unique identifier in the url
         var identifier = getHashVar(fc.config.entityPrefix);
         if (typeof identifier === 'string' && identifier.length > 0) {
@@ -10173,6 +10218,10 @@ var fc = (function ($) {
         this.fieldCount = 0;
         this.formState = '';
 
+        if (typeof this.entityTokens === 'undefined') {
+          this.entityTokens = {};
+        }
+
         // Set the tags (may have previously been set)
         if (typeof this.tags === 'undefined') {
           this.tags = [];
@@ -11047,6 +11096,12 @@ var fc = (function ($) {
       removeTag: removeTag,
       setTags: setTags,
       getTags: getTags,
+
+      /**
+       * Entity token getters/setters
+       */
+     setEntityToken: setEntityToken,
+     setEntityTokens: setEntityTokens,
 
       /**
        * Converts a string to camel case.
