@@ -443,6 +443,14 @@ var fc = (function ($) {
       },
 
       /**
+       * Fetches and returns the session id
+       * @returns {string}
+       */
+      getSessionId = function () {
+        return $.cookie(this.config.sessionIdName);
+      },
+
+      /**
        * Retrieve the saved value.
        * @param fieldId
        * @param defaultValue
@@ -606,7 +614,7 @@ var fc = (function ($) {
        * @param idPrefix
        * @returns {{}}
        */
-      getTags = function (field, prefix, idPrefix) {
+      getFieldTags = function (field, prefix, idPrefix) {
         if (field === undefined) {
           return {};
         }
@@ -634,7 +642,7 @@ var fc = (function ($) {
 
           if (grouplet && grouplet.field && $.isArray(grouplet.field) && grouplet.field.length > 0) {
             for (iterator = 0; iterator < grouplet.field.length; iterator += 1) {
-              groupletTags = getTags(grouplet.field[iterator], tags[id] + fc.constants.tagSeparator, id + fc.constants.prefixSeparator);
+              groupletTags = getFieldTags(grouplet.field[iterator], tags[id] + fc.constants.tagSeparator, id + fc.constants.prefixSeparator);
               if (Object.keys(groupletTags).length > 0) {
                 $.extend(tags, groupletTags);
               }
@@ -669,7 +677,7 @@ var fc = (function ($) {
        * Retrieve the field tags
        * @returns {{}}
        */
-      getFieldTags = function (reverseOrder) {
+      getAllFieldTags = function (reverseOrder) {
         if (reverseOrder === undefined || typeof reverseOrder !== 'boolean') {
           reverseOrder = false;
         }
@@ -677,7 +685,7 @@ var fc = (function ($) {
 
         for (key in fc.fieldSchema) {
           if (fc.fieldSchema.hasOwnProperty(key)) {
-            fieldTags = getTags(fc.fieldSchema[key]);
+            fieldTags = getFieldTags(fc.fieldSchema[key]);
             tagValues = {};
 
             if (Object.keys(fieldTags).length > 0) {
@@ -712,7 +720,7 @@ var fc = (function ($) {
 
         for (key in fc.fieldSchema) {
           if (fc.fieldSchema.hasOwnProperty(key)) {
-            fieldTags = getTags(fc.fieldSchema[key]);
+            fieldTags = getFieldTags(fc.fieldSchema[key]);
             tagValues = {};
 
             if (Object.keys(fieldTags).length > 0) {
@@ -2028,7 +2036,7 @@ var fc = (function ($) {
        * @returns {T}
        */
       fieldIdByTag = function (tag) {
-        var fieldTags = getFieldTags();
+        var fieldTags = getAllFieldTags();
 
         return Object.keys(fieldTags).filter(function (key) {
           return fieldTags[key] === tag
@@ -6677,7 +6685,7 @@ var fc = (function ($) {
       }
 
       // Retrieve tag and tag values
-      tags = getFieldTags();
+      tags = getAllFieldTags();
       tagValues = getFieldTagValues();
 
       html += '<div class="fc-iterator">';
@@ -9444,7 +9452,7 @@ var fc = (function ($) {
         }
 
         // Retrieve field tags and perform replacement
-        tags = getFieldTags(true);
+        tags = getAllFieldTags(true);
 
         // If the field belongs to a grouplet, need to also match simple grouplet tags to the complex ids
         if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
@@ -10449,6 +10457,11 @@ var fc = (function ($) {
       getConfig: getConfig,
 
       /**
+       * Retrieves the form session id
+       */
+      getSessionId: getSessionId,
+
+      /**
        * Retrieve the id for a form field
        */
       getId: getId,
@@ -10462,7 +10475,7 @@ var fc = (function ($) {
 			/**
 			 * Expose field tag functionality
 			 */
-			getFieldTags: getFieldTags,
+			getAllFieldTags: getAllFieldTags,
 			getFieldTagValues: getFieldTagValues,
 
       /**
