@@ -7067,11 +7067,8 @@ var fc = (function ($) {
        */
       var entityRecordCallback = function (field, result) {
         if (result) {
-          console.log(2);
-          console.log(result);
           if (result.success && result.data && typeof result.data.values === 'object') {
             var key, val, tags = {}, iterator, field, obj, entityFields;
-            console.log(1);
 
             // Update the entities for the given submission
             entityFields = fc.fields['entities'];
@@ -7117,7 +7114,6 @@ var fc = (function ($) {
               }
             }
 
-            console.log('set form state');
             setFormState('');
 
             if (obj.length > 0) {
