@@ -218,11 +218,30 @@ var formcorp = (function () {
   };
 
   /**
+   * Destroys the specified form.
+   *
+   * @param {string} id - The id of the form to destroy.
+   * @returns {boolean}
+   */
+  var destroyForm = function (id) {
+    if (typeof id === 'string' && typeof self.forms[id] === 'object') {
+      self.forms[id] = null;
+      delete self.forms[id];
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * todo
    */
   var create = function (id, $) {
     if (typeof $ === 'undefined') {
       $ = jQuery;
+    }
+
+    if (typeof id !== 'string' || id.length === 0) {
+      id = 'default';
     }
 
     var fc = (function ($) {
@@ -4131,6 +4150,12 @@ var formcorp = (function () {
           if (typeof changeDom !== 'boolean') {
             changeDom = true;
           }
+
+          // Clear all of the intervals so queues don't keep running in the background
+          for (var i = 0; i < fc.intervals.length; i += 1) {
+            clearInterval(fc.intervals[i]);
+          }
+          fc.intervals = [];
 
           $.removeCookie(fc.config.sessionIdName);
 
@@ -10248,6 +10273,7 @@ var formcorp = (function () {
           this.developmentBranches = ['Staging', 'Development', 'Dev'];
           this.fieldCount = 0;
           this.formState = '';
+          this.intervals = [];
 
           if (typeof this.entityTokens === 'undefined') {
             this.entityTokens = {};
@@ -10499,20 +10525,20 @@ var formcorp = (function () {
 
               // Save form fields intermittently
               if (fc.config.saveInRealTime === true) {
-                setInterval(function () {
+                fc.intervals.push(setInterval(function () {
                   processSaveQueue();
-                }, fc.config.saveInRealTimeInterval);
+                }, fc.config.saveInRealTimeInterval));
               }
 
               // Check if the user needs to be timed out
               if (fc.config.timeUserOut) {
-                setInterval(function () {
+                fc.intervals.push(setInterval(function () {
                   if (fc.expired === true) {
                     return;
                   }
 
                   timeout();
-                }, 5000);
+                }, 5000));
               }
             });
           });
@@ -11214,17 +11240,15 @@ var formcorp = (function () {
       };
 
     }(jQuery));
+    self.forms[id] = fc;
 
-    if (typeof id === 'string') {
-      self.forms[id] = fc;
-    }
-
-    return fc;
+    return self.forms[id];
   };
 
   return {
-    forms: {},
+    forms: self.forms,
     create: create,
+    destroyForm: destroyForm,
     getForms: getForms,
     getForm: getForm
   }
