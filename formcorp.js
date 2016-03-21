@@ -6055,7 +6055,9 @@ var formcorp = (function () {
             return false;
           }
 
-          return fc.tags.indexOf(tag) >= 0;
+          // Returns true if the tag is an empty string. If the tag is empty, it means the tag was erroneously set by
+          // the server. This has been fixed in build 1.3.6.0 however the below code fixes legacy form definitions.
+          return tag.length === 0 || fc.tags.indexOf(tag) >= 0;
         },
 
         /**
