@@ -4343,6 +4343,23 @@ var formcorp = (function () {
         },
 
         /**
+         * Return the save queue with optional sanitisation of data
+         * @param {bool} sanitise
+         * @return {object}
+         */
+        getSaveQueue = function (sanitise) {
+          if (sanitise === true) {
+            Object.keys(fc.saveQueue).forEach(function (key) {
+              if (key.length === 0) {
+                delete fc.saveQueue[key];
+              }
+            });
+          }
+
+          return fc.saveQueue;
+        },
+
+        /**
          * Auto scroll to field.
          * @param fromFieldId
          * @param nextField
@@ -7140,8 +7157,12 @@ var formcorp = (function () {
                 // If array does not contain the record id, add it
                 entityFields.push(result.recordId);
               }
+
               // Update the value
               setValue('entities', entityFields);
+
+              // Queue the entity field for immediate server-side propagation
+              fc.saveQueue['entities'] = entityFields;
 
               // Hide the loading screen
               if (getConfig(field, 'showLoadingScreen', false)) {
@@ -8857,18 +8878,27 @@ var formcorp = (function () {
         // Build the form data array
         $('[formcorp-data-id]').each(function () {
           dataId = $(this).attr('formcorp-data-id');
-
-          // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
-          if ($(this).hasClass('fc-data-repeatable-grouplet')) {
-            if (formData[dataId] === undefined) {
-              formData[dataId] = fc.fields[dataId];
+          if (dataId.length > 0) {
+            // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+            if ($(this).hasClass('fc-data-repeatable-grouplet')) {
+              if (formData[dataId] === undefined) {
+                formData[dataId] = fc.fields[dataId];
+              }
+            } else {
+              // Regular fields can be added to the flat dictionary
+              formData[dataId] = getFieldValue($(this));
+              fc.fields[dataId] = formData[dataId];
             }
-          } else {
-            // Regular fields can be added to the flat dictionary
-            formData[dataId] = getFieldValue($(this));
-            fc.fields[dataId] = formData[dataId];
           }
         });
+
+        // Merge form data with the save queue
+        if (Object.keys(fc.saveQueue).length > 0) {
+          $.extend(formData, getSaveQueue(true));
+
+          // Clear the save queue
+          fc.saveQueue = {};
+        }
 
         // Build the data object to send with the request
         data = {
