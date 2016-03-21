@@ -37,8 +37,9 @@
 }
 
 .fc-container input[type=text],
+.fc-container input[type="date"],
 .fc-container input[type=password],
-.fc-container select, 
+.fc-container select,
 .fc-container textarea {
     padding-right: 33px;
     padding-left: 12px;
@@ -858,7 +859,7 @@ div.fc-pagination {
     display: block;
 }
 
-.fc-green-failed-initialisation .fc-greenid-reinit, 
+.fc-green-failed-initialisation .fc-greenid-reinit,
 .fc-green-failed-initialisation  .fc-green-id-skip-container {
     float: left;
     margin: 0 10px 10px 0;
@@ -1072,7 +1073,7 @@ div.fc-pagination {
     position: absolute;
     right: 0;
     text-transform: uppercase;
-    top: 0;  
+    top: 0;
     z-index: 10;
 }
 .fc-dev-status::before {
@@ -1106,4 +1107,21 @@ div.fc-pagination {
 
 [data-form-state="loadingEntityRecord"] {
     display: none;
+}
+
+.fc-container input[type="date"]::-webkit-calendar-picker-indicator {
+    visibility: hidden;
+}
+
+.fc-container input[type="date"] {
+    margin-right: 25px;
+    position: relative;
+}
+
+.fc-container input[type="date"]::after {
+  content: "\f073";
+  font-family: FontAwesome;
+  cursor: pointer;
+  position: absolute;
+  right: 10px;
 }

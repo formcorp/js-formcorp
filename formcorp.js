@@ -365,6 +365,70 @@ var fc = (function ($) {
       },
 
       /**
+       * Queue a library for loading
+       * @param lib string
+       */
+      addLib = function (lib) {
+        if (typeof fc.libs2Load === 'undefined') {
+          fc.libs2Load = [];
+        }
+
+        if (typeof lib === 'string' && lib.length > 0 && fc.libs2Load.indexOf(lib) < 0) {
+          fc.libs2Load.push(lib);
+        }
+      },
+
+      /**
+       * Load the material datepicker libraries
+       */
+      loadMaterialDatepicker = function () {
+        if (typeof fc.materialDatepickers === 'undefined') {
+          fc.materialDatepickers = {};
+        }
+
+        // Load the material datepicker
+        if (typeof fc.loadedMaterialDatepicker !== 'boolean' || !fc.loadedMaterialDatepicker) {
+          loadCssFile('//fonts.googleapis.com/icon?family=Material+Icons');
+          loadCssFile('//fonts.googleapis.com/css?family=Roboto');
+          loadCssFile('//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css');
+          loadCssFile(cdnUrl() + 'lib/material_datetime/datepicker.css');
+          loadJsFile(cdnUrl() + 'lib/material_datetime/' + (isMinified() ? 'datepicker.standalone.min.js' : 'datepicker.standalone.js'), function () {
+            fc.loadedMaterialDatepicker = true;
+          });
+        }
+
+        // Show the date time picker
+        fc.domContainer.on('click', '.fc-field-date', function (e) {
+          var obj = $(this),
+            dataId = obj.attr('fc-data-group'),
+            margin = obj.css('marginRight'),
+            usableWidth = parseInt(obj.width()) - fc.config.datePickerIconOffset;
+
+          if (e.offsetX > usableWidth && typeof fc.materialDatepickers[dataId] !== 'undefined') {
+            fc.materialDatepickers[dataId].open();
+          }
+
+          return false;
+        });
+      },
+
+      /**
+       * Load the (optional) library files
+       */
+      loadLibs = function () {
+        for (var x = 0; x < fc.libs2Load.length; x += 1) {
+          var lib = fc.libs2Load[x];
+
+          switch (lib) {
+            // Load the material datepicker
+            case fc.libs.MATERIAL_DATEPICKER:
+              loadMaterialDatepicker();
+              break;
+          }
+        }
+      },
+
+      /**
        * Return the mongo id of an object instance.
        * @param obj
        * @returns {*}
@@ -1935,6 +1999,19 @@ var fc = (function ($) {
         }
 
         return vals;
+      },
+
+      /**
+       * Whether or not a lib has been queued for loading.
+       * @param lib String
+       * @return boolean
+       */
+      hasLib = function (lib) {
+        if (typeof lib !== 'string' || lib.length === 0) {
+          return false;
+        }
+
+        return fc.libs2Load.indexOf(lib) >= 0;
       },
 
       /**
@@ -6065,6 +6142,7 @@ var fc = (function ($) {
       parseMatrixField,
       buildMatrixTable,
       renderMatrixField,
+      renderDateField,
       renderCustomerRecord,
       registerApiLookupListener,
       renderAutoCompleteWidget,
@@ -6586,6 +6664,9 @@ var fc = (function ($) {
           case 'customerRecord':
             fieldDOMHTML = renderCustomerRecord(field, prefix);
             break;
+          case 'date':
+            fieldDOMHTML = renderDateField(field, prefix);
+            break;
           default:
             console.log('Unknown field type: ' + field.type);
         }
@@ -7053,6 +7134,39 @@ var fc = (function ($) {
           });
         }
       }
+      return html;
+    };
+
+    /**
+     * Render a date field
+     * @param field
+     * @returns {string}
+     */
+    renderDateField = function (field, prefix) {
+      if (typeof prefix === 'undefined') {
+        prefix = "";
+      }
+
+      var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+        fieldId = prefix + getId(field),
+        html = '',
+        type = 'date',
+        intervalId;
+
+      // If the datepicker hasn't been initialised, do so now
+      if (typeof fc.materialDatepickers[fieldId] === 'undefined') {
+        intervalId = setInterval(function () {
+          if (typeof fc.loadedMaterialDatepicker === 'boolean' && fc.loadedMaterialDatepicker) {
+            fc.materialDatepickers[fieldId] = new MaterialDatePicker({});
+
+            // The datepicker has properly been initialised, clear the interval
+            clearInterval(intervalId);
+          }
+        }, 50);
+      }
+
+      html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+
       return html;
     };
 
@@ -10180,6 +10294,10 @@ var fc = (function ($) {
 
     return {
 
+      libs: {
+        MATERIAL_DATEPICKER: 'materialDatepicker'
+      },
+
       /**
        * Initialise the formcorp object.
        * @param publicKey
@@ -10217,6 +10335,10 @@ var fc = (function ($) {
         this.developmentBranches = ['Staging', 'Development', 'Dev'];
         this.fieldCount = 0;
         this.formState = '';
+
+        if (typeof this.libs2Load === 'undefined') {
+          this.libs2Load = [];
+        }
 
         if (typeof this.entityTokens === 'undefined') {
           this.entityTokens = {};
@@ -10430,6 +10552,8 @@ var fc = (function ($) {
             fc.parser.functions.fieldIdByTag = fieldIdByTag;
             fc.parser.functions.getContentRadioListMeta = getContentRadioListMeta;
           });
+
+          loadLibs();
 
           // Attempt to load the settings from the server
           loadSettings(function () {
@@ -10707,7 +10831,8 @@ var fc = (function ($) {
           css: {
             entityRecordLoadingClass: 'entity-record-loading'
           },
-          renderOnlyVertical: true
+          renderOnlyVertical: true,
+          datePickerIconOffset: 25
         };
 
         // Minimum event queue interval (to prevent server from getting slammed)
@@ -11096,6 +11221,11 @@ var fc = (function ($) {
       removeTag: removeTag,
       setTags: setTags,
       getTags: getTags,
+
+      /**
+       * libraries
+       */
+     addLib: addLib,
 
       /**
        * Entity token getters/setters

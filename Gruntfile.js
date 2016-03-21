@@ -9,7 +9,7 @@ module.exports = function (grunt) {
                     'formcorp.min.js': 'formcorp.js',
                     'lib/green-id.min.js': 'lib/green-id.js',
                     'lib/parser.min.js': 'lib/parser.js'
-
+                    'lib/material_datetime/datepicker.standalone.js': 'lib/material_datetime/datepicker.standalone.min.js'
                 }
             }
         }
