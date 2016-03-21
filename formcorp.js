@@ -1142,16 +1142,18 @@ var formcorp = (function () {
             fieldId = field._id.$id;
             /*jslint nomen: false*/
 
-            for (fieldIterator = 0; fieldIterator < grouplet.field.length; fieldIterator += 1) {
-              groupletField = grouplet.field[fieldIterator];
+            if (typeof grouplet === 'object' && typeof grouplet.field === 'object' && $.isArray(grouplet.field)) {
+              for (fieldIterator = 0; fieldIterator < grouplet.field.length; fieldIterator += 1) {
+                groupletField = grouplet.field[fieldIterator];
 
-              // If grouplet within a groupler, need to recursively add
-              if (groupletField.type === "grouplet") {
-                fields.concat(getGroupletFields(groupletField));
-              } else {
-                /*jslint nomen: true*/
-                fields.push(fieldId + fc.constants.prefixSeparator + groupletField._id.$id);
-                /*jslint nomen: false*/
+                // If grouplet within a groupler, need to recursively add
+                if (groupletField.type === "grouplet") {
+                  fields.concat(getGroupletFields(groupletField));
+                } else {
+                  /*jslint nomen: true*/
+                  fields.push(fieldId + fc.constants.prefixSeparator + groupletField._id.$id);
+                  /*jslint nomen: false*/
+                }
               }
             }
 
@@ -1807,31 +1809,32 @@ var formcorp = (function () {
         updateFieldSchemas = function (fields) {
           var iterator, field, id, a, jsonDecode = ['visibility', 'validators'], toBoolean = ['visibility'], grouplet;
 
-          for (iterator = 0; iterator < fields.length; iterator += 1) {
-            field = fields[iterator];
-            id = getId(field);
+          if (typeof fields === 'object' && $.isArray(fields) && fields.length > 0) {
+            for (iterator = 0; iterator < fields.length; iterator += 1) {
+              field = fields[iterator];
+              id = getId(field);
 
-            // Add to field schema if doesn't already exist
-            if (fc.fieldSchema[id] === undefined) {
-              // Decode configuration strings to json objects as required
-              for (a = 0; a < jsonDecode.length; a += 1) {
-                if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
-                  field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
+              // Add to field schema if doesn't already exist
+              if (fc.fieldSchema[id] === undefined) {
+                // Decode configuration strings to json objects as required
+                for (a = 0; a < jsonDecode.length; a += 1) {
+                  if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
+                    field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
 
-                  // Whether or not the object needs to be converted to boolean logic
-                  if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                    field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
+                    // Whether or not the object needs to be converted to boolean logic
+                    if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
+                      field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
+                    }
                   }
                 }
+                fc.fieldSchema[id] = field;
               }
 
-              fc.fieldSchema[id] = field;
-            }
-
-            // If the field is a grouplet, need to recursively update the field schema
-            if (field.type === "grouplet") {
-              grouplet = getConfig(field, 'grouplet', {field: []});
-              updateFieldSchemas(grouplet.field);
+              // If the field is a grouplet, need to recursively update the field schema
+              if (field.type === "grouplet") {
+                grouplet = getConfig(field, 'grouplet', {field: []});
+                updateFieldSchemas(grouplet.field);
+              }
             }
           }
         },
