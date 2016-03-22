@@ -398,13 +398,13 @@ var fc = (function ($) {
         }
 
         // Show the date time picker
-        fc.domContainer.on('click', '.fc-field-date', function (e) {
-          var obj = $(this),
-            dataId = obj.attr('fc-data-group'),
+        fc.domContainer.on('click', '.fc-field-date i.fa', function (e) {
+          var obj = $(this).parent().find('.fc-fieldinput'),
+            dataId = obj.attr('formcorp-data-id'),
             margin = obj.css('marginRight'),
             usableWidth = parseInt(obj.width()) - fc.config.datePickerIconOffset;
 
-          if (e.offsetX > usableWidth && typeof fc.materialDatepickers[dataId] !== 'undefined') {
+          if (typeof fc.materialDatepickers[dataId] !== 'undefined') {
             fc.materialDatepickers[dataId].open();
           }
 
@@ -1066,6 +1066,15 @@ var fc = (function ($) {
           }
         } while (parentGroupletId !== undefined);
 
+        // Validate a date field
+        if (field.type === 'date') {
+          var dateTest = /^(\d{4}((-\d{2}){2}|(\/\d{2}){2})|((\d{2}-){2}|(\d{2}\/){2})\d{4})(\s+\d{1,2}:(\d{2}))?$/;
+          if (!dateTest.test(domValue)) {
+            errors.push(fc.lang.dateCorrectFormat);
+            return errors;
+          }
+        }
+
         // If abn field, check to see if valid
         if (field.type === 'abnVerification') {
           if (fc.validAbns.indexOf(value) < 0) {
@@ -1525,6 +1534,8 @@ var fc = (function ($) {
             // Otherwise the verification is valid
             skipCheck = true;
           }
+        } else if (field.type === 'date') {
+          var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;
         }
 
         // If repeatable and required, check the amount of values
@@ -7150,14 +7161,53 @@ var fc = (function ($) {
       var required = typeof field.config.required === 'boolean' ? field.config.required : false,
         fieldId = prefix + getId(field),
         html = '',
-        type = 'date',
+        type = 'text',
         intervalId;
 
       // If the datepicker hasn't been initialised, do so now
       if (typeof fc.materialDatepickers[fieldId] === 'undefined') {
         intervalId = setInterval(function () {
           if (typeof fc.loadedMaterialDatepicker === 'boolean' && fc.loadedMaterialDatepicker) {
-            fc.materialDatepickers[fieldId] = new MaterialDatePicker({});
+            fc.materialDatepickers[fieldId] = new MaterialDatePicker({
+              format: 'dd/MM/YY'
+            });
+
+            // Bind on to submit
+            fc.materialDatepickers[fieldId].on('submit', function (val) {
+              var date = val._d,
+                day = ("0" + date.getDate()).slice(-2),
+                monthIndex = date.getMonth(),
+                month = ("0" + ++monthIndex).slice(-2),
+                year = date.getFullYear(),
+                hours = ("0" + date.getHours()).slice(-2),
+                minutes = ("0" + date.getMinutes()).slice(-2),
+                fieldSchema = fc.fieldSchema[fieldId];
+
+              if (typeof fieldSchema === 'object') {
+                // Retrieve individual date components
+                var dateFormat = getConfig(fieldSchema, 'dateFormat', 'DD/MM/YYYY'),
+                  timeFormat = getConfig(fieldSchema, 'timeFormat', 'hh:mm'),
+                  displayTime = getConfig(fieldSchema, 'displayTimePicker', false),
+                  dateStringObj = [dateFormat];
+
+                // Append the time string if enabled
+                if (displayTime) {
+                  dateStringObj.push(timeFormat);
+                }
+
+                // Format the date string
+                var dateString = dateStringObj.join(' ');
+                dateString = dateString.replace(/DD/g, day, dateString);
+                dateString = dateString.replace(/MM/g, month, dateString);
+                dateString = dateString.replace(/YYYY/g, year, dateString);
+                dateString = dateString.replace(/hh/g, hours, dateString);
+                dateString = dateString.replace(/mm/g, minutes, dateString);
+
+                // Update the value locally
+                setValue(fieldId, dateString);
+                fc.saveQueue[fieldId] = dateString;
+              }
+            });
 
             // The datepicker has properly been initialised, clear the interval
             clearInterval(intervalId);
@@ -7165,7 +7215,7 @@ var fc = (function ($) {
         }, 50);
       }
 
-      html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+      html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '"><i class="fa fa-calendar"></i>';
 
       return html;
     };
@@ -10951,7 +11001,8 @@ var fc = (function ($) {
           no: 'No',
           confirmSubmitDevelopment: 'The form is currently on a <em>development branch</em>. Are you sure you want to submit?',
           areSureHeader: 'Are you sure?',
-          loading: 'Loading...'
+          loading: 'Loading...',
+          dateCorrectFormat: 'Date must be in a valid format'
         };
 
         // Update with client options
