@@ -2072,7 +2072,7 @@ var fc = (function ($) {
           return false;
         }
 
-        return fc.libs2Load.indexOf(lib) >= 0;
+        return fc.loadedLibs.indexOf(lib) >= 0;
       },
 
       /**
