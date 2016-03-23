@@ -10268,13 +10268,28 @@ var fc = (function ($) {
         // If using a one page form structure, output
         if (fc.config.onePage) {
           render(id);
-          flushVisibility();
 
-          // If one page, can use the DOM to determine whether or not to continue loading (a safer indicator)
-          continueLoading = validForm(fc.jQueryContainer, false) && !isSubmitPage(page.page);
+          // Flush visibility when mode isn't set to prepopulate
+          if (fc.mode !== fc.modes.PREPOPULATE) {
+            flushVisibility();
+          }
+
+          if (fc.mode === fc.modes.PREPOPULATE) {
+            // If in pre-population mode, continue loading regardless
+            continueLoading = true;
+          } else {
+            // If one page, can use the DOM to determine whether or not to continue loading (a safer indicator)
+            continueLoading = validForm(fc.jQueryContainer, false) && !isSubmitPage(page.page);
+          }
         } else {
-          valid = formFieldsValid(fields);
-          continueLoading = valid && !isSubmitPage(page.page);
+          if (fc.mode === fc.modes.PREPOPULATE) {
+            // If in pre-population mode, continue loading regardless
+            continueLoading = true;
+          } else {
+            // Continue loading regardless (as in primary data population mode)
+            valid = formFieldsValid(fields);
+            continueLoading = valid && !isSubmitPage(page.page);
+          }
         }
 
         // On page load, ignore the autoLoad flag (if user is directed back to this form, need to continue loading until pretty late)
