@@ -10362,7 +10362,7 @@ var fc = (function ($) {
      * @param data object
      */
     autoLoadLibs = function (data) {
-      var fields = [], type, field;
+      var fields = [], type, field, libsLoaded = 0;
 
       // Store for future reference
       fc.schemaData = data;
@@ -10387,8 +10387,14 @@ var fc = (function ($) {
           for (libIterator = 0; libIterator < fc.requiredFieldLibraries[field].length; libIterator += 1) {
             lib = fc.requiredFieldLibraries[field][libIterator];
             loadLib(lib);
+            ++libsLoaded;
           }
         }
+      }
+
+      // If no libs need to be loaded, render the form
+      if (!libsLoaded) {
+        checkAllLibsLoaded();
       }
     };
 
