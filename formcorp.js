@@ -379,6 +379,44 @@ var fc = (function ($) {
       },
 
       /**
+       * Check to see if all libs have loaded
+       * @return boolean
+       */
+      checkAllLibsLoaded = function () {
+        if (fc.loadedLibs.length >= fc.libs2Load.length) {
+          // If set to auto discover library files, initialise the render when all libs have loaded
+          if (fc.config.autoDiscoverLibs) {
+            initRender(fc.schemaData);
+          }
+
+          return true;
+        }
+
+        return false;
+      },
+
+      /**
+       * Register a loaded library file.
+       * @param lib
+       */
+      registerLibLoaded = function (lib) {
+        if (fc.loadedLibs.indexOf(lib)) {
+          fc.loadedLibs.push(lib);
+        }
+
+        checkAllLibsLoaded();
+      },
+
+      /**
+       * Determines whether or not a library file has loaded
+       * @param lib
+       * @return boolean
+       */
+      libHasLoaded = function (lib) {
+        return fc.loadedLibs.indexOf(lib) >= 0;
+      },
+
+      /**
        * Load the material datepicker libraries
        */
       loadMaterialDatepicker = function () {
@@ -394,6 +432,7 @@ var fc = (function ($) {
           loadCssFile(cdnUrl() + 'lib/material_datetime/datepicker.css');
           loadJsFile(cdnUrl() + 'lib/material_datetime/' + (isMinified() ? 'datepicker.standalone.min.js' : 'datepicker.standalone.js'), function () {
             fc.loadedMaterialDatepicker = true;
+            registerLibLoaded(fc.libs.MATERIAL_DATEPICKER);
           });
         }
 
@@ -413,18 +452,29 @@ var fc = (function ($) {
       },
 
       /**
-       * Load the (optional) library files
+       * Load a specific library
+       * @param lib
        */
-      loadLibs = function () {
-        for (var x = 0; x < fc.libs2Load.length; x += 1) {
-          var lib = fc.libs2Load[x];
-
+      loadLib = function (lib) {
+        if (!libHasLoaded(lib)) {
           switch (lib) {
             // Load the material datepicker
             case fc.libs.MATERIAL_DATEPICKER:
               loadMaterialDatepicker();
               break;
           }
+        }
+      },
+
+      /**
+       * Load the (optional) library files
+       */
+      loadLibs = function () {
+        var lib;
+
+        for (var x = 0; x < fc.libs2Load.length; x += 1) {
+          lib = fc.libs2Load[x];
+          loadLib(lib);
         }
       },
 
@@ -6117,6 +6167,8 @@ var fc = (function ($) {
       getFirstPageId,
       getFirstPage,
       loadSettings,
+      initRender,
+      autoLoadLibs,
       loadSchema,
       hasNextPage,
       loadNextPage,
@@ -7167,54 +7219,56 @@ var fc = (function ($) {
         intervalId;
 
       // If the datepicker hasn't been initialised, do so now
-      if (typeof fc.materialDatepickers[fieldId] === 'undefined') {
-        intervalId = setInterval(function () {
-          if (typeof fc.loadedMaterialDatepicker === 'boolean' && fc.loadedMaterialDatepicker) {
-            fc.materialDatepickers[fieldId] = new MaterialDatePicker({
-              format: 'dd/MM/YY'
-            });
+      if (hasLib(fc.libs.MATERIAL_DATEPICKER)) {
+        if (typeof fc.materialDatepickers[fieldId] === 'undefined') {
+          intervalId = setInterval(function () {
+            if (typeof fc.loadedMaterialDatepicker === 'boolean' && fc.loadedMaterialDatepicker) {
+              fc.materialDatepickers[fieldId] = new MaterialDatePicker({
+                format: 'dd/MM/YY'
+              });
 
-            // Bind on to submit
-            fc.materialDatepickers[fieldId].on('submit', function (val) {
-              var date = val._d,
-                day = ("0" + date.getDate()).slice(-2),
-                monthIndex = date.getMonth(),
-                month = ("0" + ++monthIndex).slice(-2),
-                year = date.getFullYear(),
-                hours = ("0" + date.getHours()).slice(-2),
-                minutes = ("0" + date.getMinutes()).slice(-2),
-                fieldSchema = fc.fieldSchema[fieldId];
+              // Bind on to submit
+              fc.materialDatepickers[fieldId].on('submit', function (val) {
+                var date = val._d,
+                  day = ("0" + date.getDate()).slice(-2),
+                  monthIndex = date.getMonth(),
+                  month = ("0" + ++monthIndex).slice(-2),
+                  year = date.getFullYear(),
+                  hours = ("0" + date.getHours()).slice(-2),
+                  minutes = ("0" + date.getMinutes()).slice(-2),
+                  fieldSchema = fc.fieldSchema[fieldId];
 
-              if (typeof fieldSchema === 'object') {
-                // Retrieve individual date components
-                var dateFormat = getConfig(fieldSchema, 'dateFormat', 'DD/MM/YYYY'),
-                  timeFormat = getConfig(fieldSchema, 'timeFormat', 'hh:mm'),
-                  displayTime = getConfig(fieldSchema, 'displayTimePicker', false),
-                  dateStringObj = [dateFormat];
+                if (typeof fieldSchema === 'object') {
+                  // Retrieve individual date components
+                  var dateFormat = getConfig(fieldSchema, 'dateFormat', 'DD/MM/YYYY'),
+                    timeFormat = getConfig(fieldSchema, 'timeFormat', 'hh:mm'),
+                    displayTime = getConfig(fieldSchema, 'displayTimePicker', false),
+                    dateStringObj = [dateFormat];
 
-                // Append the time string if enabled
-                if (displayTime) {
-                  dateStringObj.push(timeFormat);
+                  // Append the time string if enabled
+                  if (displayTime) {
+                    dateStringObj.push(timeFormat);
+                  }
+
+                  // Format the date string
+                  var dateString = dateStringObj.join(' ');
+                  dateString = dateString.replace(/DD/g, day, dateString);
+                  dateString = dateString.replace(/MM/g, month, dateString);
+                  dateString = dateString.replace(/YYYY/g, year, dateString);
+                  dateString = dateString.replace(/hh/g, hours, dateString);
+                  dateString = dateString.replace(/mm/g, minutes, dateString);
+
+                  // Update the value locally
+                  setValue(fieldId, dateString);
+                  fc.saveQueue[fieldId] = dateString;
                 }
+              });
 
-                // Format the date string
-                var dateString = dateStringObj.join(' ');
-                dateString = dateString.replace(/DD/g, day, dateString);
-                dateString = dateString.replace(/MM/g, month, dateString);
-                dateString = dateString.replace(/YYYY/g, year, dateString);
-                dateString = dateString.replace(/hh/g, hours, dateString);
-                dateString = dateString.replace(/mm/g, minutes, dateString);
-
-                // Update the value locally
-                setValue(fieldId, dateString);
-                fc.saveQueue[fieldId] = dateString;
-              }
-            });
-
-            // The datepicker has properly been initialised, clear the interval
-            clearInterval(intervalId);
-          }
-        }, 50);
+              // The datepicker has properly been initialised, clear the interval
+              clearInterval(intervalId);
+            }
+          }, 50);
+        }
       }
 
       html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '"><i class="fa fa-calendar"></i>';
@@ -10241,6 +10295,67 @@ var fc = (function ($) {
     };
 
     /**
+     * Initialise the render
+     * @param data object
+     */
+    initRender = function (data) {
+      var firstPageId;
+
+      // Render the opening page for the form
+      if (data.stage !== undefined) {
+        fc.schema = orderSchema(data);
+        if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
+          firstPageId = getFirstPage();
+
+          // If one page layout, getFirstPage() already rendered
+          if (!fc.config.onePage) {
+            render(firstPageId);
+          }
+        }
+      }
+
+      fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
+
+      // Initialise the on schema loaded event
+      onSchemaLoaded();
+    };
+
+    /**
+     * Auto load the form's required library files
+     * @param data object
+     */
+    autoLoadLibs = function (data) {
+      var fields = [], type, field;
+
+      // Store for future reference
+      fc.schemaData = data;
+
+      // Get the field types that are referenced in the form
+      if (typeof fc.fieldSchema === 'object' && Object.keys(fc.fieldSchema).length > 0) {
+        for (var key in fc.fieldSchema) {
+          if (fc.fieldSchema.hasOwnProperty(key)) {
+            if (typeof fc.fieldSchema[key] === 'object' && typeof fc.fieldSchema[key].type === 'string' && fields.indexOf(fc.fieldSchema[key].type) == -1) {
+              fields.push(fc.fieldSchema[key].type);
+            }
+          }
+        }
+      }
+
+      var fieldsIterator, libIterator, lib;
+
+      // Iterate through each field and load required libraries
+      for (fieldsIterator = 0; fieldsIterator < fields.length; fieldsIterator += 1) {
+        field = fields[fieldsIterator];
+        if (typeof fc.requiredFieldLibraries[field] === 'object' && $.isArray(fc.requiredFieldLibraries[field]) && fc.requiredFieldLibraries[field].length > 0) {
+          for (libIterator = 0; libIterator < fc.requiredFieldLibraries[field].length; libIterator += 1) {
+            lib = fc.requiredFieldLibraries[field][libIterator];
+            loadLib(lib);
+          }
+        }
+      }
+    };
+
+    /**
      * Load the form schema/definition
      */
     loadSchema = function () {
@@ -10251,7 +10366,7 @@ var fc = (function ($) {
           return;
         }
 
-        var key, firstPageId;
+        var key;
 
         if (data && data.stage) {
           setFieldSchemas(data.stage);
@@ -10275,23 +10390,12 @@ var fc = (function ($) {
           }
         }
 
-        // Render the opening page for the form
-        if (data.stage !== undefined) {
-          fc.schema = orderSchema(data);
-          if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
-            firstPageId = getFirstPage();
-
-            // If one page layout, getFirstPage() already rendered
-            if (!fc.config.onePage) {
-              render(firstPageId);
-            }
-          }
+        // If library files aren't marked to be auto discovered, initialise the render
+        if (!fc.config.autoDiscoverLibs) {
+          initRender(data);
+        } else {
+          autoLoadLibs(data);
         }
-
-        fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
-
-        // Initialise the on schema loaded event
-        onSchemaLoaded();
       });
     };
 
@@ -10387,6 +10491,12 @@ var fc = (function ($) {
         this.developmentBranches = ['Staging', 'Development', 'Dev'];
         this.fieldCount = 0;
         this.formState = '';
+        this.loadedLibs = [];
+
+        // Fields that require library fieldPages
+        this.requiredFieldLibraries = {
+          'date': [this.libs.MATERIAL_DATEPICKER]
+        };
 
         if (typeof this.libs2Load === 'undefined') {
           this.libs2Load = [];
@@ -10884,7 +10994,8 @@ var fc = (function ($) {
             entityRecordLoadingClass: 'entity-record-loading'
           },
           renderOnlyVertical: true,
-          datePickerIconOffset: 25
+          datePickerIconOffset: 25,
+          autoDiscoverLibs: true
         };
 
         // Minimum event queue interval (to prevent server from getting slammed)
