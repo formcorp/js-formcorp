@@ -7271,7 +7271,13 @@ var fc = (function ($) {
         }
       }
 
-      html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '"><i class="fa fa-calendar"></i>';
+      // Add class to display the time picker
+      var additionalClasses = [];
+      if (getConfig(field, 'displayTimePicker', false)) {
+        additionalClasses.push('time-picker');
+      }
+
+      html = '<input class="fc-fieldinput ' + additionalClasses.join(' ')  + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '"><i class="fa fa-calendar"></i>';
 
       return html;
     };

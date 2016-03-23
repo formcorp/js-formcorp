@@ -1140,6 +1140,24 @@ body .c-datepicker__clock {
   position: relative;
 }
 
+/* No timepicker settings */
+body .c-datepicker__toggle {
+  display: none;
+}
+
+body .c-datepicker__header-date span.c-datepicker__header-date__time,
+body .c-datepicker__header-date__time span {
+  display: none;
+}
+
+body .c-datepicker__header-date {
+  height: 170px;
+}
+
+body .c-datepicker {
+  min-height: 540px;
+}
+
 .fc-field-date i.fa {
   position: absolute;
   right: 18px;
