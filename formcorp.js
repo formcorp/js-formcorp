@@ -1368,6 +1368,22 @@ var fc = (function ($) {
       },
 
       /**
+       * Set the form mode
+       * @param mode string
+       */
+      setMode = function (mode) {
+        fc.mode = mode;
+      },
+
+      /**
+       * Return the current form mode
+       * @return string
+       */
+      getMode = function () {
+        return typeof fc.mode === 'string' ? fc.mode : fc.modes.DEFAULT;
+      },
+
+      /**
        * Whether or not the current branch should be considered a development branch.
        * @returns boolean
        */
@@ -10456,8 +10472,19 @@ var fc = (function ($) {
 
     return {
 
+      /**
+       * Different library files
+       */
       libs: {
         MATERIAL_DATEPICKER: 'materialDatepicker'
+      },
+
+      /**
+       * Modes when filling out the data
+       */
+      modes: {
+        DEFAULT: 'defaultMode',
+        PREPOPULATE: 'propopulateMode'
       },
 
       /**
@@ -10504,12 +10531,19 @@ var fc = (function ($) {
           'date': [this.libs.MATERIAL_DATEPICKER]
         };
 
+        // Set default value for library files to load
         if (typeof this.libs2Load === 'undefined') {
           this.libs2Load = [];
         }
 
+        // Set default value for entity tokens
         if (typeof this.entityTokens === 'undefined') {
           this.entityTokens = {};
+        }
+
+        // Set the default mode
+        if (typeof this.mode !== 'string') {
+          this.mode = this.modes.DEFAULT;
         }
 
         // Set the tags (may have previously been set)
@@ -11402,6 +11436,12 @@ var fc = (function ($) {
        */
      setEntityToken: setEntityToken,
      setEntityTokens: setEntityTokens,
+
+     /**
+      * Mode getter/setter functions
+      */
+      setMode: setMode,
+      getMode: getMode,
 
       /**
        * Converts a string to camel case.
