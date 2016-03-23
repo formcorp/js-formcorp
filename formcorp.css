@@ -1128,11 +1128,11 @@ div.fc-pagination {
   right: 10px;
 }
 
-.c-datepicker__header-date {
+body .c-datepicker__header-date {
   height: 210px;
 }
 
-.c-datepicker__clock {
+body .c-datepicker__clock {
   padding-top: 360px;
 }
 
