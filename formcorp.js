@@ -2925,9 +2925,9 @@ var fc = (function ($) {
         * @return {object}
         */
       getOptions = function (input) {
-        var options = {}, arr;
+        var options = {}, optionsArr = [], arr, obj;
 
-        // Format string to array
+        // Format string to object
         if (typeof input === 'string') {
           arr = input.split("\n");
 
@@ -2936,7 +2936,16 @@ var fc = (function ($) {
           }
         }
 
-        return options;
+        // Move object to array with one instance in (objects can't be randomly ordered, which is a feature/option)
+        for (var key in options) {
+          if (options.hasOwnProperty(key)) {
+            obj = {};
+            obj[key] = options[key];
+            optionsArr.push(obj);
+          }
+        }
+
+        return optionsArr;
       },
 
       /**
@@ -2962,6 +2971,7 @@ var fc = (function ($) {
           json,
           savedValues = [],
           htmlItems = [],
+          iterator,
           tmpHtml,
           checked;
         /*jslint nomen: false*/
@@ -2982,18 +2992,24 @@ var fc = (function ($) {
 
         // Iterate through each option
         x = 0;
-        if (typeof options === 'object' && Object.keys(options).length > 0) {
-          for (key in options) {
-            if (options.hasOwnProperty(key)) {
-              id = prefix + getId(field) + '_' + x++;
-              checked = getConfig(field, 'default') === option ? ' checked' : '';
+        if (typeof options === 'object' && $.isArray(options) && options.length > 0) {
+          for (iterator = 0; iterator < options.length; iterator += 1) {
+            option = options[x];
 
-              tmpHtml = '<div class="' + cssClass + '">';
-              tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key) + '" data-required="' + required + '"' + checked + '>';
-              tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(options[key]) + '</em><span class="fc-end-radio-item"></span></label>';
-              tmpHtml += '</div>';
+            if (typeof option === 'object') {
+              for (key in option) {
+                if (option.hasOwnProperty(key)) {
+                  id = prefix + getId(field) + '_' + x++;
+                  checked = getConfig(field, 'default') === option ? ' checked' : '';
 
-              htmlItems.push(tmpHtml);
+                  tmpHtml = '<div class="' + cssClass + '">';
+                  tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key) + '" data-required="' + required + '"' + checked + '>';
+                  tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
+                  tmpHtml += '</div>';
+                  
+                  htmlItems.push(tmpHtml);
+                }
+              }
             }
           }
         }
@@ -3018,6 +3034,7 @@ var fc = (function ($) {
           key,
           html = '',
           cssClass,
+          iterator,
           x,
           option,
           id,
@@ -3043,26 +3060,32 @@ var fc = (function ($) {
 
         // Iterate through each option
         x = 0;
-        if (typeof options === 'object' && Object.keys(options).length > 0) {
-          for (key in options) {
-            if (options.hasOwnProperty(key)) {
-              id = prefix + getId(field) + '_' + x++;
+        if (typeof options === 'object' && $.isArray(options) && options.length > 0) {
+          for (iterator = 0; iterator < options.length; iterator += 1) {
+            option = options[x];
 
-              tmpHtml = '<div class="' + cssClass + '">';
-              tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(key) + '" data-required="' + required + '"';
+            if (typeof option === 'object') {
+              for (key in option) {
+                if (option.hasOwnProperty(key)) {
+                  id = prefix + getId(field) + '_' + x++;
 
-              if (savedValues.indexOf(key) > -1) {
-                tmpHtml += ' checked="checked"';
+                  tmpHtml = '<div class="' + cssClass + '">';
+                  tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(key) + '" data-required="' + required + '"';
+
+                  if (savedValues.indexOf(key) > -1) {
+                    tmpHtml += ' checked="checked"';
+                  }
+
+                  tmpHtml += '>';
+                  tmpHtml += '<label for="' + id + '">';
+                  tmpHtml += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(option[key]) + '</em>';
+                  tmpHtml += '<span class="fc-end-checkbox-item"></span>';
+                  tmpHtml += '</label>';
+                  tmpHtml += '</div>';
+
+                  htmlItems.push(tmpHtml);
+                }
               }
-
-              tmpHtml += '>';
-              tmpHtml += '<label for="' + id + '">';
-              tmpHtml += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(options[key]) + '</em>';
-              tmpHtml += '<span class="fc-end-checkbox-item"></span>';
-              tmpHtml += '</label>';
-              tmpHtml += '</div>';
-
-              htmlItems.push(tmpHtml);
             }
           }
         }
