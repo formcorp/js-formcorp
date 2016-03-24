@@ -2920,6 +2920,26 @@ var fc = (function ($) {
       },
 
       /**
+        * Retrieve options from a field
+        * @param input string|array
+        * @return {object}
+        */
+      getOptions = function (input) {
+        var options = {}, arr;
+
+        // Format string to array
+        if (typeof input === 'string') {
+          arr = input.split("\n");
+
+          for (var x = 0; x < arr.length; x += 1) {
+            options[arr[x]] = arr[x].replace(/(\r\n|\n|\r)/gm, "");
+          }
+        }
+
+        return options;
+      },
+
+      /**
        * Render a radio list.
        * @param field
        * @returns {string}
@@ -2931,52 +2951,54 @@ var fc = (function ($) {
 
         /*jslint nomen: true*/
         var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-          options = getConfig(field, 'options', ''),
+          options = getOptions(getConfig(field, 'options', '')),
           fieldId = prefix + field._id.$id,
+          key,
           html = '',
-          x,
           cssClass,
+          x,
           option,
           id,
+          json,
+          savedValues = [],
+          htmlItems = [],
+          tmpHtml,
           checked;
         /*jslint nomen: false*/
 
-        if (options.length > 0) {
-          options = options.split("\n");
-          cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
+        // Create an array of the field's values
+        if (fc.fields[fieldId] !== undefined && typeof fc.fields[fieldId] === "string") {
+          try {
+            json = $.parseJSON(fc.fields[fieldId]);
+            savedValues = json;
+          } catch (ignore) {
+          }
+        } else if (typeof fc.fields[fieldId] === "object") {
+          savedValues = fc.fields[fieldId];
+        }
 
-          if (getConfig(field, 'asButton', false)) {
-            html += '<div class="fc-radio-option-buttons">';
+        // Determine the css class to use
+        cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
 
-            // Display as buttons
-            for (x = 0; x < options.length; x += 1) {
-              option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-
+        // Iterate through each option
+        x = 0;
+        if (typeof options === 'object' && Object.keys(options).length > 0) {
+          for (key in options) {
+            if (options.hasOwnProperty(key)) {
+              id = prefix + getId(field) + '_' + x++;
               checked = getConfig(field, 'default') === option ? ' checked' : '';
 
-              html += '<div class="fc-option-buttons ' + cssClass + '">';
-              html += '<button class="fc-fieldinput fc-button" id="' + getId(field) + '_' + x + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(option) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option) + '</button>';
-              html += '</div>';
-            }
-            html += '</div>';
+              tmpHtml = '<div class="' + cssClass + '">';
+              tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key) + '" data-required="' + required + '"' + checked + '>';
+              tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(options[key]) + '</em><span class="fc-end-radio-item"></span></label>';
+              tmpHtml += '</div>';
 
-          } else {
-            // Display as standard radio buttons
-
-            for (x = 0; x < options.length; x += 1) {
-              option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-              id = prefix + getId(field) + '_' + x;
-              checked = getConfig(field, 'default') === option ? ' checked' : '';
-
-              html += '<div class="' + cssClass + '">';
-              html += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(option) + '" data-required="' + required + '"' + checked + '>';
-              html += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option) + '</em><span class="fc-end-radio-item"></span></label>';
-              html += '</div>';
+              htmlItems.push(tmpHtml);
             }
           }
         }
 
-        return html;
+        return htmlItems.join('');
       },
 
       /**
@@ -2991,15 +3013,18 @@ var fc = (function ($) {
 
         /*jslint nomen: true*/
         var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-          options = getConfig(field, 'options', ''),
+          options = getOptions(getConfig(field, 'options', '')),
           fieldId = prefix + field._id.$id,
+          key,
           html = '',
           cssClass,
           x,
           option,
           id,
           json,
-          savedValues = [];
+          savedValues = [],
+          htmlItems = [],
+          tmpHtml;
         /*jslint nomen: false*/
 
         // Create an array of the field's values
@@ -3013,32 +3038,36 @@ var fc = (function ($) {
           savedValues = fc.fields[fieldId];
         }
 
-        if (options.length > 0) {
-          options = options.split("\n");
-          cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
-          for (x = 0; x < options.length; x += 1) {
-            option = options[x].replace(/(\r\n|\n|\r)/gm, "");
-            /*jslint nomen: true*/
-            id = prefix + getId(field) + '_' + x;
-            /*jslint nomen: false*/
+        // Determine the css class to use
+        cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
 
-            html += '<div class="' + cssClass + '">';
-            html += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(option) + '" data-required="' + required + '"';
+        // Iterate through each option
+        x = 0;
+        if (typeof options === 'object' && Object.keys(options).length > 0) {
+          for (key in options) {
+            if (options.hasOwnProperty(key)) {
+              id = prefix + getId(field) + '_' + x++;
 
-            if (savedValues.indexOf(option) > -1) {
-              html += ' checked="checked"';
+              tmpHtml = '<div class="' + cssClass + '">';
+              tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(key) + '" data-required="' + required + '"';
+
+              if (savedValues.indexOf(key) > -1) {
+                tmpHtml += ' checked="checked"';
+              }
+
+              tmpHtml += '>';
+              tmpHtml += '<label for="' + id + '">';
+              tmpHtml += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(options[key]) + '</em>';
+              tmpHtml += '<span class="fc-end-checkbox-item"></span>';
+              tmpHtml += '</label>';
+              tmpHtml += '</div>';
+
+              htmlItems.push(tmpHtml);
             }
-
-            html += '>';
-            html += '<label for="' + id + '">';
-            html += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(option) + '</em>';
-            html += '<span class="fc-end-checkbox-item"></span>';
-            html += '</label>';
-            html += '</div>';
           }
         }
 
-        return html;
+        return htmlItems.join('');
       },
 
       /**
