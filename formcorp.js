@@ -2264,6 +2264,26 @@ var fc = (function ($) {
       },
 
       /**
+       * Shuffle (randomise) an array
+       * @param arr array
+       * @return array
+       */
+      shuffle = function (arr) {
+        var currentIndex = arr.length, temporaryValue, randomIndex;
+
+        while (0 !== currentIndex) {
+          randomIndex = Math.floor(Math.random() * currentIndex);
+          currentIndex -= 1;
+
+          temporaryValue = arr[currentIndex];
+          arr[currentIndex] = arr[randomIndex];
+          arr[randomIndex] = temporaryValue;
+        }
+
+        return arr;
+      },
+
+      /**
        * Retrieve a variable from the hash in the URL
        * @param prefix
        * @returns string
@@ -2924,8 +2944,12 @@ var fc = (function ($) {
         * @param input string|array
         * @return {object}
         */
-      getOptions = function (input) {
+      getOptions = function (input, random) {
         var options = {}, optionsArr = [], arr, obj;
+
+        if (typeof random !== 'boolean') {
+          random = false;
+        }
 
         // Format string to object
         if (typeof input === 'string') {
@@ -2945,7 +2969,7 @@ var fc = (function ($) {
           }
         }
 
-        return optionsArr;
+        return random ? shuffle(optionsArr) : optionsArr;
       },
 
       /**
@@ -2960,7 +2984,7 @@ var fc = (function ($) {
 
         /*jslint nomen: true*/
         var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-          options = getOptions(getConfig(field, 'options', '')),
+          options = getOptions(getConfig(field, 'options', ''), getConfig(field, 'randomiseOptions', false)),
           fieldId = prefix + field._id.$id,
           key,
           html = '',
@@ -3006,7 +3030,7 @@ var fc = (function ($) {
                   tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key) + '" data-required="' + required + '"' + checked + '>';
                   tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                   tmpHtml += '</div>';
-                  
+
                   htmlItems.push(tmpHtml);
                 }
               }
@@ -3029,7 +3053,7 @@ var fc = (function ($) {
 
         /*jslint nomen: true*/
         var required = typeof field.config.required === 'boolean' ? field.config.required : false,
-          options = getOptions(getConfig(field, 'options', '')),
+          options = getOptions(getConfig(field, 'options', ''), getConfig(field, 'randomiseOptions', false)),
           fieldId = prefix + field._id.$id,
           key,
           html = '',
