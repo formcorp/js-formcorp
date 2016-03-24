@@ -6198,7 +6198,14 @@ var formcorp = (function () {
             key = 'tags';
           }
 
-          return typeof obj === 'object' && typeof obj[key] === 'object' && $.isArray(obj[key]) && obj[key].length > 0;
+          if (typeof obj === 'object' && typeof obj[key] === 'object' && $.isArray(obj[key])) {
+            // Need to remove empty array elements
+            return obj[key].filter(function(el) {
+              return typeof el === 'string' && el.length > 0;
+            }).length > 0;
+          }
+
+          return false;
         },
 
         /**
@@ -7999,6 +8006,8 @@ var formcorp = (function () {
           // If field has a visibility configurative set, act on it
           field = fc.fieldSchema[dataId];
           if (objectHasTag(field.config)) {
+            console.log('object has tags');
+            console.log(field.config);
             visible = hasTags(field.config.tags);
           }
 
