@@ -1021,7 +1021,7 @@ var formcorp = (function () {
             x,
             i,
             validator,
-            callback,
+            callback = window,
             callbackSplit,
             error,
             type,
@@ -1049,8 +1049,6 @@ var formcorp = (function () {
               validator = field.config.validators[x];
               type = fc.toCamelCase(validator.type);
 
-              callback = window;
-
               try {
                 if (type === fc.constants.functionCallbackType && $.isArray(validator.params) && validator.params.length > 0 && validator.params[0].length > 0) {
                   // Custom callback function
@@ -1062,7 +1060,7 @@ var formcorp = (function () {
                   }
                 } else {
                   // Standard callback function
-                  callbackFunction = 'fc.validator' + type.substring(0, 1).toUpperCase() + type.substr(1);
+                  callbackFunction = 'formcorp.validators.' + type;
 
                   // Convert string to function call
                   callbackSplit = callbackFunction.split('.');
@@ -11564,69 +11562,6 @@ var formcorp = (function () {
             return p1.toLowerCase();
           });
         },
-
-        /**
-         * Tests if a value is within a particular range.
-         * @param params
-         * @param value
-         * @returns {boolean}
-         */
-        validatorRange: function (params, value) {
-          if (!$.isNumeric(value)) {
-            return false;
-          }
-
-          var min = parseFloat(params[0]),
-            max = parseFloat(params[1]),
-            val = parseFloat(value);
-
-          return val >= min && val <= max;
-        },
-
-        /**
-         * Tests if above a minimum value.
-         * @param params
-         * @param value
-         * @returns {boolean}
-         */
-        validatorMin: function (params, value) {
-          // Replace commas
-          value = value.replace(/\,/g, '');
-
-          if (!$.isNumeric(value)) {
-            return false;
-          }
-
-          return parseFloat(value) >= parseFloat(params[0]);
-        },
-
-        /**
-         * Test if below minimum value.
-         * @param params
-         * @param value
-         * @returns {boolean}
-         */
-        validatorMax: function (params, value) {
-          // Replace commas
-          value = value.replace(/\,/g, '');
-
-          if (!$.isNumeric(value)) {
-            return false;
-          }
-
-          return parseFloat(value) <= parseFloat(params[0]);
-        },
-
-        /**
-         * Test a string against a regular expression.
-         * @param params
-         * @param value
-         * @returns {boolean|*}
-         */
-        validatorRegularExpression: function (params, value) {
-          var re = new RegExp(params[0]);
-          return re.test(value);
-        }
       };
 
     }(jQuery));
@@ -11770,11 +11705,80 @@ var formcorp = (function () {
     return self.forms[id];
   };
 
+  /**
+   * Initialise the validators in global formcorp "namespace"
+   */
+  var validators = {
+    /**
+     * Tests if a value is within a particular range.
+     * @param params
+     * @param value
+     * @returns {boolean}
+     */
+    range: function (params, value) {
+      if (!$.isNumeric(value)) {
+        return false;
+      }
+
+      var min = parseFloat(params[0]),
+        max = parseFloat(params[1]),
+        val = parseFloat(value);
+
+      return val >= min && val <= max;
+    },
+
+    /**
+     * Tests if above a minimum value.
+     * @param params
+     * @param value
+     * @returns {boolean}
+     */
+    min: function (params, value) {
+      // Replace commas
+      value = value.replace(/\,/g, '');
+
+      if (!$.isNumeric(value)) {
+        return false;
+      }
+
+      return parseFloat(value) >= parseFloat(params[0]);
+    },
+
+    /**
+     * Test if below minimum value.
+     * @param params
+     * @param value
+     * @returns {boolean}
+     */
+    max: function (params, value) {
+      // Replace commas
+      value = value.replace(/\,/g, '');
+
+      if (!$.isNumeric(value)) {
+        return false;
+      }
+
+      return parseFloat(value) <= parseFloat(params[0]);
+    },
+
+    /**
+     * Test a string against a regular expression.
+     * @param params
+     * @param value
+     * @returns {boolean|*}
+     */
+    regularExpression: function (params, value) {
+      var re = new RegExp(params[0]);
+      return re.test(value);
+    }
+  };
+
   return {
-    forms: self.forms,
     create: create,
     destroyForm: destroyForm,
+    forms: self.forms,
     getForms: getForms,
-    getForm: getForm
+    getForm: getForm,
+    validators: validators
   };
 }());
