@@ -4750,7 +4750,7 @@ var fc = (function ($) {
         searchDict = function (rootId) {
           var dict, tmp;
 
-          if (rootId.indexOf(fc.constants.prefixSeparator) > 0) {
+          if (rootId.indexOf(fc.constants.prefixSeparator) >= 0) {
             tmp = {};
             tmp.repeatableIterator = rootId.split(fc.constants.prefixSeparator);
             if (fc.fieldSchema[tmp.repeatableIterator[0]] !== undefined) {
