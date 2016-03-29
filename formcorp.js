@@ -6562,6 +6562,7 @@ var fc = (function ($) {
         helpTitle,
         amountOfRows,
         repeatableStyle,
+        replacement,
         showHelpAsText = true,
         fieldClass;
 
@@ -6642,9 +6643,11 @@ var fc = (function ($) {
           if (matches && matches.length > 0) {
             for (iterator = 0; iterator < matches.length; iterator += 1) {
               match = matches[iterator].replace(/"/g, "");
-              if (fc.fieldGrouplets[groupletId].indexOf(match) > 0) {
+              replacement = prefix + match;
+
+              if (fc.fieldGrouplets[groupletId].indexOf(match) >= 0 && field.config.visibility.indexOf(replacement) < 0) {
                 re = new RegExp(match, 'g');
-                field.config.visibility = field.config.visibility.replace(re, prefix + match);
+                field.config.visibility = field.config.visibility.replace(re, replacement);
               }
             }
           }
