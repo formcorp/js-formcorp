@@ -11173,96 +11173,98 @@ var formcorp = (function () {
         setLanguage: function (data) {
           var key;
 
-          // Initialise the language
-          this.lang = {
-            prevButtonText: 'Previous',
-            submitText: "Next",
-            submitFormText: "Submit application",
-            formCompleteHtml: '<h2 class="fc-header">Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
-            addFieldTextValue: 'Add value',
-            removeFieldTextValue: 'Remove value',
-            closeModalText: 'Close',
-            addModalText: 'Add',
-            addModalHeader: 'Add value',
-            emptyFieldError: 'This field cannot be empty',
-            defaultCustomValidationError: 'This field failed custom validation',
-            sessionExpiredHtml: '<h2 class="fc-header">Your session has expired</h2><p>Unfortunately, due to a period of extended inactivity, your session has expired. To fill out a new form submission, please refresh your page.</p>',
-            creditCardNameText: 'Name (as it appears on your card)',
-            creditCardNumberText: 'Card number (no dashes or spaces)',
-            creditCardExpiryDateText: 'Expiration date',
-            creditCardSecurityCodeText: 'Security code (3 on back, Amex: 4 on front)',
-            monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-            creditCardMissingName: "You must enter a valid name as it appears on your credit card",
-            creditCardMissingNumber: "You must enter a valid credit card number",
-            creditCardMissingExpiryDate: "You must enter a valid expiry date",
-            creditCardExpired: "Your card has expired",
-            creditCardMissingSecurityCode: "You must enter a valid security code",
-            creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details",
-            edit: "Edit",
-            delete: "Delete",
-            error: "Error",
-            verificationErrorPrefix: "ERROR: ",
-            verificationEmptyCode: "You must enter a verification code.",
-            defaultModalTitle: 'Information',
-            deleteDialogHeader: "Are you sure?",
-            editDialogHeader: "Edit",
-            deleteSignatoryDialogText: "Are you sure you want to delete the selected signatory?",
-            editSignatoryDialogText: "Edit signatory",
-            confirm: "Confirm",
-            invalidCardFormat: "The credit card you entered could not be recognised",
-            sendEmail: "Send email",
-            fieldValidated: "<p>Successfully verified</p>",
-            fieldMustBeVerified: "You must first complete verification",
-            sendSms: "Send SMS",
-            payNow: "Pay now",
-            creditCardSuccess: "<p>Your payment has successfully been processed.</p>",
-            paymentRequired: "Payment is required before proceeding.",
-            paymentGst: "GST:",
-            paymentSubTotal: "Sub-total:",
-            paymentTotal: "Total:",
-            currencySymbol: "$",
-            total: "Total",
-            description: "Description",
-            paymentDescription: "Application completion",
-            validate: 'Validate',
-            validAbnRequired: 'You must enter and validate a valid ABN.',
-            helpModalLink: 'what is this?',
-            helpTitle: 'What is this?',
-            requiredAsterisk: '*',
-            labelColon: ':',
-            greenID: {
-              options: {
-                driversLicense: {
-                  title: 'Drivers Licence',
-                  body: 'Use your state issued drivers licence to help prove your identity.',
-                  icon: ''
+          // Initialise the language if it hasn't been set
+          if (Object.keys(this).indexOf('lang') === -1) {
+            this.lang = {
+              prevButtonText: 'Previous',
+              submitText: "Next",
+              submitFormText: "Submit application",
+              formCompleteHtml: '<h2 class="fc-header">Your application is complete</h2><p>Congratulations, your application has successfully been completed. Please expect a response shortly.</p>',
+              addFieldTextValue: 'Add value',
+              removeFieldTextValue: 'Remove value',
+              closeModalText: 'Close',
+              addModalText: 'Add',
+              addModalHeader: 'Add value',
+              emptyFieldError: 'This field cannot be empty',
+              defaultCustomValidationError: 'This field failed custom validation',
+              sessionExpiredHtml: '<h2 class="fc-header">Your session has expired</h2><p>Unfortunately, due to a period of extended inactivity, your session has expired. To fill out a new form submission, please refresh your page.</p>',
+              creditCardNameText: 'Name (as it appears on your card)',
+              creditCardNumberText: 'Card number (no dashes or spaces)',
+              creditCardExpiryDateText: 'Expiration date',
+              creditCardSecurityCodeText: 'Security code (3 on back, Amex: 4 on front)',
+              monthNames: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+              creditCardMissingName: "You must enter a valid name as it appears on your credit card",
+              creditCardMissingNumber: "You must enter a valid credit card number",
+              creditCardMissingExpiryDate: "You must enter a valid expiry date",
+              creditCardExpired: "Your card has expired",
+              creditCardMissingSecurityCode: "You must enter a valid security code",
+              creditCardNumberIncorrectFormat: "The format of your credit card number is incorrect, please verify your details",
+              edit: "Edit",
+              delete: "Delete",
+              error: "Error",
+              verificationErrorPrefix: "ERROR: ",
+              verificationEmptyCode: "You must enter a verification code.",
+              defaultModalTitle: 'Information',
+              deleteDialogHeader: "Are you sure?",
+              editDialogHeader: "Edit",
+              deleteSignatoryDialogText: "Are you sure you want to delete the selected signatory?",
+              editSignatoryDialogText: "Edit signatory",
+              confirm: "Confirm",
+              invalidCardFormat: "The credit card you entered could not be recognised",
+              sendEmail: "Send email",
+              fieldValidated: "<p>Successfully verified</p>",
+              fieldMustBeVerified: "You must first complete verification",
+              sendSms: "Send SMS",
+              payNow: "Pay now",
+              creditCardSuccess: "<p>Your payment has successfully been processed.</p>",
+              paymentRequired: "Payment is required before proceeding.",
+              paymentGst: "GST:",
+              paymentSubTotal: "Sub-total:",
+              paymentTotal: "Total:",
+              currencySymbol: "$",
+              total: "Total",
+              description: "Description",
+              paymentDescription: "Application completion",
+              validate: 'Validate',
+              validAbnRequired: 'You must enter and validate a valid ABN.',
+              helpModalLink: 'what is this?',
+              helpTitle: 'What is this?',
+              requiredAsterisk: '*',
+              labelColon: ':',
+              greenID: {
+                options: {
+                  driversLicense: {
+                    title: 'Drivers Licence',
+                    body: 'Use your state issued drivers licence to help prove your identity.',
+                    icon: ''
+                  },
+                  passport: {
+                    title: 'Passport',
+                    body: 'Help confirm your identity using the details on your Australian issued passport.',
+                    icon: ''
+                  },
+                  skip: {
+                    title: 'Skip Verification',
+                    body: 'You will be required to manually attach verification documents upon form submission.',
+                    icon: ''
+                  }
                 },
-                passport: {
-                  title: 'Passport',
-                  body: 'Help confirm your identity using the details on your Australian issued passport.',
-                  icon: ''
-                },
-                skip: {
-                  title: 'Skip Verification',
-                  body: 'You will be required to manually attach verification documents upon form submission.',
-                  icon: ''
+                html: {
+                  completePrefix: 'To complete digital verification for this individual, you must verify <span></span> from the options below.',
+                  skipped: 'You have skipped verification for this user.',
+                  completed: 'You have successfully been verified.'
                 }
               },
-              html: {
-                completePrefix: 'To complete digital verification for this individual, you must verify <span></span> from the options below.',
-                skipped: 'You have skipped verification for this user.',
-                completed: 'You have successfully been verified.'
-              }
-            },
-            verify: 'Verify',
-            passwordHidden: 'Hidden',
-            yes: 'Yes',
-            no: 'No',
-            confirmSubmitDevelopment: 'The form is currently on a <em>development branch</em>. Are you sure you want to submit?',
-            areSureHeader: 'Are you sure?',
-            loading: 'Loading...',
-            dateCorrectFormat: 'Date must be in a valid format'
-          };
+              verify: 'Verify',
+              passwordHidden: 'Hidden',
+              yes: 'Yes',
+              no: 'No',
+              confirmSubmitDevelopment: 'The form is currently on a <em>development branch</em>. Are you sure you want to submit?',
+              areSureHeader: 'Are you sure?',
+              loading: 'Loading...',
+              dateCorrectFormat: 'Date must be in a valid format'
+            };
+          }
 
           // Update with client options
           if (typeof data === 'object' && Object.keys(data).length > 0) {
