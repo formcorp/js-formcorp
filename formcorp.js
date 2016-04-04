@@ -4331,6 +4331,13 @@ var formcorp = (function () {
             changeDom = true;
           }
 
+
+          // Clear all of the intervals so queues don't keep running in the background
+          for (var i = 0; i < fc.intervals.length; i += 1) {
+            clearInterval(fc.intervals[i]);
+          }
+          fc.intervals = [];
+
           $.removeCookie(fc.config.sessionIdName);
 
           if (changeDom) {
@@ -10630,6 +10637,7 @@ var formcorp = (function () {
           this.developmentBranches = ['Staging', 'Development', 'Dev'];
           this.fieldCount = 0;
           this.formState = '';
+          this.intervals = [];
           this.loadedLibs = [];
 
           // Fields that require library fieldPages
@@ -10900,20 +10908,20 @@ var formcorp = (function () {
 
               // Save form fields intermittently
               if (fc.config.saveInRealTime === true) {
-                setInterval(function () {
+                fc.intervals.push(setInterval(function () {
                   processSaveQueue();
-                }, fc.config.saveInRealTimeInterval);
+                }, fc.config.saveInRealTimeInterval));
               }
 
               // Check if the user needs to be timed out
               if (fc.config.timeUserOut) {
-                setInterval(function () {
+                fc.intervals.push(setInterval(function () {
                   if (fc.expired === true) {
                     return;
                   }
 
                   timeout();
-                }, 5000);
+                }, 5000));
               }
             });
           });
@@ -11565,7 +11573,6 @@ var formcorp = (function () {
       };
 
     }(jQuery));
-
 
     /**
      * Verifies whether an ABN is valid
