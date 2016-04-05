@@ -1203,7 +1203,7 @@ var fc = (function ($) {
                     }
                 }
             },
-            
+
             /**
              * Whether or not the current branch should be considered a development branch.
              * @returns boolean
@@ -1483,7 +1483,7 @@ var fc = (function ($) {
                     // If in modal, do nothing
                     if (inModal(obj)) {
                         return;
-                    }                   
+                    }
 
                     // Check if the section it belongs to is hidden
                     belongsTo = obj.attr('fc-belongs-to');
@@ -1607,7 +1607,7 @@ var fc = (function ($) {
                         if (fc.fields[groupletId] === undefined) {
                             fc.fields[groupletId] = {};
                         }
-                        
+
                         if (typeof fc.fields[groupletId] === 'object') {
                             fc.fields[groupletId][fieldId] = value;
                         }
@@ -2348,14 +2348,14 @@ var fc = (function ($) {
                     fieldId = prefix + getId(field),
                     html = '',
                     type = 'text';
-                
+
                 // Render a password field if appropriate
                 if (getConfig(field, 'isPassword', false)) {
                     type = 'password';
                 }
-                
+
                 html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
-                
+
                 return html;
             },
 
@@ -3000,7 +3000,7 @@ var fc = (function ($) {
                     html += '</td></tr>'
                 }
 
-                
+
                 html += '</tbody>';
                 html += '</table>';
                 html += '</div>';
@@ -3537,7 +3537,7 @@ var fc = (function ($) {
 
                 // If not verified, show the form to verify
                 if (!verified) {
-                    verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline';        
+                    verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline';
                     html += '<div class="fc-email-verification ' + verifyClass + '" fc-belongs-to="' + getId(field) + '">';
 
                     // Display the verification button text
@@ -3627,7 +3627,7 @@ var fc = (function ($) {
                         data,
                         fieldId;
 
-                    elParent.find('.fc-loading').removeClass('fc-hide');                    
+                    elParent.find('.fc-loading').removeClass('fc-hide');
                     elParent.parent().addClass('loading');
                     fieldId = elParent.parent().attr('fc-belongs-to');
 
@@ -3638,7 +3638,7 @@ var fc = (function ($) {
 
                     // Send the api callback
                     api('verification/callback', data, 'POST', function (data) {
-                        elParent.find('.fc-loading').addClass('fc-hide');                        
+                        elParent.find('.fc-loading').addClass('fc-hide');
                         elParent.parent().removeClass('loading');
 
                         // On successful request, load a dialog to input the code
@@ -3742,7 +3742,7 @@ var fc = (function ($) {
 
                     html += '<div class="fc-send-sms">';
                     html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
-                    
+
                     if (getConfig(field, 'renderAsModal', false)) {
                         html += '<div class="fc-clear fc-verification-options">';
                         html += '<p><small>Already have a verification code? Click <a href="#" class="fc-sms-verification-modal" data-for="' + getId(field) + '">here</a> to validate.</small></p>';
@@ -3914,15 +3914,15 @@ var fc = (function ($) {
                             // Iterate through each field
                             for (fieldIterator = 0; fieldIterator < section.field.length; fieldIterator += 1) {
                                 field = section.field[fieldIterator];
-                                
+
                                 // Fetch the field html
                                 fieldHtml = $('<div></div>').append(renderSummaryField(field));
-                                
+
                                 // Append page, section and field meta data to the container
                                 if (fieldHtml.find('tr').length > 0) {
                                     fieldHtml.find('tr').attr('data-page', getId(page)).attr('data-section', getId(section)).attr('data-id', getId(field));
                                 }
-                                
+
                                 pageHtml += fieldHtml.html();
                             }
                         }
@@ -4300,7 +4300,7 @@ var fc = (function ($) {
                         elements.addButton.show();
                     }
                 }
-                
+
                 if (elements.closeButton.length > 0) {
                     elements.closeButton.html(vars.closeButtonText);
                 }
@@ -5906,7 +5906,7 @@ var fc = (function ($) {
                     value = fc.fields[id];
                 }
             }
-            
+
             // If the valid is valid, proceed
             if (value !== undefined) {
                 isValidObject = typeof value === "object" && (($.isArray(value) && value.length > 0) || !$.isEmptyObject(value));
@@ -6650,7 +6650,7 @@ var fc = (function ($) {
             //summaryHtml += '<div class="fc-green-id-skip-container">';
             //summaryHtml += '<h5>Skip verification</h5>';
             //summaryHtml += '<p>Can\'t verify? Click <a href="#" class="fc-skip-green-id" data-for="' + fieldId + '">here</a> to skip verification. <strong>Note:</strong> if you do opt out of digital verification, you will have to attach documents to your printed application to confirm your identity.</p>';
-            //summaryHtml += '</div>';            
+            //summaryHtml += '</div>';
 
             return summaryHtml;
         };
@@ -7051,7 +7051,7 @@ var fc = (function ($) {
                 // Fields that exist within an iterator who have conditional can create problems. They need to be able to respond to
                 // fields that exist within the target grouplet (which have dynamic IDs in the format: iteratorId_iteration_fieldId)
                 // However, they also need to be able to act on fields that exist in a global form scope (i.e. standard form fields).
-                // Therefore the condition has to be dynamic. We can't set a static condition as this won't evaluate fields within 
+                // Therefore the condition has to be dynamic. We can't set a static condition as this won't evaluate fields within
                 // each iteration.
                 //
                 // The implemented fix below matches all IDs, and checks to see if they exist in a global scope. If they do, it leave
@@ -7184,7 +7184,7 @@ var fc = (function ($) {
                 fc.domContainer.find('.fc-pagination:last').show();
             }
 
-            // Set values from data array       
+            // Set values from data array
             setFieldValues();
 
             // Flush the field/section visibility
@@ -8064,7 +8064,7 @@ var fc = (function ($) {
             if (showError === undefined) {
                 showError = true;
             }
-            
+
             // Default force submit to false
             if (typeof forceSubmit === 'undefined') {
                 forceSubmit = false;
@@ -8117,7 +8117,7 @@ var fc = (function ($) {
 
             if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
                 data.complete = true;
-                
+
                 if (!forceSubmit && isDevelopmentBranch()) {
                     // Set modal information
                     fc.modalState = fc.states.SUBMIT_DEVELOPMENT_BRANCH;
@@ -8130,7 +8130,7 @@ var fc = (function ($) {
                         body: fc.lang.confirmSubmitDevelopment,
                         title: fc.lang.areSureHeader
                     });
-                    
+
                     return false;
                 }
             }
@@ -8140,7 +8140,7 @@ var fc = (function ($) {
             fc.domContainer.find('.fc-loading-screen').addClass('show');
 
             fc.preventNextPageLoad = true;
-            
+
             api('page/submit', data, 'put', function (data) {
                 var lastPage,
                     offset;
@@ -8354,7 +8354,7 @@ var fc = (function ($) {
                 if (schema !== undefined && getConfig(schema, 'repeatable', false)) {
                     repeatableStyle = parseInt(getConfig(schema, 'repeatableStyle', 0));
 
-                    // Different repeatable objects have different styles. 
+                    // Different repeatable objects have different styles.
                     // Style '0': show the form fields in a modal dialog.
                     // Style '1': drop the form fields undearnath.
                     if (repeatableStyle === 0) {
@@ -8422,7 +8422,7 @@ var fc = (function ($) {
                     repeatableStyle = parseInt(getConfig(schema, 'repeatableStyle', 0));
 
                     if (repeatableStyle === 1) {
-                        // Style '1': drop form field underneath                
+                        // Style '1': drop form field underneath
                         fieldContainer = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"]');
                         sectionId = fieldContainer.attr('fc-belongs-to');
 
@@ -8798,7 +8798,7 @@ var fc = (function ($) {
                     if (fc.fieldSchema[parts[0]] !== undefined && fc.fieldSchema[parts[0]].type !== undefined && fc.fieldSchema[parts[0]].type === 'grouplet') {
                         // Fetch the grouplet schema
                         groupletSchema = getFieldsSchema(getConfig(fc.fieldSchema[parts[0]], 'grouplet', {'field': []}).field);
-                        
+
                         // For non-repeatable grouplets, only want to use the root ID (non-repeatable grouplets of the form ROOTID_GROUPLETFIELDID)
                         // Repeatable grouplets are of the format ROOTID_INDEX_GROUPLETFIELDID, you therefore need to track the first two
                         isRepeatable = getConfig(fc.fieldSchema[parts[0]], 'repeatable', false);
@@ -9724,7 +9724,7 @@ var fc = (function ($) {
 
                         // Mark the form as having been loaded
                         fc.domContainer.addClass(fc.constants.formLoadedClass);
-                        
+
                         // Initialise in dev mode
                         if (isDevelopmentBranch()) {
                             fc.domContainer.on(fc.jsEvents.onFinishRender, function () {
@@ -9732,7 +9732,7 @@ var fc = (function ($) {
                                 devHtml.attr('class', 'fc-dev-status');
                                 devHtml.append('<span></span>');
                                 devHtml.find('span').html('in development');
-                                $(document).find('body').append(devHtml);                                
+                                $(document).find('body').append(devHtml);
                             });
                         }
 
@@ -9785,7 +9785,7 @@ var fc = (function ($) {
              */
             renderGreenIdField: renderGreenIdField,
             initGreenIdFieldInDOM: initGreenIdFieldInDOM,
-			
+
 			/**
 			 * Expose field tag functionality
 			 */
@@ -9803,7 +9803,7 @@ var fc = (function ($) {
                     results = regex.exec(location.search);
                 return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
             },
-            
+
             /**
              * Sets the list of protected development branches.
              * @param branches array
@@ -9813,7 +9813,7 @@ var fc = (function ($) {
                     fc.developmentBranches = branches;
                 }
             },
-            
+
             /**
              * Retrieve the list of 'protected' development branches
              */
@@ -10270,7 +10270,7 @@ var fc = (function ($) {
 
                 return false;
             },
-            
+
             /**
              * Checks to see if a value is not empty.
              * @param field
