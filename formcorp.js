@@ -2956,7 +2956,7 @@ var fc = (function ($) {
           arr = input.split("\n");
 
           for (var x = 0; x < arr.length; x += 1) {
-            options[arr[x]] = arr[x].replace(/(\r\n|\n|\r)/gm, "").trim();
+            options[fc.lang.optionPrefix + arr[x]] = arr[x].replace(/(\r\n|\n|\r)/gm, "").trim();
           }
         }
 
@@ -3016,7 +3016,7 @@ var fc = (function ($) {
                   checked = getConfig(field, 'default') === option ? ' checked' : '';
 
                   tmpHtml = '<div class="' + cssClass + '">';
-                  tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key.trim()) + '" data-required="' + required + '"' + checked + '>';
+                  tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key.trim().substr(fc.lang.optionPrefix.length)) + '" data-required="' + required + '"' + checked + '>';
                   tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                   tmpHtml += '</div>';
 
@@ -3054,6 +3054,7 @@ var fc = (function ($) {
           json,
           savedValues = [],
           htmlItems = [],
+          finalKey,
           tmpHtml;
         /*jslint nomen: false*/
 
@@ -3080,12 +3081,13 @@ var fc = (function ($) {
             if (typeof option === 'object') {
               for (key in option) {
                 if (option.hasOwnProperty(key)) {
+                  finalKey = key.trim().substr(fc.lang.optionPrefix.length);
                   id = prefix + getId(field) + '_' + x++;
 
                   tmpHtml = '<div class="' + cssClass + '">';
-                  tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(key) + '" data-required="' + required + '"';
+                  tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(finalKey) + '" data-required="' + required + '"';
 
-                  if (savedValues.indexOf(key) > -1) {
+                  if (savedValues.indexOf(finalKey) > -1) {
                     tmpHtml += ' checked="checked"';
                   }
 
@@ -11268,7 +11270,8 @@ var fc = (function ($) {
           confirmSubmitDevelopment: 'The form is currently on a <em>development branch</em>. Are you sure you want to submit?',
           areSureHeader: 'Are you sure?',
           loading: 'Loading...',
-          dateCorrectFormat: 'Date must be in a valid format'
+          dateCorrectFormat: 'Date must be in a valid format',
+          optionPrefix: "opt_"
         };
 
         // Update with client options
