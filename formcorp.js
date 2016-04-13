@@ -2363,7 +2363,7 @@ var fc = (function ($) {
       /**
        *
        * @param formula
-       * @returns {*}
+       * @returns {*
        */
       formulaToPrice = function (formula) {
         if (isFormula(formula)) {
@@ -4988,6 +4988,21 @@ var fc = (function ($) {
 
               // Card number
               html += '<div class="card-number fc-green-field"><label>Licence card number: <span class="fc-required-caret">*</span></label>';
+              if (typeof fc.helpData === 'undefined') {
+                fc.helpData = [];
+                fc.helpTitle = [];
+              }
+
+              var helpData = "";
+              helpData += "<div style='width: 55%; float: left;'><strong>Card ID Number</strong><br>The card ID number is located on the top left corner on the back of your license (as shown on image to the right).</div>"
+              helpData += '<img src="' + cdnUrl() + '/img/greenid/nsw_license_back.png" style="max-width: 40%; float: right;" alt="NSW Drivers License (back)">';
+              helpData += '<div style="clear: both;"></div>';
+              fc.helpData.push(helpData);
+              fc.helpTitle.push('Where is this?');
+
+              html += '<div class="card-number fc-green-field"><label>Card ID number: <span class="fc-required-caret">*</span> ';
+              html += ' <a class="fc-help-link" tabindex="-1" href="#" data-for="' + (fc.helpData.length - 1) + '">where is this?</a>';
+              html += '</label>';
               html += renderTextfield(fields.licenseCardNumber);
               html += '</div>';
 
