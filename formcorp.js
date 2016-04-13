@@ -2956,7 +2956,7 @@ var fc = (function ($) {
           arr = input.split("\n");
 
           for (var x = 0; x < arr.length; x += 1) {
-            options[arr[x]] = arr[x].replace(/(\r\n|\n|\r)/gm, "");
+            options[arr[x]] = arr[x].replace(/(\r\n|\n|\r)/gm, "").trim();
           }
         }
 
@@ -2964,7 +2964,7 @@ var fc = (function ($) {
         for (var key in options) {
           if (options.hasOwnProperty(key)) {
             obj = {};
-            obj[key] = options[key];
+            obj[key.trim()] = options[key];
             optionsArr.push(obj);
           }
         }
@@ -3000,17 +3000,6 @@ var fc = (function ($) {
           checked;
         /*jslint nomen: false*/
 
-        // Create an array of the field's values
-        if (fc.fields[fieldId] !== undefined && typeof fc.fields[fieldId] === "string") {
-          try {
-            json = $.parseJSON(fc.fields[fieldId]);
-            savedValues = json;
-          } catch (ignore) {
-          }
-        } else if (typeof fc.fields[fieldId] === "object") {
-          savedValues = fc.fields[fieldId];
-        }
-
         // Determine the css class to use
         cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
 
@@ -3027,7 +3016,7 @@ var fc = (function ($) {
                   checked = getConfig(field, 'default') === option ? ' checked' : '';
 
                   tmpHtml = '<div class="' + cssClass + '">';
-                  tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key) + '" data-required="' + required + '"' + checked + '>';
+                  tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key.trim()) + '" data-required="' + required + '"' + checked + '>';
                   tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                   tmpHtml += '</div>';
 
@@ -4987,7 +4976,6 @@ var fc = (function ($) {
               html += '</div>';
 
               // Card number
-              html += '<div class="card-number fc-green-field"><label>Licence card number: <span class="fc-required-caret">*</span></label>';
               if (typeof fc.helpData === 'undefined') {
                 fc.helpData = [];
                 fc.helpTitle = [];
