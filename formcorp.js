@@ -7772,7 +7772,9 @@ var fc = (function ($) {
       var html = '',
         x,
         section,
-        sectionHtml;
+        sectionHtml,
+        randomise,
+        fields;
 
       for (x = 0; x < sections.length; x += 1) {
         section = sections[x];
@@ -7795,7 +7797,15 @@ var fc = (function ($) {
 
         // Render the fields
         if (section.field !== undefined && section.field.length > 0) {
-          sectionHtml += renderFields(section.field, section);
+          // If the section questions/fields is to be randomised, need to do so now
+          randomise = section.randomOrder === true;
+          if (randomise) {
+            fields = shuffle(section.field);
+          } else {
+            fields = section.field;
+          }
+
+          sectionHtml += renderFields(fields, section);
         }
 
         sectionHtml += '<div class="fc-section-end"></div>';
