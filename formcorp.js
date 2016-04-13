@@ -11514,6 +11514,46 @@ var fc = (function ($) {
       },
 
       /**
+       * Returns whether one value is greater than another.
+       * @param field
+       * @param comparisonValue
+       * @returns {boolean}
+       */
+      comparisonGreater: function (field, comparisonValue) {
+        return $.isNumeric(field) && $.isNumeric(comparisonValue) && field > comparisonValue;
+      },
+
+      /**
+       * Returns whether one value is greater or equal to another.
+       * @param field
+       * @param comparisonValue
+       * @returns {boolean}
+       */
+      comparisonGreater_or_equal: function (field, comparisonValue) {
+        return $.isNumeric(field) && $.isNumeric(comparisonValue) && field >= comparisonValue;
+      },
+
+      /**
+       * Returns whether one value is less than another.
+       * @param field
+       * @param comparisonValue
+       * @returns {boolean}
+       */
+      comparisonLess: function (field, comparisonValue) {
+        return $.isNumeric(field) && $.isNumeric(comparisonValue) && field < comparisonValue;
+      },
+
+      /**
+       * Returns whether one value is less than or equal to another.
+       * @param field
+       * @param comparisonValue
+       * @returns {boolean}
+       */
+      comparisonLess_or_equal: function (field, comparisonValue) {
+        return $.isNumeric(field) && $.isNumeric(comparisonValue) && field <= comparisonValue;
+      },
+
+      /**
        * Expose get hashvar
        */
        getHashVar: getHashVar,
