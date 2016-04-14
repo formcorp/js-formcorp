@@ -2361,6 +2361,15 @@ var fc = (function ($) {
       },
 
       /**
+       * Removes a hash variable from the URL
+       * @param prefix string
+       */
+      removeHashVar = function (prefix) {
+        var updatedHash = setHashVar(prefix, "", false).replace(prefix, '');
+        window.location.hash = updatedHash;
+      },
+
+      /**
        *
        * @param formula
        * @returns {*
@@ -11271,7 +11280,8 @@ var fc = (function ($) {
           areSureHeader: 'Are you sure?',
           loading: 'Loading...',
           dateCorrectFormat: 'Date must be in a valid format',
-          optionPrefix: "opt_"
+          optionPrefix: "opt_",
+          urlSessionPrefix: 's:'
         };
 
         // Update with client options
@@ -11303,11 +11313,26 @@ var fc = (function ($) {
        * Initialise the existing session, or instantiate a new one.
        */
       initSession: function () {
-        // If session id already exists (@todo: and allowed to set sessions), set it
-        if (this.sessionId !== undefined && this.getSetting(this.constants.persistentSessions, false)) {
-          $.cookie(this.config.sessionIdName, this.sessionId);
-          return;
+        // If session id set in URL, use it
+        if (this.getSetting(this.constants.persistentSessions, false)) {
+          var urlSessionId = getHashVar(fc.lang.urlSessionPrefix);
+          if (urlSessionId.length > 0 ) {
+            $.cookie(this.config.sessionIdName, urlSessionId);
+            this.sessionId = urlSessionId;
+
+            // After the hash var has been processed, remove it from the URL
+            removeHashVar(fc.lang.urlSessionPrefix);
+            return;
+          }
+
+          // If session id already exists (@todo: and allowed to set sessions), set it
+          if (this.sessionId !== undefined) {
+            $.cookie(this.config.sessionIdName, this.sessionId);
+            return;
+          }
+
         }
+
 
         // Initialise a new session
         if (this.sessionId === undefined && $.cookie(this.config.sessionIdName) === undefined) {
