@@ -1800,6 +1800,19 @@ var fc = (function ($) {
       },
 
       /**
+       * Convert a string to boolean logic.
+       * @param logic string
+       * @return string
+       */
+      getBooleanLogic = function (logic) {
+        if (typeof logic === 'string' && logic.isJson()) {
+          return toBooleanLogic($.parseJSON(logic));
+        }
+
+        return logic;
+      },
+
+      /**
        * Converts an object to a literal boolean object string.
        * @param obj
        * @returns {*}
@@ -8245,7 +8258,7 @@ var fc = (function ($) {
         for (id in currentPage.page.toCondition) {
           if (currentPage.page.toCondition.hasOwnProperty(id)) {
             condition = currentPage.page.toCondition[id];
-            if (eval(condition)) {
+            if (eval(getBooleanLogic(condition))) {
               if (shouldRender) {
                 render(id, true);
               }
@@ -10112,7 +10125,7 @@ var fc = (function ($) {
           section = page.page.section[x];
 
           if (typeof section.visibility === 'string' && section.visibility.length > 0) {
-            visible = eval(section.visibility);
+            visible = eval(getBooleanLogic(section.visibility));
             if (!visible) {
               if (typeof section.field === "object" && section.field.length > 0) {
                 for (y = 0; y < section.field.length; y += 1) {
