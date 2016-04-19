@@ -2937,7 +2937,7 @@ var fc = (function ($) {
 
               // Append label
               if (col.label) {
-                html += '<span class="fc-table-label">' + col.label + '</span>';
+                html += '<span class="fc-table-label">' + tokenise(col.label) + '</span>';
               }
 
               // Render option button
@@ -4310,7 +4310,7 @@ var fc = (function ($) {
 
             // If the page rendered any fields, display it
             if (pageHtml.length > 0) {
-              html += "<tr><th colspan='2' data-page=" + getId(page) + ">" + htmlEncode(page.label) + "</th></tr>";
+              html += "<tr><th colspan='2' data-page=" + getId(page) + ">" + tokenise(htmlEncode(page.label)) + "</th></tr>";
               html += pageHtml;
             }
           }
@@ -7807,13 +7807,13 @@ var fc = (function ($) {
 
         if (typeof section.label === 'string' && section.label.length > 0) {
           sectionHtml += '<div class="fc-section-label">';
-          sectionHtml += '<h4>' + section.label + '</h4>';
+          sectionHtml += '<h4>' + tokenise(section.label) + '</h4>';
           sectionHtml += '</div>';
         }
 
         if (typeof section.description === 'string' && section.description.length > 0) {
           sectionHtml += '<div class="fc-section-desc">';
-          sectionHtml += '<p>' + section.description + '</p>';
+          sectionHtml += '<p>' + tokenise(section.description) + '</p>';
           sectionHtml += '</div>';
         }
 
@@ -7860,17 +7860,17 @@ var fc = (function ($) {
         nextPageObj,
         submitClasses = ['fc-submit'];
 
-      pageDiv += '<h1>' + page.stage.label + '</h1>';
+      pageDiv += '<h1>' + tokenise(page.stage.label) + '</h1>';
       page = page.page;
 
       /*jslint nomen: true*/
       fc.pageId = page._id.$id;
       /*jslint nomen: false*/
       if (typeof page.label === 'string' && page.label.length > 0) {
-        pageDiv += '<h2>' + page.label + '</h2>';
+        pageDiv += '<h2>' + tokenise(page.label) + '</h2>';
       }
       if (typeof page.description === 'string' && page.description.length > 0) {
-        pageDiv += '<h3>' + page.description + '</h3>';
+        pageDiv += '<h3>' + tokenise(page.description) + '</h3>';
       }
 
       // Render page sections
