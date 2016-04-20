@@ -6291,6 +6291,7 @@ var fc = (function ($) {
       loadSchema,
       hasNextPage,
       loadNextPage,
+      loadPrevPage,
       processSaveQueue,
       showDeleteDialog,
       showRepeatableEditDialog,
@@ -6302,6 +6303,7 @@ var fc = (function ($) {
       registerEventListeners,
       nextPage,
       render,
+      afterRender,
       renderPage,
       flushVisibility,
       flushRepeatableGroupletVisibility,
@@ -8195,7 +8197,14 @@ var fc = (function ($) {
       }
 
       fc.domContainer.trigger(fc.jsEvents.onPageRender, [pageId]);
+      fc.functions.afterRender(pageId);
+    };
 
+    /**
+     * Cleanup after rendering a pageId
+     * @param pageId string
+     */
+    afterRender = function (pageId) {
       // Set values from data array
       setFieldValues();
 
@@ -8216,11 +8225,6 @@ var fc = (function ($) {
 
       // Initialise greenID fields
       initGreenIdDOMFields();
-
-      // Often various pages will be loaded at the same time (when no fields on that page are required)
-      /*if (fc.config.autoLoadPages) {
-       //checkAutoLoad();
-       }*/
     };
 
     /**
@@ -8357,6 +8361,8 @@ var fc = (function ($) {
 
       // If a next page exists and the current page is valid, load the next page
       if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
+        console.log('load next page');
+
         fc.functions.loadNextPage(false);
         return true;
       }
@@ -9318,6 +9324,20 @@ var fc = (function ($) {
     };
 
     /**
+     * Load the previous page
+     */
+    loadPrevPage = function () {
+      if (fc.config.showPrevPageButton !== true) {
+        return false;
+      }
+
+      fc.domContainer.trigger(fc.jsEvents.onPrevPage);
+      window.history.back();
+
+      return false;
+    };
+
+    /**
      * Register event listeners specific for one page
      */
     registerOnePageListeners = function () {
@@ -9372,13 +9392,7 @@ var fc = (function ($) {
 
       // Previous page click
       fc.domContainer.on('click', '.fc-prev-page', function () {
-        if (fc.config.showPrevPageButton !== true) {
-          return false;
-        }
-
-        fc.domContainer.trigger(fc.jsEvents.onPrevPage);
-        window.history.back();
-        return false;
+        return fc.functions.loadPrevPage();
       });
 
       // Description link clicks
@@ -10671,7 +10685,9 @@ var fc = (function ($) {
 
         // This allows the users/apps to override core functions within the SDK
         this.functions = {
-          loadNextPage: loadNextPage
+          loadNextPage: loadNextPage,
+          loadPrevPage: loadPrevPage,
+          afterRender: afterRender
         };
 
         // Fields that require library fieldPages
@@ -11381,6 +11397,10 @@ var fc = (function ($) {
 
       // Exposed functions
       loadNextPage: loadNextPage,
+      loadPrevPage: loadPrevPage,
+      afterRender: afterRender,
+      validForm: validForm,
+      getFieldValue: getFieldValue,
 
       /**
        * Returns true if a page is valid, false if not
