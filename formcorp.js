@@ -3617,7 +3617,7 @@ var fc = (function ($) {
 
             // Try and load the next page
             fc.nextPageButtonClicked = true;
-            loadNextPage(false);
+            fc.functions.loadNextPage(false);
 
             return;
           }
@@ -7819,6 +7819,8 @@ var fc = (function ($) {
 
         sectionHtml += '</div>';
 
+        sectionHtml += '<div class="fc-section-body">';
+
         // Render the fields
         if (section.field !== undefined && section.field.length > 0) {
           // If the section questions/fields is to be randomised, need to do so now
@@ -7831,6 +7833,8 @@ var fc = (function ($) {
 
           sectionHtml += renderFields(fields, section);
         }
+
+        sectionHtml += '</div>';
 
         sectionHtml += '<div class="fc-section-end"></div>';
         sectionHtml += '</div>';
@@ -8190,6 +8194,8 @@ var fc = (function ($) {
         fc.domContainer.find('.fc-pagination:last').show();
       }
 
+      fc.domContainer.trigger(fc.jsEvents.onPageRender, [pageId]);
+
       // Set values from data array
       setFieldValues();
 
@@ -8351,7 +8357,7 @@ var fc = (function ($) {
 
       // If a next page exists and the current page is valid, load the next page
       if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
-        loadNextPage(false);
+        fc.functions.loadNextPage(false);
         return true;
       }
 
@@ -9353,7 +9359,7 @@ var fc = (function ($) {
         // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
         fc.nextPageButtonClicked = true;
 
-        loadNextPage();
+        fc.functions.loadNextPage();
         return false;
       });
 
@@ -9597,7 +9603,7 @@ var fc = (function ($) {
               break;
             case fc.states.SUBMIT_DEVELOPMENT_BRANCH:
               hideModal();
-              loadNextPage(true, true);
+              fc.functions.loadNextPage(true, true);
               break;
           }
         }
@@ -10663,6 +10669,11 @@ var fc = (function ($) {
         this.formState = '';
         this.loadedLibs = [];
 
+        // This allows the users/apps to override core functions within the SDK
+        this.functions = {
+          loadNextPage: loadNextPage
+        };
+
         // Fields that require library fieldPages
         this.requiredFieldLibraries = {
           'date': [this.libs.MATERIAL_DATEPICKER]
@@ -10764,7 +10775,8 @@ var fc = (function ($) {
           onFieldFocus: 'onFieldFocus',
           onFieldBlur: 'onFieldBlur',
           onCustomerAuthResult: 'onCustomerAuthResult',
-          onFormStateChange: 'onFormStateChange'
+          onFormStateChange: 'onFormStateChange',
+          onPageRender: 'onPageRender'
         };
 
         /**
@@ -11355,6 +11367,20 @@ var fc = (function ($) {
           this.sessionId = $.cookie(this.config.sessionIdName);
         }
       },
+
+      /**
+       * Ability to override a function.
+       * @param key string
+       * @param func function
+       */
+      overrideFunction: function (key, func) {
+        if (typeof key === 'string' && typeof func === 'function') {
+          fc.functions[key] = func;
+        }
+      },
+
+      // Exposed functions
+      loadNextPage: loadNextPage,
 
       /**
        * Returns true if a page is valid, false if not
