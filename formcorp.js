@@ -4574,6 +4574,16 @@ var fc = (function ($) {
       },
 
       /**
+       * Fetch replacement tokens
+       * @return object
+       */
+      getTokens = function () {
+        var tokens = $.extend({}, getFieldTagValues(), fc.languagePacks);
+
+        return tokens;
+      },
+
+      /**
        * Tokenises a string.
        *
        * @param raw
@@ -4588,15 +4598,28 @@ var fc = (function ($) {
         var tokenisedString = raw,
           tokens = raw.match(/\{\{([a-zA-Z0-9-_.]+)\}\}/g),
           iterator = 0,
-          tags = getFieldTagValues(),
+          tags = getTokens(),
           token,
-          replacement = '';
+          nestedTokens,
+          replacement = '',
+          i,
+          replacementObj;
 
         // Iterate through each token
         if (tokens && $.isArray(tokens) && tokens.length > 0) {
           for (iterator = 0; iterator < tokens.length; iterator += 1) {
             token = tokens[iterator].replace(/[\{\}]+/g, '');
-            replacement = tags[token] !== undefined ? tags[token] : '';
+
+            // If there are full stops in the token, need to perform a nested look up
+            nestedTokens = token.split(fc.constants.tagSeparator);
+            replacementObj = tags;
+            for (i = 0; i < nestedTokens.length; i++) {
+              replacementObj = replacementObj[nestedTokens[i]];
+              if (typeof replacementObj !== 'object') {
+                break;
+              }
+            }
+            replacement = replacementObj !== undefined ? replacementObj : '';
             replacement = '<span class="fc-token" data-token="' + htmlEncode(token) + '">' + replacement + '</span>';
 
             tokenisedString = tokenisedString.replace(new RegExp(tokens[iterator].escapeRegExp(), 'g'), replacement);
@@ -10569,6 +10592,10 @@ var fc = (function ($) {
           }
         }
 
+        if (typeof data.lang === 'object') {
+          fc.languagePacks = data.lang;
+        }
+
         // If library files aren't marked to be auto discovered, initialise the render
         if (!fc.config.autoDiscoverLibs) {
           initRender(data);
@@ -10682,6 +10709,7 @@ var fc = (function ($) {
         this.fieldCount = 0;
         this.formState = '';
         this.loadedLibs = [];
+        this.languagePacks = {};
 
         // This allows the users/apps to override core functions within the SDK
         this.functions = {
@@ -11017,6 +11045,7 @@ var fc = (function ($) {
 			 */
 			getAllFieldTags: getAllFieldTags,
 			getFieldTagValues: getFieldTagValues,
+      getTokens: getTokens,
 
       /**
        * Retrieve a URL parameter by name
