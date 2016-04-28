@@ -2199,6 +2199,66 @@ var fc = (function ($) {
       },
 
       /**
+       * Set a language alias
+       * @param to string
+       * @param from string
+       */
+      setLanguageAlias = function(to, from) {
+        if (typeof fc.languageAliasMaps === 'undefined') {
+          fc.languageAliasMaps = {};
+        }
+
+        fc.languageAliasMaps[to] = from;
+      },
+
+      /**
+       * Load language packs and perform additional mapping.
+       * @param lang object
+       */
+      loadLanguagePack = function (lang) {
+        fc.languagePacks = lang;
+
+        var from, to, iterator, fromObj, toObj, parts, mappingKey, performMapping;
+
+        if (typeof fc.languageAliasMaps === 'object' && Object.keys(fc.languageAliasMaps).length > 0) {
+          for (var key in fc.languageAliasMaps) {
+            if (fc.languageAliasMaps.hasOwnProperty(key)) {
+              to = key;
+              from = fc.languageAliasMaps[key];
+
+              // Fetch the object to map from
+              parts = from.split(fc.constants.tagSeparator);
+              fromObj = fc.languagePacks;
+              for (iterator = 0; iterator < parts.length; iterator += 1) {
+                  fromObj = fromObj[parts[iterator]];
+                  if (typeof fromObj === 'undefined') {
+                    break;
+                  }
+              }
+
+              // Perform the mapping
+              if (typeof fromObj !== 'undefined') {
+                parts = to.split(fc.constants.tagSeparator);
+                toObj = fc.languagePacks;
+                for (iterator = 0; iterator < parts.length; iterator += 1) {
+                  mappingKey = parts[iterator];
+                  if (typeof toObj[mappingKey] !== 'object') {
+                    toObj[mappingKey] = {};
+                  }
+
+                  if (iterator < parts.length - 1) {
+                    toObj = toObj[mappingKey];
+                  }
+                }
+
+                toObj[mappingKey] = fromObj;
+              }
+            }
+          }
+        }
+      },
+
+      /**
        * Returns the amount of values in a repeatable grouplet
        * @param fieldId
        * @returns {*}
@@ -10593,7 +10653,7 @@ var fc = (function ($) {
         }
 
         if (typeof data.lang === 'object') {
-          fc.languagePacks = data.lang;
+          loadLanguagePack(data.lang);
         }
 
         // If library files aren't marked to be auto discovered, initialise the render
@@ -10741,6 +10801,10 @@ var fc = (function ($) {
         // Set the tags (may have previously been set)
         if (typeof this.tags === 'undefined') {
           this.tags = [];
+        }
+
+        if (typeof this.languageAliasMaps === 'undefined') {
+          this.languageAliasMaps = {};
         }
 
         // Add support for CORs (this was resulting in an error in IE9 which was preventing it from being able to communicate with out API)
@@ -11046,6 +11110,7 @@ var fc = (function ($) {
 			getAllFieldTags: getAllFieldTags,
 			getFieldTagValues: getFieldTagValues,
       getTokens: getTokens,
+      setLanguageAlias: setLanguageAlias,
 
       /**
        * Retrieve a URL parameter by name
