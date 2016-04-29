@@ -2131,44 +2131,7 @@ var fc = (function ($) {
        * @returns {*}
        */
       replaceTokens = function (layout, tokens, withSpan) {
-        var replacements = layout.match(/\{\{([^\}]{0,})\}\}/g),
-          replacement,
-          token,
-          index,
-          re,
-          replaceHtml;
-
-        if (typeof withSpan !== 'boolean') {
-          withSpan = false;
-        }
-
-        // If no replacements found, do nothing
-        if (!$.isArray(replacements) || replacements.length === 0) {
-          return layout;
-        }
-
-        for (index = 0; index < replacements.length; index += 1) {
-          replacement = replacements[index];
-          token = replacement.replace(/[\{\}]/g, "");
-          re = new RegExp('\\{\\{' + token + '\\}\\}', "gi");
-
-          // If the token exists, perform the replacement, else set to empty
-          if (tokens.hasOwnProperty(token)) {
-            replaceHtml = tokens[token];
-          } else {
-            replaceHtml = "";
-          }
-
-          // Insert a span
-          if (withSpan) {
-            replaceHtml = '<span class="fc-token" data-token="' + token + '">' + replaceHtml + '</span>';
-          }
-
-
-          layout = layout.replace(re, replaceHtml);
-        }
-
-        return layout;
+        return tokenise(layout);
       },
 
       /**
@@ -2620,6 +2583,8 @@ var fc = (function ($) {
           fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
         } else {
           // Set the button
+          console.log(value);
+          console.log(encodeURIComponent(value));
           selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
           if (selector.length > 0) {
             selector.addClass('checked');
@@ -3088,6 +3053,10 @@ var fc = (function ($) {
         // Iterate through each option
         x = 0;
         if (typeof options === 'object' && $.isArray(options) && options.length > 0) {
+          if (getConfig(field, 'asButton', false)) {
+             html += '<div class="fc-radio-option-buttons">';
+          }
+
           for (iterator = 0; iterator < options.length; iterator += 1) {
             option = options[x];
 
@@ -3097,10 +3066,16 @@ var fc = (function ($) {
                   id = prefix + getId(field) + '_' + x++;
                   checked = getConfig(field, 'default') === option ? ' checked' : '';
 
-                  tmpHtml = '<div class="' + cssClass + '">';
-                  tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key.trim().substr(fc.lang.optionPrefix.length)) + '" data-required="' + required + '"' + checked + '>';
-                  tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
-                  tmpHtml += '</div>';
+                  if (getConfig(field, 'asButton', false)) {
+                    tmpHtml = '<div class="fc-option-buttons ' + cssClass + '">';
+                    tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(htmlEncode(key.trim().substr(fc.lang.optionPrefix.length))) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
+                    tmpHtml += '</div>';
+                  } else {
+                    tmpHtml = '<div class="' + cssClass + '">';
+                    tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key.trim().substr(fc.lang.optionPrefix.length)) + '" data-required="' + required + '"' + checked + '>';
+                    tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
+                    tmpHtml += '</div>';
+                  }
 
                   htmlItems.push(tmpHtml);
                 }
@@ -3109,7 +3084,12 @@ var fc = (function ($) {
           }
         }
 
-        return htmlItems.join('');
+        html += htmlItems.join('');
+        if (getConfig(field, 'asButton', false)) {
+           html += '</div>';
+        }
+
+        return html;
       },
 
       /**
@@ -4644,6 +4624,17 @@ var fc = (function ($) {
       },
 
       /**
+       * Check whether a string has tokens
+       * @param str
+       * @return boolean
+       */
+      stringHasTokens = function (str) {
+        var tokens = str.match(/\{\{[a-zA-Z\_\-0-9\.]+\}\}/g);
+
+        return typeof tokens === 'object' && $.isArray(tokens) && tokens.length > 0;
+      },
+
+      /**
        * Tokenises a string.
        *
        * @param raw
@@ -4679,7 +4670,14 @@ var fc = (function ($) {
                 break;
               }
             }
+
             replacement = replacementObj !== undefined ? replacementObj : '';
+
+            // If the string has additional tokens, needs to replace recursively
+            if (stringHasTokens(replacement)) {
+              replacement = tokenise(replacement);
+            }
+
             replacement = '<span class="fc-token" data-token="' + htmlEncode(token) + '">' + replacement + '</span>';
 
             tokenisedString = tokenisedString.replace(new RegExp(tokens[iterator].escapeRegExp(), 'g'), replacement);
@@ -8444,8 +8442,6 @@ var fc = (function ($) {
 
       // If a next page exists and the current page is valid, load the next page
       if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
-        console.log('load next page');
-
         fc.functions.loadNextPage(false);
         return true;
       }
