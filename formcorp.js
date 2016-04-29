@@ -893,7 +893,7 @@ var fc = (function ($) {
 
           dataId = $(field).attr('formcorp-data-id');
 
-          if (fc.fieldSchema[dataId].type === 'matrix') {
+          if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
             return parseMatrixField(field, true);
           }
 
@@ -2583,8 +2583,6 @@ var fc = (function ($) {
           fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
         } else {
           // Set the button
-          console.log(value);
-          console.log(encodeURIComponent(value));
           selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
           if (selector.length > 0) {
             selector.addClass('checked');
@@ -7011,7 +7009,13 @@ var fc = (function ($) {
 
           // Remove button (for style '1' - add button in DOM)
           if (parseInt(repeatableStyle) === 1) {
-            fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-remove fc-hide" data-id="' + dataId + '">';
+            fieldHtml += '<div class="fc-link"><a href="#" class="fc-click fc-remove';
+
+            if (amountOfRows <= getNumericTagValue(getConfig(field, 'repeatableLinkedTo'))) {
+              fieldHtml += ' fc-hide';
+            }
+
+            fieldHtml += '" data-id="' + dataId + '">';
             fieldHtml += getConfig(field, 'removeButtonText', '').length > 0 ? getConfig(field, 'removeButtonText') : fc.lang.removeFieldTextValue;
             fieldHtml += '</a></div>';
           }
@@ -8204,6 +8208,7 @@ var fc = (function ($) {
     flushVisibility = function () {
       flushSectionVisibility();
       flushFieldVisibility();
+      updateMobileFieldsVisibility();
     };
 
     /**
@@ -8227,7 +8232,6 @@ var fc = (function ($) {
         }
       });
 
-      flushVisibility();
       fc.inMobileView = fc.mobileView;
     };
 
@@ -9630,7 +9634,7 @@ var fc = (function ($) {
                     }
                   }
 
-                  if (currentRows - 1 >= getNumericTagValue(getConfig(schema, 'repeatableLinkedTo'))) {
+                  if (currentRows - 1 <= getNumericTagValue(getConfig(schema, 'repeatableLinkedTo'))) {
                     // Hide the remove button if zero rows
                     fieldContainer.find('.fc-remove').addClass('fc-hide');
                   } else if (fieldContainer.find('.fc-add.fc-hide')) {
