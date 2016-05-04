@@ -1172,3 +1172,13 @@ body .c-datepicker {
 .c-scrim--shown {
   z-index: 11;
 }
+
+body div.fc-container div.fc-security-error {
+  background-color: #d9534f;
+  border-color: #d43f3a;
+  color: #fff;
+  padding: 15px;
+  margin-bottom: 5rem;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+}

@@ -1408,6 +1408,32 @@ var fc = (function ($) {
       },
 
       /**
+       * Checks to see if an object is an enhanced security error.
+       * @param data {obj}
+       * @return boolean
+       */
+      enhancedSecurityError = function (data) {
+        return typeof data === 'object' && typeof data.success === 'boolean' && !data.success && data.category === fc.constants.enhancedSecurity;
+      },
+
+      /**
+       * Shows an 'enhanced' security error
+       * @param data {obj}
+       */
+      showSecurityError = function (data) {
+        var errorDiv = $('<div></div>').addClass('fc-security-error');
+        var error = $('<span></span>').text(data.message);
+        errorDiv.prepend(error);
+
+        var target = fc.domContainer.find('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination');
+
+        if (target.length > 0) {
+          target.find('.fc-security-error').remove();
+          target.prepend(errorDiv);
+        }
+      },
+
+      /**
        * 'god' fields do not require a value (i.e. rich text area)
        * @type {string[]}
        */
@@ -9402,6 +9428,14 @@ var fc = (function ($) {
           logEvent(fc.eventTypes.onNextPageError);
         }
 
+        if (enhancedSecurityError(data)) {
+          showSecurityError(data);
+          fc.preventNextPageLoad = true;          
+          fc.domContainer.find('.fc-loading-screen').removeClass('show');
+
+          return;
+        }
+
         fc.preventNextPageLoad = false;
       });
     };
@@ -10910,6 +10944,7 @@ var fc = (function ($) {
             summaryLayout: 'summaryLayout'
           },
           persistentSessions: 'persistentSessions',
+          enhancedSecurity: 'enhancedSecurity',
           defaultChannel: 'master',
           greenId: {
             scriptPath: isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
