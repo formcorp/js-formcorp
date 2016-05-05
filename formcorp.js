@@ -9428,12 +9428,11 @@ var fc = (function ($) {
           logEvent(fc.eventTypes.onNextPageError);
         }
 
+        // Show an enhanced security error if detected
         if (enhancedSecurityError(data)) {
           showSecurityError(data);
-          fc.preventNextPageLoad = true;          
           fc.domContainer.find('.fc-loading-screen').removeClass('show');
-
-          return;
+          fc.domContainer.trigger(fc.jsEvents.onLoadingPageEnd);
         }
 
         fc.preventNextPageLoad = false;
