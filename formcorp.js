@@ -1589,7 +1589,7 @@ var fc = (function ($) {
           skipCheck = true;
         } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
           // If email or sms verification, check if verified
-          if (fc.fields[getId(field)] === undefined || fc.fields[getId(field)] !== '1') {
+          if (fc.fields[getId(field)] === undefined || !validVerificationResult(fc.fields[getId(field)])) {
             errors.push(fc.lang.fieldMustBeVerified);
           } else {
             // Successfully verified
@@ -1643,6 +1643,19 @@ var fc = (function ($) {
         }
 
         return errors;
+      },
+
+      /**
+       * Whether or not a value is a valid verification result
+       * @param value string
+       * @returns boolean
+       */
+      validVerificationResult = function (value) {
+        if (typeof value !== 'string') {
+          return false;
+        }
+
+        return value.length >= 48;
       },
 
       /**
@@ -3773,11 +3786,13 @@ var fc = (function ($) {
           } else if (!data.success && typeof data.message === "string") {
             $('.fc-modal .modal-footer .fc-error').html(data.message).removeClass('fc-hide');
           } else if (data.success) {
-            // The field was successfully verified
-            $('[fc-data-group="' + fc.modalMeta.fieldId + '"]').addClass('fc-verified');
-            fc.fields[fc.modalMeta.fieldId] = '1';
-            valueChanged(fc.modalMeta.fieldId, '1', true);
-            hideModal();
+            if (typeof data === 'object' && typeof data.verificationCode === 'string' && data.verificationCode.length > 0) {
+              // The field was successfully verified
+              $('[fc-data-group="' + fc.modalMeta.fieldId + '"]').addClass('fc-verified');
+              fc.fields[fc.modalMeta.fieldId] = data.verificationCode;
+              valueChanged(fc.modalMeta.fieldId, data.verificationCode, true);
+              hideModal();
+            }
           }
 
           $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
@@ -3789,6 +3804,7 @@ var fc = (function ($) {
        * @returns {boolean}
        */
       verifyEmailAddress = function () {
+        console.log('verify email address');
         verifyCode($('.fc-email-verification-submit input[type=text]').val());
       },
 
@@ -3924,24 +3940,26 @@ var fc = (function ($) {
 
           // Perform the API request
           api('verification/verify', data, 'POST', function (data) {
-            var message = data.message || "";
+            if (typeof data === 'object' && typeof data.verificationCode === 'string' && data.verificationCode.length > 0) {
+              var message = data.message || "";
 
-            parent.removeClass('loading');
-            el.val("").attr('placeholder', fc.lang.verificationErrorPrefix + message);
+              parent.removeClass('loading');
+              el.val("").attr('placeholder', fc.lang.verificationErrorPrefix + message);
 
-            if (typeof data !== "object" || data.success === undefined) {
-              // An unknown error occurred
-              parent.addClass('error');
-            } else if (!data.success && typeof data.message === "string") {
-              parent.addClass('error');
-            } else if (data.success) {
-              // The field was successfully verified
-              $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
-              fc.fields[fieldId] = '1';
-              valueChanged(fieldId, '1', true);
+              if (typeof data !== "object" || data.success === undefined) {
+                // An unknown error occurred
+                parent.addClass('error');
+              } else if (!data.success && typeof data.message === "string") {
+                parent.addClass('error');
+              } else if (data.success) {
+                // The field was successfully verified
+                $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
+                fc.fields[fieldId] = data.verificationCode;
+                valueChanged(fieldId, data.verificationCode, true);
+              }
+
+              $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
             }
-
-            $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
           });
         });
 
@@ -3970,7 +3988,7 @@ var fc = (function ($) {
         // Start formatting the html to output
         var html = '',
           fieldValue = fc.fields[getId(field)],
-          verified = fieldValue !== undefined && fieldValue === '1',
+          verified = validVerificationResult(fieldValue),
           buttonText = getConfig(field, 'sendButtonText', ''),
           verificationButtonText = getConfig(field, 'verificationButtonText', ''),
           verifyClass
@@ -4123,24 +4141,26 @@ var fc = (function ($) {
 
           // Perform the API request
           api('verification/verify', data, 'POST', function (data) {
-            var message = data.message || "";
+            if (typeof data === 'object' && typeof data.verificationCode === 'string' && data.verificationCode.length > 0) {
+              var message = data.message || "";
 
-            parent.removeClass('loading');
-            el.val("").attr('placeholder', fc.lang.verificationErrorPrefix + message);
+              parent.removeClass('loading');
+              el.val("").attr('placeholder', fc.lang.verificationErrorPrefix + message);
 
-            if (typeof data !== "object" || data.success === undefined) {
-              // An unknown error occurred
-              parent.addClass('error');
-            } else if (!data.success && typeof data.message === "string") {
-              parent.addClass('error');
-            } else if (data.success) {
-              // The field was successfully verified
-              $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
-              fc.fields[fieldId] = '1';
-              valueChanged(fieldId, '1', true);
+              if (typeof data !== "object" || data.success === undefined) {
+                // An unknown error occurred
+                parent.addClass('error');
+              } else if (!data.success && typeof data.message === "string") {
+                parent.addClass('error');
+              } else if (data.success) {
+                // The field was successfully verified
+                $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
+                fc.fields[fieldId] = data.verificationCode;
+                valueChanged(fieldId, data.verificationCode, true);
+              }
+
+              $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
             }
-
-            $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
           });
         });
 
@@ -4170,7 +4190,7 @@ var fc = (function ($) {
         /// Start formatting the html to output
         var html = '',
           fieldValue = fc.fields[getId(field)],
-          verified = fieldValue !== undefined && fieldValue === '1',
+          verified = validVerificationResult(fieldValue),
           verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline';
 
         // If not verified, show the form to verify
