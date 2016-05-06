@@ -4191,7 +4191,8 @@ var fc = (function ($) {
         var html = '',
           fieldValue = fc.fields[getId(field)],
           verified = validVerificationResult(fieldValue),
-          verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline';
+          verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline',
+          verificationButtonText = getConfig(field, 'verificationButtonText', '');
 
         // If not verified, show the form to verify
         if (!verified) {
