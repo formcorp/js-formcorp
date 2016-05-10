@@ -9346,7 +9346,7 @@ var fc = (function ($) {
 
       fc.preventNextPageLoad = true;
 
-      api('page/submit', data, 'put', function (data) {
+      api('page/next', data, 'put', function (data) {
         var lastPage,
           offset;
 
