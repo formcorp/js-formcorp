@@ -3671,7 +3671,6 @@ var fc = (function ($) {
           $('.fc-section [fc-data-group="' + data.fieldId + '"] .fc-securepay-iframe').append(html);
 
           waitForSecurePayVerification(data.fieldId);
-
         })
 
       },
@@ -3695,7 +3694,6 @@ var fc = (function ($) {
             // Try and load the next page
             fc.nextPageButtonClicked = true;
             fc.functions.loadNextPage(false);
-
             return;
           }
 
@@ -3804,7 +3802,6 @@ var fc = (function ($) {
        * @returns {boolean}
        */
       verifyEmailAddress = function () {
-        console.log('verify email address');
         verifyCode($('.fc-email-verification-submit input[type=text]').val());
       },
 
