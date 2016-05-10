@@ -9314,7 +9314,7 @@ var fc = (function ($) {
       // Build the data object to send with the request
       data = {
         form_id: fc.formId,
-        page_id: fc.pageId,
+        page_id: fc.currentPage,
         form_values: formData
       };
       // Determine whether the application should be marked as complete
