@@ -7798,12 +7798,6 @@ var fc = (function ($) {
             title: fc.lang.greenID.options.passport.title,
             desc: fc.lang.greenID.options.passport.body,
             icon: fc.lang.greenID.options.passport.icon
-          },
-          {
-            class: "fc-skip-verification",
-            title: fc.lang.greenID.options.skip.title,
-            desc: fc.lang.greenID.options.skip.body,
-            icon: fc.lang.greenID.options.skip.icon
           }
         ],
         optionString = '',
@@ -7815,6 +7809,15 @@ var fc = (function ($) {
         fieldValue = fc.fields[prefix + getId(field)],
         licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
         licenseType;
+
+      if (getConfig(field, 'allowSkipping', true)) {
+        options.push({
+          class: "fc-skip-verification",
+          title: fc.lang.greenID.options.skip.title,
+          desc: fc.lang.greenID.options.skip.body,
+          icon: fc.lang.greenID.options.skip.icon
+        });
+      }
 
       // Show a summary in the header
       if (getConfig(field, 'showSummaryInHeader', false)) {
@@ -7859,7 +7862,7 @@ var fc = (function ($) {
 
         // Set default content list field options
         contentListField.config.options = optionString;
-        contentListField.config.boxesPerRow = options.length;
+        contentListField.config.boxesPerRow = 3;
         contentListField.config.buttonText = 'Select';
 
         // Generate html for package selection
