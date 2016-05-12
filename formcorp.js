@@ -1435,7 +1435,7 @@ var fc = (function ($) {
         var error = $('<span></span>').text(data.message);
         errorDiv.prepend(error);
 
-        var target = fc.domContainer.find('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination');
+        var target = fc.domContainer.find('.fc-page:last .fc-pagination');
 
         if (target.length > 0) {
           target.find('.fc-security-error').remove();
@@ -8355,6 +8355,11 @@ var fc = (function ($) {
         return;
       }
 
+      // If the page has already been rendered on the page, do not re-render
+      if (fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]').length > 0) {
+        return false;
+      }
+
       var page = getPageById(pageId),
         html = '';
 
@@ -9430,10 +9435,15 @@ var fc = (function ($) {
 
       api('page/next', data, 'put', function (data) {
         var lastPage,
-          offset;
+          offset,
+          nextPageId = false;
 
         if (typeof data.success === 'boolean' && data.success) {
           // Update activity (server last active timestamp updated)
+          if (typeof data.nextPage === 'string' && data.nextPage.length > 0) {
+            nextPageId = data.nextPage;
+          }
+
           fc.lastActivity = (new Date()).getTime();
           fc.domContainer.find('.fc-loading-screen').removeClass('show');
           fc.domContainer.trigger(fc.jsEvents.onLoadingPageEnd);
@@ -9473,6 +9483,13 @@ var fc = (function ($) {
             oldPage = fc.currentPage;
             nextPage();
             newPage = fc.currentPage;
+
+            if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
+              // There was a page mismatch between the server and the client, throw out a critical error
+              showSecurityError({
+                message: 'Next page mismatch between client and server'
+              });
+            }
 
             // Trigger the newpage event
             fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
