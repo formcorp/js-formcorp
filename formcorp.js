@@ -309,6 +309,16 @@ var fc = (function ($) {
       },
 
       /**
+       * Log a message when in debug mode
+       * @param msg
+       */
+      log = function (msg) {
+        if (fc.config.debug) {
+          console.log(msg);
+        }
+      },
+
+      /**
        * HTML encode a string.
        * @param html
        * @returns {*}
@@ -1006,7 +1016,7 @@ var fc = (function ($) {
               if (type === fc.constants.functionCallbackType && $.isArray(validator.params) && validator.params.length > 0 && validator.params[0].length > 0) {
                 // Custom callback function
                 if (typeof callback[validator.params[0]] !== 'function') {
-                  console.log('Custom function \'' + validator.params[0] + '\' callback not defined.');
+                  log('Custom function \'' + validator.params[0] + '\' callback not defined.');
                 } else {
                   callback = callback[validator.params[0]];
                   result = callback(value);
@@ -1030,7 +1040,7 @@ var fc = (function ($) {
                 errors.push(error);
               }
             } catch (ignore) {
-              console.log('Exception raised while attempting custom validator.');
+              log('Exception raised while attempting custom validator.');
             }
           }
         }
@@ -1485,7 +1495,7 @@ var fc = (function ($) {
         // Fetch the cc form
         ccForm = fc.domContainer.find('[fc-data-group="' + dataId + '"]');
         if (ccForm.length === 0) {
-          console.log("[FC] Unable to locate CC form");
+          log("[FC] Unable to locate CC form");
           return [];
         }
 
@@ -1606,7 +1616,7 @@ var fc = (function ($) {
               errors.push(fc.lang.emptyFieldError);
             } else {
               // Store the value
-              fc.fields[fieldId] = fc.renderedSignatures[fieldId].getSignatureString();
+              setVirtualValue(fieldId, fc.renderedSignatures[fieldId].getSignatureString());
             }
           }
           skipCheck = true;
@@ -1828,7 +1838,7 @@ var fc = (function ($) {
             fieldId = parts[parts.length - 1];
 
             if (fc.fields[groupletId] === undefined) {
-              fc.fields[groupletId] = {};
+              setVirtualValue(groupletId, {});
             }
 
             if (typeof fc.fields[groupletId] === 'object') {
@@ -2708,7 +2718,7 @@ var fc = (function ($) {
           }
 
           if (schema.type === 'grouplet' && !fieldIsRepeatable(fieldId)) {
-            console.log('restore grouplet that isnt repeatable');
+            log('restore grouplet that isnt repeatable');
           } else if (fieldIsRepeatable(fieldId)) {
             // Restore a repeatable value
             if (getConfig(schema, 'renderRepeatableTable', false) && typeof value === 'object') {
@@ -3325,7 +3335,7 @@ var fc = (function ($) {
 
         // Ensure the client id is all good
         if (gateway.vars === undefined || typeof gateway.vars.clientId !== "string" || gateway.vars.clientId.length === 0) {
-          console.log("Malformed paycorp client id");
+          log("Malformed paycorp client id");
         }
 
         // Format the month
@@ -3429,7 +3439,7 @@ var fc = (function ($) {
               initPaycorpGateway(rootElement, gateway);
               break;
             default:
-              console.log("No gateway to use");
+              log("No gateway to use");
               break;
           }
 
@@ -3715,7 +3725,8 @@ var fc = (function ($) {
             // The field has successfully been verified
 
             // Update the field with the new data
-            fc.fields[dataId] = data;
+            setVirtualValue(dataId, data);
+
             // Remove iframe and add completed data
             $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe iframe').remove();
             $('[fc-data-group="' + dataId + '"] .fc-securepay-iframe').append(renderCompletedPayment(data));
@@ -3820,7 +3831,8 @@ var fc = (function ($) {
             if (typeof data === 'object' && typeof data.verificationCode === 'string' && data.verificationCode.length > 0) {
               // The field was successfully verified
               $('[fc-data-group="' + fc.modalMeta.fieldId + '"]').addClass('fc-verified');
-              fc.fields[fc.modalMeta.fieldId] = data.verificationCode;
+              setVirtualValue(fc.modalMeta.fieldId, data.verificationCode);
+
               valueChanged(fc.modalMeta.fieldId, data.verificationCode, true);
               hideModal();
             }
@@ -3871,7 +3883,8 @@ var fc = (function ($) {
           if (typeof data === "object" && data.success !== undefined && data.success === true) {
             // The field has successfully been verified
             $('[fc-data-group="' + dataId + '"]').addClass('fc-verified');
-            fc.fields[dataId] = '1';
+
+            setVirtualValue(dataId, '1');
             hideModal();
             return;
           }
@@ -3890,6 +3903,7 @@ var fc = (function ($) {
        * @param updateDom boolean
        */
       setValue = function (fieldId, value, updateDom) {
+        log('setValue(' + fieldId + ',' + value + ',' + updateDom + ')');
         if (typeof updateDom !== 'boolean') {
           updateDom = true;
         }
@@ -3984,7 +3998,7 @@ var fc = (function ($) {
               } else if (data.success) {
                 // The field was successfully verified
                 $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
-                fc.fields[fieldId] = data.verificationCode;
+                setVirtualValue(fieldId, data.verificationCode);
                 valueChanged(fieldId, data.verificationCode, true);
               }
 
@@ -4185,7 +4199,7 @@ var fc = (function ($) {
               } else if (data.success) {
                 // The field was successfully verified
                 $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
-                fc.fields[fieldId] = data.verificationCode;
+                setVirtualValue(fieldId, data.verificationCode);
                 valueChanged(fieldId, data.verificationCode, true);
               }
 
@@ -6424,6 +6438,21 @@ var fc = (function ($) {
         return typeof fc.tags === 'object' && fc.tags.length > 0;
       },
 
+      /**
+       * Set the "virtual" value of a field
+       * @param fieldId
+       * @param value
+       */
+      setVirtualValue = function (fieldId, value) {
+        if (fieldId.length > 0 && typeof fieldId === 'string') {
+          fc.fields[fieldId] = value;
+
+          if (fc.config.saveInRealTime) {
+            fc.saveQueue[fieldId] = value;
+          }
+        }
+      },
+
       updateMobileFieldsVisibility,
       renderGrouplet,
       getNumericTagValue,
@@ -7013,7 +7042,7 @@ var fc = (function ($) {
             fieldDOMHTML = renderDateField(field, prefix);
             break;
           default:
-            console.log('Unknown field type: ' + field.type);
+            log('Unknown field type: ' + field.type);
         }
 
         // Increment the field count
@@ -7233,7 +7262,7 @@ var fc = (function ($) {
       try {
         var validation = $.parseJSON(field.config.validation);
       } catch (exception) {
-        console.log('Malformed JSON string passed for validatoin');
+        log('Malformed JSON string passed for validatoin');
         return errors;
       }
 
@@ -7439,7 +7468,7 @@ var fc = (function ($) {
       try {
         var validation = $.parseJSON(field.config.validation);
       } catch (exception) {
-        console.log('Malformed JSON string passed for validation');
+        log('Malformed JSON string passed for validation');
         var validation = null;
       }
 
@@ -7674,7 +7703,7 @@ var fc = (function ($) {
             entityRecordCallback(field, result);
           });
         } else {
-          console.log('Missing token for id: ' + unique);
+          log('Missing token for id: ' + unique);
         }
 
       } else if (getConfig(field, 'fetchIdentifierFromUrl', false)) {
@@ -8331,7 +8360,7 @@ var fc = (function ($) {
 
       // Ensure returned a valid page
       if (page === undefined) {
-        console.log('FC Error: Page not found');
+        log('FC Error: Page not found');
       }
 
       if (typeof page.stage !== 'object') {
@@ -8539,6 +8568,7 @@ var fc = (function ($) {
      * @param value
      */
     valueChanged = function (dataId, value, force) {
+      log('valueChanged(' + dataId + ',' + value + ',' + force + ')');
       var fieldSchema = fc.fieldSchema[dataId],
         errors,
         params,
@@ -8586,15 +8616,14 @@ var fc = (function ($) {
         if ($.isArray(prePopulate) && prePopulate.length > 0) {
           for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
             tmp = prePopulate[iterator]; // The data id to prepopulate
-            if (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0) {
-              fc.fields[tmp] = value;
-
-              // Queue the field to be updated on the serer
-              fc.saveQueue[tmp] = value;
+            if (tmp.length > 0 && (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0)) {
+              setVirtualValue(tmp, value);
             }
           }
         }
       }
+
+      log(fc.fields);
 
       // If the value hasn't actually changed, return
       if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
@@ -8615,6 +8644,8 @@ var fc = (function ($) {
         // Flush the field visibility options
         flushVisibility();
       }
+
+      log(fc.fields);
 
       // Store against array values when sub field (field_1, field_2) for a repeatable iterator
       if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
@@ -9421,7 +9452,7 @@ var fc = (function ($) {
                 }
 
                 if (valid === false) {
-                  console.log("[FC](1) Server side validation errors occurred, client should have caught this");
+                  log("[FC](1) Server side validation errors occurred, client should have caught this");
                   fc.preventNextPageLoad = false;
                   return;
                 }
@@ -10719,7 +10750,7 @@ var fc = (function ($) {
       // Send off the API call
       api('form/schema', {}, 'post', function (data) {
         if (typeof data.error === 'boolean' && data.error) {
-          console.log('FC Error: ' + data.message);
+          log('FC Error: ' + data.message);
           return;
         }
 
@@ -10770,7 +10801,7 @@ var fc = (function ($) {
 
       // Terminate if already running
       if (fc.saveQueueRunning === true) {
-        console.log('[FC] Save queue is already running (slow server?)');
+        log('[FC] Save queue is already running (slow server?)');
         return;
       }
 
@@ -11334,6 +11365,7 @@ var fc = (function ($) {
 
         // Default values
         this.config = {
+          debug: false,
           analytics: true,
           realTimeValidation: true,
           inlineValidation: true,
