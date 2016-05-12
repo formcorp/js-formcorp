@@ -2290,9 +2290,9 @@ var fc = (function ($) {
         if (page.length > 0) {
           var sections = page.find('.fc-section:not(.fc-hide)');
           if (sections.length > 0) {
-            sections.find('.fc-field:not(.fc-hide) [formcorp-data-id]');
+            var fields = sections.find('.fc-field:not(.fc-hide) [formcorp-data-id]');
 
-            return sections.length === 0 ? false : sections;
+            return fields.length === 0 ? false : fields;
           }
         }
 
@@ -9362,8 +9362,10 @@ var fc = (function ($) {
       }
 
       var formData = {},
+        obj = $(this),
         data,
         page,
+        value,
         dataId,
         oldPage,
         newPage,
@@ -9371,17 +9373,22 @@ var fc = (function ($) {
 
       if (fields !== false) {
         fields.each(function () {
-          dataId = $(this).attr('formcorp-data-id');
+          var fieldObj = $(this);
+          dataId = fieldObj.attr('formcorp-data-id');
 
           // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
-          if ($(this).hasClass('fc-data-repeatable-grouplet')) {
+          if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
             if (formData[dataId] === undefined) {
               formData[dataId] = fc.fields[dataId];
             }
           } else {
             // Regular fields can be added to the flat dictionary
-            formData[dataId] = getFieldValue($(this));
-            fc.fields[dataId] = formData[dataId];
+            value = getFieldValue(fieldObj);
+            if (fc.fields[dataId] !== value) {
+              setVirtualValue(dataId, value);
+            }
+
+            formData[dataId] = value;
           }
         });
       }
