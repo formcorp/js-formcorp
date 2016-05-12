@@ -2261,6 +2261,35 @@ var fc = (function ($) {
       },
 
       /**
+       * Get the visible fields on a page
+       * @param pageId
+       * @return bool|mixed
+       */
+      getPageVisibleFieldsFromDom = function (pageId) {
+        if (typeof pageId === 'undefined') {
+          pageId = fc.currentPage;
+        }
+
+        var page = fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]');
+
+        if (page.length === 0) {
+          return false;
+        }
+
+        // Build the form data array (for the current page only)
+        if (page.length > 0) {
+          var sections = page.find('.fc-section:not(.fc-hide)');
+          if (sections.length > 0) {
+            sections.find('.fc-field:not(.fc-hide) [formcorp-data-id]');
+
+            return sections.length === 0 ? false : sections;
+          }
+        }
+
+        return false;
+      },
+
+      /**
        * Returns the amount of values in a repeatable grouplet
        * @param fieldId
        * @returns {*}
@@ -3704,6 +3733,10 @@ var fc = (function ($) {
         });
       },
 
+      /**
+       * Render a completed oayment message
+       * @param fieldValue
+       */
       renderCompletedPayment = function (fieldValue) {
 
         var html = '';
@@ -9280,7 +9313,13 @@ var fc = (function ($) {
 
       logEvent(fc.eventTypes.onNextPageClick);
 
-      if (!validForm(fc.jQueryContainer, showError)) {
+      // Only perform validation on the current page (performance boost)
+      var currentPage = fc.domContainer.find('.fc-page[data-page-id="' + fc.currentPage + '"]');
+      if (currentPage.length === 0) {
+        return;
+      }
+
+      if (!validForm(currentPage, showError)) {
         logEvent(fc.eventTypes.onNextPageError);
 
         // Scroll to first error
@@ -9296,23 +9335,25 @@ var fc = (function ($) {
         page,
         dataId,
         oldPage,
-        newPage;
+        newPage,
+        fields = getPageVisibleFieldsFromDom(fc.currentPage);
 
-      // Build the form data array
-      $('[formcorp-data-id]').each(function () {
-        dataId = $(this).attr('formcorp-data-id');
+      if (fields !== false) {
+        fields.each(function () {
+          dataId = $(this).attr('formcorp-data-id');
 
-        // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
-        if ($(this).hasClass('fc-data-repeatable-grouplet')) {
-          if (formData[dataId] === undefined) {
-            formData[dataId] = fc.fields[dataId];
+          // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+          if ($(this).hasClass('fc-data-repeatable-grouplet')) {
+            if (formData[dataId] === undefined) {
+              formData[dataId] = fc.fields[dataId];
+            }
+          } else {
+            // Regular fields can be added to the flat dictionary
+            formData[dataId] = getFieldValue($(this));
+            fc.fields[dataId] = formData[dataId];
           }
-        } else {
-          // Regular fields can be added to the flat dictionary
-          formData[dataId] = getFieldValue($(this));
-          fc.fields[dataId] = formData[dataId];
-        }
-      });
+        });
+      }
 
       // Build the data object to send with the request
       data = {
