@@ -8263,7 +8263,7 @@ var fc = (function ($) {
           // value within the row iteration, and the condition updated accordingly.
 
           // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
-          if (typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
+          if (typeof dataId === 'string' && fc.withinIterator[dataId] === true && logic !== undefined) {
             // Match all field IDs within the condition
             logicMatches = logic.match(/"[a-f0-9]{24}"/g);
 
