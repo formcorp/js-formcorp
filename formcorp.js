@@ -8366,6 +8366,7 @@ var fc = (function ($) {
       // Ensure returned a valid page
       if (page === undefined) {
         log('FC Error: Page not found');
+        return;
       }
 
       if (typeof page.stage !== 'object') {
