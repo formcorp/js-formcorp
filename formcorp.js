@@ -6513,6 +6513,7 @@ var fc = (function ($) {
       parseMatrixField,
       buildMatrixTable,
       renderMatrixField,
+      renderDigitalSignatureField,
       renderDateField,
       renderCustomerRecord,
       registerApiLookupListener,
@@ -7029,6 +7030,9 @@ var fc = (function ($) {
           case 'matrix':
             fieldDOMHTML= renderMatrixField(field, prefix);
             break;
+          case 'digsigCollect':
+            fieldDOMHTML= renderDigitalSignatureField(field, prefix);
+            break;
           case 'groupletReference':
           case 'formReference':
           case 'functionReference':
@@ -7514,6 +7518,37 @@ var fc = (function ($) {
           });
         }
       }
+      return html;
+    };
+
+      /**
+       * Render a digital signature field
+       * @param field
+       * @param prefix
+         * @returns {*}
+         */
+    renderDigitalSignatureField = function (field, prefix) {
+      var data, html;
+
+      if (prefix === undefined) {
+        prefix = "";
+      }
+      
+      data = {
+        "values" : fc.fields
+      };
+
+      html = '<a class="fc-button">Sign Document</a>';
+
+      fc.domContainer.on('click', '.fc-field-digsigCollect .fc-button', function() {
+        api('digsig/gateway/upload', { 'field_id' : field._id.$id, 'data' : data }, 'POST', function(data) {
+          html = '<iframe src="' + data.data.url + '" width="100%" height="350"></iframe>';
+
+          $('.fc-field-digsigCollect').append(html);
+          $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+        });
+      });
+
       return html;
     };
 
