@@ -4527,6 +4527,21 @@ var formcorp = (function () {
           },
 
           /**
+           * Return the save queue with optional sanitisation of data
+           * @param {bool} sanitise
+           * @return {object}
+          */
+          getSaveQueue = function (sanitise) {
+            if (sanitise === true) {
+              Object.keys(fc.saveQueue).forEach(function (key) {
+                if (key.length === 0) {
+                  delete fc.saveQueue[key];
+                }
+              });
+            }
+          },
+
+          /**
            * Returns true if a page is deemed to be a submission page
            * @param page
            * @returns {boolean}
@@ -4547,6 +4562,12 @@ var formcorp = (function () {
             if (typeof changeDom !== 'boolean') {
               changeDom = true;
             }
+
+            // Clear all of the intervals so queues don't keep running in the background
+            for (var i = 0; i < fc.intervals.length; i += 1) {
+              clearInterval(fc.intervals[i]);
+            }
+            fc.intervals = [];
 
             $.removeCookie(fc.config.sessionIdName);
 
@@ -7703,6 +7724,9 @@ var formcorp = (function () {
                 // Update the value
                 setValue('entities', entityFields);
 
+                // Queue the entity field for immediate server-side propagation
+                fc.saveQueue['entities'] = entityFields;
+
                 // Hide the loading screen
                 if (getConfig(field, 'showLoadingScreen', false)) {
                   fc.domContainer.find('.fc-loading-screen').removeClass('show');
@@ -9457,21 +9481,31 @@ var formcorp = (function () {
               var fieldObj = $(this);
               dataId = fieldObj.attr('formcorp-data-id');
 
-              // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
-              if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
-                if (formData[dataId] === undefined) {
-                  formData[dataId] = fc.fields[dataId];
-                }
-              } else {
-                // Regular fields can be added to the flat dictionary
-                value = getFieldValue(fieldObj);
-                if (fc.fields[dataId] !== value) {
-                  setVirtualValue(dataId, value);
-                }
+              if (dataId.length) {
+                // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+                if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
+                  if (formData[dataId] === undefined) {
+                    formData[dataId] = fc.fields[dataId];
+                  }
+                } else {
+                  // Regular fields can be added to the flat dictionary
+                  value = getFieldValue(fieldObj);
+                  if (fc.fields[dataId] !== value) {
+                    setVirtualValue(dataId, value);
+                  }
 
-                formData[dataId] = value;
+                  formData[dataId] = value;
+                }
               }
             });
+          }
+
+          // Merge form data with the save queue
+          if (Object.keys(fc.saveQueue).length) {
+            $.extend(formData, getSaveQueue(true));
+
+            // Clear the save queue
+            fc.saveQueue = {};
           }
 
           // Build the data object to send with the request
@@ -10994,6 +11028,7 @@ var formcorp = (function () {
             this.developmentBranches = ['Staging', 'Development', 'Dev'];
             this.fieldCount = 0;
             this.formState = '';
+            this.intervals = [];
             this.loadedLibs = [];
             this.languagePacks = {};
 
@@ -11278,20 +11313,20 @@ var formcorp = (function () {
 
                 // Save form fields intermittently
                 if (fc.config.saveInRealTime === true) {
-                  setInterval(function () {
+                  fc.intervals.push(setInterval(function () {
                     processSaveQueue();
-                  }, fc.config.saveInRealTimeInterval);
+                  }, fc.config.saveInRealTimeInterval));
                 }
 
                 // Check if the user needs to be timed out
                 if (fc.config.timeUserOut) {
-                  setInterval(function () {
+                  fc.intervals.push(setInterval(function () {
                     if (fc.expired === true) {
                       return;
                     }
 
                     timeout();
-                  }, 5000);
+                  }, 5000));
                 }
               });
             });
@@ -11554,7 +11589,7 @@ var formcorp = (function () {
           setLanguage: function (data) {
             var key;
 
-            // Initialise the language (if not previously initialised)
+            // Initialise the language
             if (Object.keys(this).indexOf('lang') === -1) {
               this.lang = {
                 prevButtonText: 'Previous',
@@ -12237,7 +12272,3 @@ var formcorp = (function () {
     validators: validators
   };
 }());
-
-/**
- * Main FC function
- */
