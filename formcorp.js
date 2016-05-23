@@ -7541,11 +7541,58 @@ var fc = (function ($) {
       html = '<a class="fc-button">Sign Document</a>';
 
       fc.domContainer.on('click', '.fc-field-digsigCollect .fc-button', function() {
-        api('digsig/gateway/upload', { 'field_id' : field._id.$id, 'data' : data }, 'POST', function(data) {
-          html = '<iframe src="' + data.data.url + '" width="100%" height="350"></iframe>';
 
-          $('.fc-field-digsigCollect').append(html);
-          $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+        var formData = {},
+            obj = $(this),
+            data,
+            page,
+            value,
+            dataId,
+            oldPage,
+            newPage,
+            fields = getPageVisibleFieldsFromDom(fc.currentPage);
+
+        if (fields !== false) {
+          fields.each(function () {
+            var fieldObj = $(this);
+            dataId = fieldObj.attr('formcorp-data-id');
+
+            // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+            if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
+              if (formData[dataId] === undefined) {
+                formData[dataId] = fc.fields[dataId];
+              }
+            } else {
+              // Regular fields can be added to the flat dictionary
+              value = getFieldValue(fieldObj);
+              if (fc.fields[dataId] !== value) {
+                setVirtualValue(dataId, value);
+              }
+
+              formData[dataId] = value;
+            }
+          });
+        }
+
+        // Build the data object to send with the request
+        data = {
+          form_id: fc.formId,
+          page_id: fc.currentPage,
+          form_values: formData
+        };
+
+        api('page/submit', data, 'put', function(data) {
+          console.log(data);
+          if (typeof data === 'object' && data.success === true) {
+            console.log('init dig sig');
+
+            api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
+              html = '<iframe src="' + data.data.url + '" width="100%" height="350"></iframe>';
+
+              $('.fc-field-digsigCollect').append(html);
+              $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+            });
+          }
         });
       });
 
