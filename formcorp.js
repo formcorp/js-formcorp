@@ -882,119 +882,6 @@ var formcorp = (function () {
           },
 
           /**
-           * Recursively checks a boolean logic operator to check if a component should be visible
-           * @param {obj} object
-           * @param string condition
-           * @returns boolean
-           */
-          checkLogic = function (obj, condition) {
-            if (typeof obj !== 'object') {
-              log('checkLogic object parameter not object');
-              log(obj);
-              return true;
-            }
-
-            // Default condition to end if not set
-            if (typeof condition !== 'string' || ['AND', 'OR'].indexOf(condition) == -1) {
-              condition = 'AND';
-            }
-
-            // Default the condition to AND unless specified as OR
-            if (typeof obj.condition === 'string') {
-              condition = obj.condition;
-              if (obj.condition !== 'OR') {
-                condition = 'AND';
-              }
-            }
-
-            var rule, valid = true;
-
-            // Rule specific vars
-            var operator, value, fieldId, field;
-
-            if (typeof obj.rules === 'object' && _.isArray(obj.rules) && obj.rules.length > 0) {
-              for (var iterator = 0; iterator < obj.rules.length; iterator += 1) {
-                rule = obj.rules[iterator];
-
-                if (typeof rule.rules === 'object') {
-                  // Nested ruleset, need to look recursively
-                  valid = checkLogic(rule);
-                } else {
-                  operator = rule.operator;
-                  value = rule.value;
-                  fieldId = rule.field;
-                  field = getValue(fieldId);
-
-                  switch (operator) {
-                    case 'in':
-                      valid = fc.comparisonIn(field, value, fieldId);
-                      break;
-                    case 'not_in':
-                      valid = fc.comparisonNot_in(field, value, fieldId);
-                      break;
-                    case 'equal':
-                      valid = fc.comparisonEqual(field, value);
-                      break;
-                    case 'not_equal':
-                      valid = fc.comparisonNot_equal(field, value);
-                      break;
-                    case 'less':
-                      valid = fc.comparisonLess(field, value);
-                      break;
-                    case 'less_or_equal':
-                      valid = fc.comparisonLess_or_equal(field, value);
-                      break;
-                    case 'greater':
-                      valid = fc.comparisonGreater(field, value);
-                      break;
-                    case 'greater_or_equal':
-                      valid = fc.comparisonGreater_or_equal(field, value);
-                      break;
-                    case 'contains':
-                      valid = fc.comparisonContains(field, value);
-                      break;
-                    case 'not_contains':
-                      valid = fc.comparisonNot_contains(field, value);
-                      break;
-                    case 'is_null':
-                      valid = fc.comparisonIs_null(field);
-                      break;
-                    case 'is_not_null':
-                      valid = fc.comparisonIs_not_null(field);
-                      break;
-                    case 'is_empty':
-                      valid = fc.comparisonIs_empty(field);
-                      break;
-                    case 'is_not_empty':
-                      valid = fc.comparisonIs_not_empty(field);
-                      break;
-                    default:
-                      log('Unknown operator: ' + operator);
-                  }
-                }
-
-                // If the rule check is valid and the check is a boolean OR operator, return true
-                if (valid === true && condition === 'OR') {
-                  return true;
-                }
-
-                // If the rule check is false with a boolean AND operator, return false
-                if (valid === false && condition === 'AND') {
-                  return false;
-                }
-              }
-
-              // If iterated through all rules (with an OR) condition, and not one was true, return false
-              if (condition === 'OR') {
-                return false;
-              }
-            }
-
-            // At this stage, the condition was AND and wasn't invalidated, therefore should return true
-            return true;
-          },
-
-          /**
            * Retrieve the field tags
            * @returns {{}}
            */
@@ -2615,7 +2502,7 @@ var formcorp = (function () {
                 // If conditions passed through, check if true
                 if (typeof conditionalPrice.conditions === "object") {
                   booleanLogic = getBooleanLogic(conditionalPrice.conditions);
-                  if (checkLogic(booleanLogic)) {
+                  if (fc.logic.checkLogic(booleanLogic)) {
                     price = conditionalPrice.price;
                   }
                 }
@@ -8259,7 +8146,7 @@ var formcorp = (function () {
             if (typeof visible !== 'boolean') {
               // Only perform a visibility check if hasn't previously been determined
               if (typeof section.visibility === 'object' && Object.keys(section.visibility).length > 0) {
-                visible = checkLogic(section.visibility);
+                visible = fc.logic.checkLogic(section.visibility);
               } else {
                 // Default section visibility to true
                 visible = true;
@@ -8319,7 +8206,7 @@ var formcorp = (function () {
                       // @todo: check repeatable grouplet visibility
 
                       // Evaludate the visibility logic to determine if the field should be visible
-                      visible = checkLogic(visibility);
+                      visible = fc.logic.checkLogic(visibility);
                       if (typeof visible === 'boolean') {
                         fc.componentVisibility[dataId] = visible;
                         if (visible) {
@@ -8423,7 +8310,7 @@ var formcorp = (function () {
 
               // Evaluate the logic
               if (typeof logic === 'object' && Object.keys(logic).length > 0) {
-                visible = checkLogic(logic);
+                visible = fc.logic.checkLogic(logic);
               }
 
             }
@@ -8619,7 +8506,7 @@ var formcorp = (function () {
             for (id in currentPage.page.toCondition) {
               if (currentPage.page.toCondition.hasOwnProperty(id)) {
                 condition = currentPage.page.toCondition[id];
-                if (checkLogic(getBooleanLogic(condition))) {
+                if (fc.logic.checkLogic(getBooleanLogic(condition))) {
                   if (shouldRender) {
                     render(id, true);
                   }
@@ -10573,7 +10460,7 @@ var formcorp = (function () {
               section = page.page.section[x];
 
               if (typeof section.visibility === 'object' && Object.keys(section.visibility).length > 0) {
-                visible = checkLogic(getBooleanLogic(section.visibility));
+                visible = fc.logic.checkLogic(getBooleanLogic(section.visibility));
                 if (!visible) {
                   if (typeof section.field === "object" && section.field.length > 0) {
                     for (y = 0; y < section.field.length; y += 1) {
@@ -10623,7 +10510,7 @@ var formcorp = (function () {
                 if (typeof field.config.visibility === 'object' && Object.keys(field.config.visibility).length > 0) {
                   // Try to evaluate the boolean condition
                   try {
-                    visible = checkLogic(field.config.visibility);
+                    visible = fc.logic.checkLogic(field.config.visibility);
                     if (typeof visible === 'boolean') {
                       if (!visible) {
                         delete fields[dataId];
@@ -10683,7 +10570,7 @@ var formcorp = (function () {
           if (getConfig(schema, 'visibility', false) !== false) {
             // Try to evaluate the boolean condition
             try {
-              visible = checkLogic(schema.config.visibility);
+              visible = fc.logic.checkLogic(schema.config.visibility);
               if (typeof visible === 'boolean') {
                 if (!visible) {
                   return true;
@@ -11173,6 +11060,11 @@ var formcorp = (function () {
               ];
             }
 
+            // Initialise the formcorp logic piece
+            this.onLibLoad(this.constants.libs.formcorp.logic, function () {;
+              fc.logic = formcorp.logic.init(fc);
+            });
+
             // Set default value for entity tokens
             if (typeof this.entityTokens === 'undefined') {
               this.entityTokens = {};
@@ -11516,7 +11408,6 @@ var formcorp = (function () {
     			getFieldTagValues: getFieldTagValues,
           getTokens: getTokens,
           setLanguageAlias: setLanguageAlias,
-          checkLogic: checkLogic,
 
           /**
            * Retrieve a URL parameter by name
@@ -11918,243 +11809,6 @@ var formcorp = (function () {
           },
 
           getPageById: getPageById,
-
-          /**
-           * Returns whether two values are equal.
-           *
-           * @param field
-           * @param comparisonValue
-           * @returns {boolean}
-           */
-          comparisonEqual: function (field, comparisonValue) {
-            if (field === undefined) {
-              return false;
-            }
-
-            return field === comparisonValue;
-          },
-
-          /**
-           * Returns whether two values are not equal equal.
-           * @param field
-           * @param comparisonValue
-           * @returns {boolean}
-           */
-          comparisonNot_equal: function (field, comparisonValue) {
-            return field !== comparisonValue;
-          },
-
-          /**
-           * Checks whether a string exists within an array
-           * @param field
-           * @param comparisonValue
-           * @param dataId
-           * @returns {boolean}
-           */
-          comparisonIn: function (field, comparisonValue, dataId) {
-            if (field === undefined) {
-              return false;
-            }
-
-            var x,
-              value,
-              json,
-              el;
-
-            // If the field is hidden, should ALWAYS return false (otherwise returns false positives)
-            if (typeof dataId === 'string' && dataId.length > 0) {
-              dataId = getDataId(dataId);
-              if (!fieldIsVisible(dataId)) {
-                return false;
-              }
-            }
-
-            // Attempt to typecast string to json
-            try {
-              json = JSON.parse(field);
-              field = json;
-            } catch (ignore) {
-            }
-
-            // Field can be string
-            if (typeof field === 'string') {
-              if (typeof comparisonValue === 'object') {
-                for (x = 0; x < comparisonValue.length; x += 1) {
-                  value = comparisonValue[x];
-                  if (field === value) {
-                    return true;
-                  }
-                }
-              }
-            } else if (field && comparisonValue && typeof field === "object" && typeof comparisonValue === "object") {
-              // Check an array of values against an array of values
-              for (x = 0; x < comparisonValue.length; x += 1) {
-                try {
-                  if (field && field.indexOf(comparisonValue[x]) === -1) {
-                    return false;
-                  }
-                } catch (ignore) {
-                }
-              }
-
-              return true;
-            }
-
-            return false;
-          },
-
-          /**
-           * Make sure a value does not exist within a set
-           * @param field
-           * @param comparisonValue
-           * @param dataId
-           * @returns {boolean}
-           */
-          comparisonNot_in: function (field, comparisonValue, dataId) {
-            return !fc.comparisonIn(field, comparisonValue, dataId);
-          },
-
-          /**
-           * Checks to see if a value against a field has been set
-           * @param field
-           * @returns {boolean}
-           */
-          comparisonIs_not_null: function (field) {
-            if (field === undefined) {
-              return false;
-            }
-
-            if (typeof field === 'string') {
-              return field.length > 0;
-            }
-          },
-
-          /**
-           * Checks to see if a value against a field has been set
-           * @param field
-           * @returns {boolean}
-           */
-          comparisonIs_null: function (field) {
-            if (field === undefined) {
-              return true;
-            }
-
-            if (typeof field === 'string') {
-              return field.length === 0;
-            }
-
-            return false;
-          },
-
-          /**
-           * Checks to see if a value is not empty.
-           * @param field
-           * @returns {boolean}
-           */
-          comparisonIs_not_empty: function (field) {
-            if (field === undefined) {
-              return false;
-            }
-
-            if (typeof field === 'string') {
-              return field.length > 0;
-            } else if (typeof field === 'object') {
-              if (_.isArray(field)) {
-                return field.length > 0;
-              } else {
-                return Object.keys(field).length > 0;
-              }
-            }
-          },
-
-          /**
-           * Checks to see if a value is empty.
-           * @param field
-           * @returns {boolean}
-           */
-          comparisonIs_empty: function (field) {
-            if (field === undefined) {
-              return false;
-            }
-
-            if (typeof field === 'string') {
-              return field.length === 0;
-            } else if (typeof field === 'object') {
-              if (_.isArray(field)) {
-                return field.length === 0;
-              } else {
-                return Object.keys(field).length === 0;
-              }
-            }
-          },
-
-          /**
-           * Check if a value does not contain another value.
-           * @param field
-           * @param comparisonValue
-           * @returns boolean
-           */
-          comparisonContains: function (field, comparisonValue) {
-            if (field === undefined) {
-              return false;
-            }
-
-            return field.indexOf(comparisonValue) > -1;
-          },
-
-          /**
-           * Check if a value contains another value.
-           * @param field
-           * @param comparisonValue
-           * @returns boolean
-           */
-          comparisonNot_contains: function (field, comparisonValue) {
-            if (field === undefined) {
-              return false;
-            }
-
-            return field.indexOf(comparisonValue) === -1;
-          },
-
-          /**
-           * Returns whether one value is greater than another.
-           * @param field
-           * @param comparisonValue
-           * @returns {boolean}
-           */
-          comparisonGreater: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field > comparisonValue;
-          },
-
-          /**
-           * Returns whether one value is greater or equal to another.
-           * @param field
-           * @param comparisonValue
-           * @returns {boolean}
-           */
-          comparisonGreater_or_equal: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field >= comparisonValue;
-          },
-
-          /**
-           * Returns whether one value is less than another.
-           * @param field
-           * @param comparisonValue
-           * @returns {boolean}
-           */
-          comparisonLess: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field < comparisonValue;
-          },
-
-          /**
-           * Returns whether one value is less than or equal to another.
-           * @param field
-           * @param comparisonValue
-           * @returns {boolean}
-           */
-          comparisonLess_or_equal: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field <= comparisonValue;
-          },
 
           /**
            * Expose get hashvar
