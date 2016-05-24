@@ -2079,9 +2079,20 @@ var formcorp = (function () {
            * @param logic string
            * @return string
            */
-          getBooleanLogic = function (logic) {
+          getBooleanLogic = function (logic, fieldId) {
+            if (typeof fieldId === 'string' && fieldId.length > 0 && typeof fc.logic[fieldId] !== 'undefined') {
+              return fc.logic[fieldId];
+            }
+
             if (typeof logic === 'string' && logic.isJson()) {
-              return toBooleanLogic($.parseJSON(logic));
+              var convertedLogic = toBooleanLogic($.parseJSON(logic));
+
+              if (typeof fieldId === 'string' && fieldId.length > 0) {
+                // Store the logic for future user
+                fc.logic[fieldId] = convertedLogic;
+              }
+
+              return convertedLogic;
             }
 
             return logic;
@@ -2117,7 +2128,7 @@ var formcorp = (function () {
 
                       // Whether or not the object needs to be converted to boolean logic
                       if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                        field.config[jsonDecode[a]] = toBooleanLogic(field.config[jsonDecode[a]], true);
+                        field.config[jsonDecode[a]] = getBooleanLogic(field.config[jsonDecode[a]], true);
                       }
                     }
                   }
@@ -2173,7 +2184,7 @@ var formcorp = (function () {
                   for (key in page.toCondition) {
                     if (page.toCondition.hasOwnProperty(key)) {
                       try {
-                        page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
+                        page.toCondition[key] = getBooleanLogic($.parseJSON(page.toCondition[key]));
                       } catch (ignore) {
                       }
                     }
@@ -2201,7 +2212,7 @@ var formcorp = (function () {
                   // Are any object keys required to be converted to boolean logic?
                   for (a = 0; a < toBoolean.length; a += 1) {
                     if (typeof section[toBoolean[a]] === 'object') {
-                      section[toBoolean[a]] = toBooleanLogic(section[toBoolean[a]]);
+                      section[toBoolean[a]] = getBooleanLogic(section[toBoolean[a]]);
                     }
                   }
 
@@ -2671,7 +2682,7 @@ var formcorp = (function () {
 
                 // If conditions passed through, check if true
                 if (typeof conditionalPrice.conditions === "object") {
-                  booleanLogic = toBooleanLogic(conditionalPrice.conditions);
+                  booleanLogic = getBooleanLogic(conditionalPrice.conditions);
                   if (checkLogic(booleanLogic)) {
                     price = conditionalPrice.price;
                   }
@@ -8424,7 +8435,7 @@ var formcorp = (function () {
             if (typeof visible !== 'boolean') {
               // Retrieve the logic object
               if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                logic = toBooleanLogic(field.config.visibility);
+                logic = getBooleanLogic(field.config.visibility, getId(field));
               } else if (typeof field.config.visibility === 'object') {
                 logic = field.config.visibility;
               }
@@ -8477,6 +8488,7 @@ var formcorp = (function () {
               if (typeof logic === 'object' && Object.keys(logic).length > 0) {
                 visible = checkLogic(logic);
               }
+
             }
 
             if (typeof visible === 'boolean') {
@@ -11141,6 +11153,7 @@ var formcorp = (function () {
             this.domContainer = $(this.jQueryContainer);
 
             // Temporary placeholders for objects to be populated
+            this.logic = {};
             this.fields = {};
             this.fieldSchema = {};
             this.sections = {};
