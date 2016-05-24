@@ -341,7 +341,7 @@ var formcorp = (function () {
            * @type {string}
            */
           analyticsUrl = function () {
-            return cdnUrl() + (isMinified() ? 'realtime.min.js' : 'realtime.js');
+            return (isMinified() ? 'realtime.min.js' : 'realtime.js');
           },
 
           /**
@@ -424,6 +424,10 @@ var formcorp = (function () {
            * @param file
            */
           loadJsFile = function (filePath, callback) {
+            if (typeof filePath === 'undefined') {
+              return;
+            }
+
             var file = document.createElement('script'),
               scriptTags = document.getElementsByTagName("script"),
               firstScript = scriptTags[scriptTags.length - 1];
@@ -914,8 +918,6 @@ var formcorp = (function () {
 
                 if (typeof rule.rules === 'object') {
                   // Nested ruleset, need to look recursively
-                  console.log('rule.rules set');
-                  console.log(rule.rules);
                   valid = checkLogic(rule);
                 } else {
                   operator = rule.operator;
@@ -2084,17 +2086,6 @@ var formcorp = (function () {
                 }
               }
             }
-          },
-
-          /**
-           * Initialise data analytics
-           */
-          initAnalytics = function () {
-            fc.domContainer.on(fc.jsEvents.onAnalyticsLoaded, function () {
-              fc.analytics = fcAnalytics;
-              fc.analytics.init();
-            });
-            loadJsFile(analyticsUrl());
           },
 
           /**
@@ -9133,7 +9124,7 @@ var formcorp = (function () {
           fc.domContainer.on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             log('FC input field clicked, prepare to call setValueUpdate');
             setValueUpdate($(this));
-            console.log('FC input finished click handling');
+            log('FC input finished click handling');
           });
 
           // Register the focus event
@@ -11116,7 +11107,12 @@ var formcorp = (function () {
               stateLoadingEntityRecord: 'loadingEntityRecord',
 
               // libraries
-              underscoreLibrary: 'lib/underscore/underscore-min.js'
+              underscoreLibrary: 'lib/underscore/underscore-min.js',
+              libs: {
+                formcorp: {
+                  logic: 'lib/formcorp/logic.js'
+                }
+              }
             };
 
             // Set basic properties
@@ -11172,7 +11168,8 @@ var formcorp = (function () {
             // Set default value for library files to load
             if (typeof this.libs2Load === 'undefined') {
               this.libs2Load = [
-                this.constants.underscoreLibrary
+                this.constants.underscoreLibrary,
+                this.constants.libs.formcorp.logic
               ];
             }
 
@@ -11345,7 +11342,11 @@ var formcorp = (function () {
             $(document).ready(function () {
               // Analyse analytics if required
               if (fc.config.analytics === true || (typeof fc.config.analytics === "string" && fc.config.analytics.length > 0)) {
-                initAnalytics();
+                fc.libs2Load.push(analyticsUrl());
+                fc.onLibLoad(analyticsUrl(), function () {
+                  fc.analytics = fcAnalytics;
+                  fc.analytics.init();
+                });
               }
 
               if (fc.domContainer.length === 0) {
@@ -11369,59 +11370,64 @@ var formcorp = (function () {
 
               loadLibs();
 
-              // Attempt to load the settings from the server
-              loadSettings(function () {
-                // Set the session id
-                fc.initSession();
+              // When the 'core', critical library files have been loaded, initialise the form
+              fc.onLibsLoaded(function () {
+                // Attempt to load the settings from the server
+                console.log('libs loaded');
+                loadSettings(function () {
+                  // Set the session id
+                  fc.initSession();
 
-                // Initialise the channel on the root element
-                if (!fc.domContainer.hasClass('fc-channel')) {
-                  fc.domContainer.addClass('fc-channel fc-channel-' + fc.channel);
-                }
+                  // Initialise the channel on the root element
+                  if (!fc.domContainer.hasClass('fc-channel')) {
+                    fc.domContainer.addClass('fc-channel fc-channel-' + fc.channel);
+                  }
 
-                // Register event listeners and load the form schema
-                fc.domContainer.html('<div class="render"></div>');
-                loadCssFiles();
-                registerEventListeners();
-                loadSchema();
+                  // Register event listeners and load the form schema
+                  fc.domContainer.html('<div class="render"></div>');
+                  loadCssFiles();
+                  registerEventListeners();
+                  loadSchema();
 
-                // Form has been successfully initialised
-                fc.formPosition = fc.domContainer.position();
-                logEvent(fc.eventTypes.onFormInit);
-                fc.domContainer.trigger(fc.jsEvents.onFormInit);
+                  // Form has been successfully initialised
+                  fc.formPosition = fc.domContainer.position();
+                  logEvent(fc.eventTypes.onFormInit);
+                  fc.domContainer.trigger(fc.jsEvents.onFormInit);
 
-                // Mark the form as having been loaded
-                fc.domContainer.addClass(fc.constants.formLoadedClass);
+                  // Mark the form as having been loaded
+                  fc.domContainer.addClass(fc.constants.formLoadedClass);
 
-                // Initialise in dev mode
-                if (isDevelopmentBranch()) {
-                  fc.domContainer.on(fc.jsEvents.onFinishRender, function () {
-                    var devHtml = $('<div></div>');
-                    devHtml.attr('class', 'fc-dev-status');
-                    devHtml.append('<span></span>');
-                    devHtml.find('span').html('in development');
-                    $(document).find('body').append(devHtml);
-                  });
-                }
+                  // Initialise in dev mode
+                  if (isDevelopmentBranch()) {
+                    fc.domContainer.on(fc.jsEvents.onFinishRender, function () {
+                      var devHtml = $('<div></div>');
+                      devHtml.attr('class', 'fc-dev-status');
+                      devHtml.append('<span></span>');
+                      devHtml.find('span').html('in development');
+                      $(document).find('body').append(devHtml);
+                    });
+                  }
 
-                // Save form fields intermittently
-                if (fc.config.saveInRealTime === true) {
-                  fc.intervals.push(setInterval(function () {
-                    processSaveQueue();
-                  }, fc.config.saveInRealTimeInterval));
-                }
+                  // Save form fields intermittently
+                  if (fc.config.saveInRealTime === true) {
+                    setInterval(function () {
+                      processSaveQueue();
+                    }, fc.config.saveInRealTimeInterval);
+                  }
 
-                // Check if the user needs to be timed out
-                if (fc.config.timeUserOut) {
-                  fc.intervals.push(setInterval(function () {
-                    if (fc.expired === true) {
-                      return;
-                    }
+                  // Check if the user needs to be timed out
+                  if (fc.config.timeUserOut) {
+                    setInterval(function () {
+                      if (fc.expired === true) {
+                        return;
+                      }
 
-                    timeout();
-                  }, 5000));
-                }
+                      timeout();
+                    }, 5000);
+                  }
+                });
               });
+
             });
           },
 
@@ -11431,6 +11437,50 @@ var formcorp = (function () {
            */
           getCdnUrl: function () {
             return cdnUrl;
+          },
+
+          /**
+           * Execute a callback when a library file has been loaded
+           * @param string lib
+           * @param function callback
+           * @param integer interval
+           */
+          onLibLoad: function (lib, callback, interval) {
+            if (typeof interval === 'undefined') {
+              interval = 50;
+            }
+
+            if (typeof lib === 'string' && lib.length > 0 && typeof callback === 'function') {
+              var intervalId = setInterval(function () {
+                if (fc.loadedLibs.indexOf(lib) !== -1) {
+                  callback();
+
+                  clearInterval(intervalId);
+                }
+              }, interval);
+            }
+          },
+
+          /**
+           * Execute a callback when all library files have loaded
+           * @param function callback
+           * @param integer interval
+           */
+          onLibsLoaded: function (callback, interval) {
+            if (typeof callback !== 'function') {
+              return;
+            }
+
+            if (typeof interval === 'undefined') {
+              interval = 50;
+            }
+
+            var intervalId = setInterval(function () {
+              if (fc.loadedLibs.length >= fc.libs2Load.length) {
+                callback();
+                clearInterval(intervalId);
+              }
+            }, interval);
           },
 
           /**
