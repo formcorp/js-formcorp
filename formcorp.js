@@ -4532,6 +4532,10 @@ var formcorp = (function () {
            * @return {object}
           */
           getSaveQueue = function (sanitise) {
+            if (typeof sanitise !== 'boolean') {
+              sanitise = true;
+            }
+
             if (sanitise === true) {
               Object.keys(fc.saveQueue).forEach(function (key) {
                 if (key.length === 0) {
@@ -4539,6 +4543,8 @@ var formcorp = (function () {
                 }
               });
             }
+
+            return fc.saveQueue;
           },
 
           /**
@@ -9500,9 +9506,11 @@ var formcorp = (function () {
             });
           }
 
+          var saveQueue = getSaveQueue();
+
           // Merge form data with the save queue
-          if (Object.keys(fc.saveQueue).length) {
-            $.extend(formData, getSaveQueue(true));
+          if (Object.keys(saveQueue).length) {
+            $.extend(formData, saveQueue);
 
             // Clear the save queue
             fc.saveQueue = {};
