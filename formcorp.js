@@ -274,7 +274,7 @@ var formcorp = (function () {
 
     // put fc code here
     var fc = (function ($) {
-        //'use strict';
+        'use strict';
 
         /**
          * Internal development occurs locally between ports 9000 and 9010
@@ -2672,7 +2672,7 @@ var formcorp = (function () {
                 // If conditions passed through, check if true
                 if (typeof conditionalPrice.conditions === "object") {
                   booleanLogic = toBooleanLogic(conditionalPrice.conditions);
-                  if (eval(booleanLogic)) {
+                  if (checkLogic(booleanLogic)) {
                     price = conditionalPrice.price;
                   }
                 }
@@ -8365,12 +8365,14 @@ var formcorp = (function () {
                       // By default, the visibility string will look something along the lines as that below:
                       // (fc.comparisonIn(fc.fields["55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"], ["Yes"], "55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"))
                       // The groupletID_fieldID needs to be replaced in this instance (because its in the DOM as an array) with groupletID_arrayIndex_fieldID)
-                      re = new RegExp(groupletID + fc.constants.prefixSeparator, 'g');
-                      visibility = visibility.replace(re, '####');
-                      visibility = visibility.replace(/#{4,}/g, [groupletID, index, ''].join(fc.constants.prefixSeparator));
+                      //re = new RegExp(groupletID + fc.constants.prefixSeparator, 'g');
+                      //visibility = visibility.replace(re, '####');
+                      //visibility = visibility.replace(/#{4,}/g, [groupletID, index, ''].join(fc.constants.prefixSeparator));
+
+                      // @todo: check repeatable grouplet visibility
 
                       // Evaludate the visibility logic to determine if the field should be visible
-                      visible = eval(visibility);
+                      visible = checkLogic(visibility);
                       if (typeof visible === 'boolean') {
                         if (visible) {
                           $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
@@ -8469,12 +8471,11 @@ var formcorp = (function () {
                 }
               }
 
+              // todo: check iterator logic
+
               // Evaluate the logic
               if (typeof logic === 'object' && Object.keys(logic).length > 0) {
-                log(logic);
                 visible = checkLogic(logic);
-                log(visible);
-                //visible = eval(logic);
               }
             }
 
@@ -8654,7 +8655,7 @@ var formcorp = (function () {
             for (id in currentPage.page.toCondition) {
               if (currentPage.page.toCondition.hasOwnProperty(id)) {
                 condition = currentPage.page.toCondition[id];
-                if (eval(getBooleanLogic(condition))) {
+                if (checkLogic(getBooleanLogic(condition))) {
                   if (shouldRender) {
                     render(id, true);
                   }
@@ -10595,8 +10596,8 @@ var formcorp = (function () {
             for (x = 0; x < page.page.section.length; x += 1) {
               section = page.page.section[x];
 
-              if (typeof section.visibility === 'string' && section.visibility.length > 0) {
-                visible = eval(getBooleanLogic(section.visibility));
+              if (typeof section.visibility === 'object' && Object.keys(section.visibility).length > 0) {
+                visible = checkLogic(getBooleanLogic(section.visibility));
                 if (!visible) {
                   if (typeof section.field === "object" && section.field.length > 0) {
                     for (y = 0; y < section.field.length; y += 1) {
@@ -10642,20 +10643,9 @@ var formcorp = (function () {
                   continue;
                 }
 
-                // If custom visibility rules
-                if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                  // Attempt to convert to json string
-                  if (['[', '{'].indexOf(field.config.visibility.substring(0, 1)) > -1) {
-                    try {
-                      json = $.parseJSON(field.config.visibility);
-                      field.config.visibility = toBooleanLogic(json);
-                    } catch (ignore) {
-                    }
-                  }
-
                   // Try to evaluate the boolean condition
                   try {
-                    visible = eval(field.config.visibility);
+                    visible = checkLogic(field.config.visibility);
                     if (typeof visible === 'boolean') {
                       if (!visible) {
                         delete fields[dataId];
@@ -10715,7 +10705,7 @@ var formcorp = (function () {
           if (getConfig(schema, 'visibility', false) !== false) {
             // Try to evaluate the boolean condition
             try {
-              visible = eval(schema.config.visibility);
+              visible = checkLogic(schema.config.visibility);
               if (typeof visible === 'boolean') {
                 if (!visible) {
                   return true;
