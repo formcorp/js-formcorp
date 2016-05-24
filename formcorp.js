@@ -274,7 +274,7 @@ var formcorp = (function () {
 
     // put fc code here
     var fc = (function ($) {
-        'use strict';
+        //'use strict';
 
         /**
          * Internal development occurs locally between ports 9000 and 9010
@@ -384,12 +384,33 @@ var formcorp = (function () {
           },
 
           /**
+           * Add zeroes to a string until it is the minimum length
+           * @param string str
+           * @param int length
+           * @return string
+           */
+          addZero = function (str, len) {
+            while (str.toString().length < len) {
+                str = "0" + str;
+            }
+            return str;
+          },
+
+          /**
            * Log a message when in debug mode
            * @param msg
            */
           log = function (msg) {
             if (fc.config.debug) {
-              console.log(msg);
+              var date = new Date();
+              var dateString = addZero(date.getHours(), 2) + ':' + addZero(date.getMinutes(), 2) + ':' + addZero(date.getSeconds(), 2) + '.' + addZero(date.getMilliseconds(), 3);
+              if ('object' !== typeof msg) {
+                console.log(dateString + ': ' + msg);
+              } else {
+                // If an object, output separately so as not to get typecasted to string
+                console.log(dateString + ':');
+                console.log(msg);
+              }
             }
           },
 
@@ -9019,7 +9040,9 @@ var formcorp = (function () {
 
           if (val !== fc.fields[id]) {
             // Only trigger when the value has truly changed
+            log('Prepare to call valueChanged(id,val) in setValueUpdate');
             valueChanged(id, val);
+            log('Post call valueChanged(id,val) in setValueUpdate');
           }
         };
 
@@ -9073,7 +9096,9 @@ var formcorp = (function () {
 
           // Input types text changed
           fc.domContainer.on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+            log('FC input field clicked, prepare to call setValueUpdate');
             setValueUpdate($(this));
+            console.log('FC input finished click handling');
           });
 
           // Register the focus event
@@ -9708,34 +9733,43 @@ var formcorp = (function () {
          */
         registerOnePageListeners = function () {
           // When the user scrolls up/down, change the active page state depending on the offset
-          var scrollFunction = _.throttle(function () {
-            var iterator, offset, page, el;
+          var intervalId;
 
-            for (iterator = 0; iterator < fc.pageOrders.length; iterator += 1) {
-              // Determine the offset of the page
-              el = $('[data-page-id="' + fc.pageOrders[iterator] + '"]');
-              if (el.length > 0) {
-                offset = parseInt($('[data-page-id="' + fc.pageOrders[iterator] + '"]').offset().top, 10);
-                offset += parseInt(fc.config.scrollOffset, 10) - fc.config.activePageOffset;
+          // Detect once the underscore library has been loaded, and then fire off the throttle method
+          intervalId = setInterval(function () {
+            if (fc.loadedLibs.indexOf(fc.constants.underscoreLibrary) >= 0) {
+              var scrollFunction = _.throttle(function () {
+                var iterator, offset, page, el;
 
-                if ($(document).scrollTop() > offset) {
-                  if (fc.activePage === undefined) {
-                    fc.activePage = fc.pageOrders[iterator];
+                for (iterator = 0; iterator < fc.pageOrders.length; iterator += 1) {
+                  // Determine the offset of the page
+                  el = $('[data-page-id="' + fc.pageOrders[iterator] + '"]');
+                  if (el.length > 0) {
+                    offset = parseInt($('[data-page-id="' + fc.pageOrders[iterator] + '"]').offset().top, 10);
+                    offset += parseInt(fc.config.scrollOffset, 10) - fc.config.activePageOffset;
+
+                    if ($(document).scrollTop() > offset) {
+                      if (fc.activePage === undefined) {
+                        fc.activePage = fc.pageOrders[iterator];
+                      }
+
+                      page = fc.pageOrders[iterator];
+                    }
                   }
-
-                  page = fc.pageOrders[iterator];
                 }
-              }
-            }
 
-            // If a page was found and its different to the current page, fire off the change in state
-            if (page !== undefined && fc.activePage !== page) {
-              fc.domContainer.trigger(fc.jsEvents.onPageChange, [fc.activePage, page]);
-              fc.activePage = page;
-            }
-          }, 400);
+                // If a page was found and its different to the current page, fire off the change in state
+                if (page !== undefined && fc.activePage !== page) {
+                  fc.domContainer.trigger(fc.jsEvents.onPageChange, [fc.activePage, page]);
+                  fc.activePage = page;
+                }
+              }, 400);
 
-          $(document).on('scroll', scrollFunction);
+              $(document).on('scroll', scrollFunction);
+
+              clearInterval(intervalId);
+            }
+          }, 50);
         };
 
         /**
@@ -11022,6 +11056,44 @@ var formcorp = (function () {
            * @param container
            */
           init: function (publicKey, container) {
+            /**
+             * Constants
+             * @type {{enterKey: number, prefixSeparator: string, tagSeparator: string, configKeys: {summaryLayout: string}, persistentSessions: string, defaultChannel: string}}
+             */
+            this.constants = {
+              enterKey: 13,
+              prefixSeparator: '_',
+              tagSeparator: '.',
+              configKeys: {
+                summaryLayout: 'summaryLayout'
+              },
+              persistentSessions: 'persistentSessions',
+              enhancedSecurity: 'enhancedSecurity',
+              defaultChannel: 'master',
+              greenId: {
+                scriptPath: isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
+              },
+
+              // Repeatable constants
+              repeatableWithButton: [0, 1],
+              repeatablePredetermined: 2,
+              repeatableInModal: [0],
+              repeatableInDOM: [1, 2],
+              repeatableLinkedTo: 'repeatableLinkedTo',
+
+              // Function callback type
+              functionCallbackType: 'functionCallback',
+              formulaPrefix: 'FORMULA:',
+              formLoadedClass: 'fc-form-loaded',
+
+              // Form states
+              stateLoadingEntityRecord: 'loadingEntityRecord',
+
+              // libraries
+              underscoreLibrary: 'lib/underscore/underscore-min.js'
+            };
+
+            // Set basic properties
             this.publicKey = publicKey;
             this.container = container;
             this.jQueryContainer = '#' + container;
@@ -11072,7 +11144,7 @@ var formcorp = (function () {
             // Set default value for library files to load
             if (typeof this.libs2Load === 'undefined') {
               this.libs2Load = [
-                'lib/underscore/underscore-min.js'
+                this.constants.underscoreLibrary
               ];
             }
 
@@ -11184,40 +11256,6 @@ var formcorp = (function () {
               smsListeners: 'smsListeners',
               creditCardListeners: 'creditCardListeners',
               loadSignatureLibs: 'loadSignatureLibs'
-            };
-
-            /**
-             * Constants
-             * @type {{enterKey: number, prefixSeparator: string, tagSeparator: string, configKeys: {summaryLayout: string}, persistentSessions: string, defaultChannel: string}}
-             */
-            this.constants = {
-              enterKey: 13,
-              prefixSeparator: '_',
-              tagSeparator: '.',
-              configKeys: {
-                summaryLayout: 'summaryLayout'
-              },
-              persistentSessions: 'persistentSessions',
-              enhancedSecurity: 'enhancedSecurity',
-              defaultChannel: 'master',
-              greenId: {
-                scriptPath: isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
-              },
-
-              // Repeatable constants
-              repeatableWithButton: [0, 1],
-              repeatablePredetermined: 2,
-              repeatableInModal: [0],
-              repeatableInDOM: [1, 2],
-              repeatableLinkedTo: 'repeatableLinkedTo',
-
-              // Function callback type
-              functionCallbackType: 'functionCallback',
-              formulaPrefix: 'FORMULA:',
-              formLoadedClass: 'fc-form-loaded',
-
-              // Form states
-              stateLoadingEntityRecord: 'loadingEntityRecord'
             };
 
             /**
