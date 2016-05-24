@@ -909,6 +909,121 @@ var formcorp = (function () {
           },
 
           /**
+           * Recursively checks a boolean logic operator to check if a component should be visible
+           * @param {obj} object
+           * @param string condition
+           * @returns boolean
+           */
+          checkLogic = function (obj, condition) {
+            if (typeof obj !== 'object') {
+              log('checkLogic object parameter not object');
+              log(obj);
+              return true;
+            }
+
+            // Default condition to end if not set
+            if (typeof condition !== 'string' || ['AND', 'OR'].indexOf(condition) == -1) {
+              condition = 'AND';
+            }
+
+            // Default the condition to AND unless specified as OR
+            if (typeof obj.condition === 'string') {
+              condition = obj.condition;
+              if (obj.condition !== 'OR') {
+                condition = 'AND';
+              }
+            }
+
+            var rule, valid = true;
+
+            // Rule specific vars
+            var operator, value, fieldId, field;
+
+            if (typeof obj.rules === 'object' && $.isArray(obj.rules) && obj.rules.length > 0) {
+              for (var iterator = 0; iterator < obj.rules.length; iterator += 1) {
+                rule = obj.rules[iterator];
+
+                if (typeof rule.rules === 'object') {
+                  // Nested ruleset, need to look recursively
+                  console.log('rule.rules set');
+                  console.log(rule.rules);
+                  valid = checkLogic(rule);
+                } else {
+                  operator = rule.operator;
+                  value = rule.value;
+                  fieldId = rule.field;
+                  field = getValue(fieldId);
+
+                  switch (operator) {
+                    case 'in':
+                      valid = fc.comparisonIn(field, value, fieldId);
+                      break;
+                    case 'not_in':
+                      valid = fc.comparisonNot_in(field, value, fieldId);
+                      break;
+                    case 'equal':
+                      valid = fc.comparisonEqual(field, value);
+                      break;
+                    case 'not_equal':
+                      valid = fc.comparisonNot_equal(field, value);
+                      break;
+                    case 'less':
+                      valid = fc.comparisonLess(field, value);
+                      break;
+                    case 'less_or_equal':
+                      valid = fc.comparisonLess_or_equal(field, value);
+                      break;
+                    case 'greater':
+                      valid = fc.comparisonGreater(field, value);
+                      break;
+                    case 'greater_or_equal':
+                      valid = fc.comparisonGreater_or_equal(field, value);
+                      break;
+                    case 'contains':
+                      valid = fc.comparisonContains(field, value);
+                      break;
+                    case 'not_contains':
+                      valid = fc.comparisonNot_contains(field, value);
+                      break;
+                    case 'is_null':
+                      valid = fc.comparisonIs_null(field);
+                      break;
+                    case 'is_not_null':
+                      valid = fc.comparisonIs_not_null(field);
+                      break;
+                    case 'is_empty':
+                      valid = fc.comparisonIs_empty(field);
+                      break;
+                    case 'is_not_empty':
+                      valid = fc.comparisonIs_not_empty(field);
+                      break;
+                    default:
+                      log('Unknown operator: ' + operator);
+                  }
+                }
+
+                // If the rule check is valid and the check is a boolean OR operator, return true
+                if (valid === true && condition === 'OR') {
+                  return true;
+                }
+
+                // If the rule check is false with a boolean AND operator, return false
+                if (valid === false && condition === 'AND') {
+                  return false;
+                }
+              }
+
+              // If iterated through all rules (with an OR) condition, and not one was true, return false
+              if (condition === 'OR') {
+                return false;
+              }
+            }
+
+            // At this stage, the condition was AND and wasn't invalidated, therefore should return true
+            return true;
+          },
+
+          /**
            * Retrieve the field tags
            * @returns {{}}
            */
@@ -1978,88 +2093,7 @@ var formcorp = (function () {
            * @returns {*}
            */
           toBooleanLogic = function (obj) {
-            var condition = '',
-              x,
-              rule,
-              comparison,
-              compare = '',
-              json,
-              comparisonCondition;
-
-            if (!obj) {
-              return;
-            }
-
-            // If its a string, attempt to convert to json and return
-            if (typeof obj === "string") {
-              if (obj.isJson()) {
-                return toBooleanLogic($.parseJSON(obj));
-              }
-
-              // Assume already boolean logic
-              return obj;
-            }
-
-            if (obj.condition !== undefined) {
-              compare = obj.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
-            }
-
-            if (typeof obj.rules === 'object') {
-              condition += '(';
-              for (x = 0; x < obj.rules.length; x += 1) {
-                rule = obj.rules[x];
-
-                if (rule.condition !== undefined) {
-                  comparisonCondition = rule.condition.toLowerCase() === 'and' ? ' && ' : ' || ';
-                } else {
-                  comparisonCondition = compare;
-                }
-
-                // Optimise the AND/OR clause
-                if (comparisonCondition === 0) {
-                  // Default to AND condition
-                  comparisonCondition = ' && ';
-                }
-                if (x === 0) {
-                  comparisonCondition = '';
-                }
-
-                // If have a comparison, add it to our condition string
-                if (typeof rule.field === 'string' && rule.value !== undefined) {
-                  // Comparison function to call
-                  comparison = 'fc.comparison';
-                  if (typeof rule.operator === 'string' && rule.operator.length > 0) {
-                    comparison += rule.operator.charAt(0).toUpperCase() + rule.operator.slice(1);
-                  }
-
-                  // Attempt to typecast to object from string
-                  if (typeof rule.value === 'string' && ['[', '{'].indexOf(rule.value.substring(0, 1)) > -1) {
-                    try {
-                      json = $.parseJSON(rule.value);
-                      rule.value = json;
-                    } catch (ignore) {
-                    }
-                  }
-
-                  // If object, cast to JSON string
-                  if (typeof rule.value === 'object') {
-                    rule.value = JSON.stringify(rule.value);
-                  } else if (typeof rule.value === 'string') {
-                    rule.value = '"' + rule.value + '"';
-                  }
-
-                  condition += comparisonCondition + comparison + '(getValue("' + rule.field + '"), ' + rule.value + ', "' + rule.field + '")';
-                }
-
-                // If have nested rules, call recursively
-                if (typeof rule.rules === 'object' && rule.rules.length > 0) {
-                  condition += (x > 0 ? compare : '') + toBooleanLogic(rule);
-                }
-              }
-              condition += ')';
-            }
-
-            return condition;
+            return obj;
           },
 
           /**
@@ -8278,8 +8312,8 @@ var formcorp = (function () {
 
             if (typeof visible !== 'boolean') {
               // Only perform a visibility check if hasn't previously been determined
-              if (typeof section.visibility === 'string' && section.visibility.length > 0) {
-                visible = eval(section.visibility);
+              if (typeof section.visibility === 'object' && Object.keys(section.visibility).length > 0) {
+                visible = checkLogic(section.visibility);
               } else {
                 // Default section visibility to true
                 visible = true;
@@ -8436,7 +8470,12 @@ var formcorp = (function () {
               }
 
               // Evaluate the logic
-              visible = eval(logic);
+              if (typeof logic === 'object' && Object.keys(logic).length > 0) {
+                log(logic);
+                visible = checkLogic(logic);
+                log(visible);
+                //visible = eval(logic);
+              }
             }
 
             if (typeof visible === 'boolean') {
@@ -8456,8 +8495,14 @@ var formcorp = (function () {
          * Flushes the visibility of various components throughout the form.
          */
         flushVisibility = function () {
+          log('flushVisibility() called');
+          log('Prepare to flush section visibility');
           flushSectionVisibility();
+
+          log('Prepare to flush field visibility');
           flushFieldVisibility();
+
+          log('Prepare to flush mobile visibility');
           updateMobileFieldsVisibility();
         };
 
@@ -8746,6 +8791,7 @@ var formcorp = (function () {
             groupletID;
 
           // Register the pre-value changed event listener
+          log('Trigger on pre value change');
           fc.domContainer.trigger(fc.jsEvents.onPreValueChange, [dataId, value, force]);
 
           if (typeof force !== 'boolean') {
@@ -8758,6 +8804,7 @@ var formcorp = (function () {
           }
 
           // If pre-populating other fields, do so now
+          log('Prepopulate additional fields');
           if (typeof value === 'string') {
             prePopulate = getConfig(fieldSchema, 'prePopulate', []);
             if ($.isArray(prePopulate) && prePopulate.length > 0) {
@@ -8789,7 +8836,9 @@ var formcorp = (function () {
             }
 
             // Flush the field visibility options
+            log('Prepare to flush visibility for valueChanged');
             flushVisibility();
+            log('Successfully flushed valueChanged visibility');
           }
 
           log(fc.fields);
@@ -11438,6 +11487,7 @@ var formcorp = (function () {
     			getFieldTagValues: getFieldTagValues,
           getTokens: getTokens,
           setLanguageAlias: setLanguageAlias,
+          checkLogic: checkLogic,
 
           /**
            * Retrieve a URL parameter by name
