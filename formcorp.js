@@ -8,37 +8,6 @@
 
 /*global define,exports,require,jQuery,document,console,window,setInterval,fcAnalytics,escape,fcGreenID*/
 
-var html;
-var LOADED_EVENT = 'formcorpLoaded';
-
-if (typeof window.jQuery === 'undefined') {
-  // Get the URL of the called script
-  var baseUrl = '';
-  var currentScript = document.getElementById("fc-js-include");
-  if (typeof currentScript === 'object') {
-
-    var src = currentScript.src;
-    var link = document.createElement('a');
-    link.href = src;
-    baseUrl = link.protocol + '//' + link.hostname + ':' + link.port;
-  }
-
-  var script = document.createElement("script");
-  script.src = baseUrl + '/lib/jquery.min.js';
-  script.id = 'fc-jquery-include';
-  script.addEventListener("load", function (e) {
-      html = jQuery('html');
-      html.trigger(LOADED_EVENT);
-  }, !1);
-
-  var bodyScripts = document.getElementsByTagName("script");
-  var insert = bodyScripts[bodyScripts.length - 1];
-  insert.parentNode.insertBefore(script, insert);
-} else {
-  html = jQuery('html');
-  html.trigger(LOADED_EVENT);
-}
-
 if (!Date.now) {
   Date.now = function () {
     "use strict";
@@ -664,7 +633,7 @@ var formcorp = (function () {
                 // Attempt to convert to json string
                 if (typeof field.config[key] === "string" && ['[', '{'].indexOf(field.config[key].substring(0, 1)) > -1) {
                   try {
-                    json = $.parseJSON(field.config[key]);
+                    json = JSON.parse(field.config[key]);
                     field.config[key] = json;
                   } catch (ignore) {
                   }
@@ -797,7 +766,7 @@ var formcorp = (function () {
                   // Attempt to convert the data from a string to a json object
                   if (typeof data === 'string') {
                     try {
-                      data = $.parseJSON(data);
+                      data = JSON.parse(data);
                     } catch (ignore) {
                     }
                   }
@@ -1224,7 +1193,7 @@ var formcorp = (function () {
             // If validators is a string (and starts with a json char to speed up), try to typecast to json
             if (typeof field.config.validators === "string" && ['[', '{'].indexOf(field.config.validators.substring(0, 1)) > -1) {
               try {
-                json = $.parseJSON(field.config.validators);
+                json = JSON.parse(field.config.validators);
                 field.config.validators = json;
               } catch (ignore) {
               }
@@ -2057,7 +2026,7 @@ var formcorp = (function () {
             }
 
             if (typeof logic === 'string' && logic.isJson()) {
-              var convertedLogic = toBooleanLogic($.parseJSON(logic));
+              var convertedLogic = toBooleanLogic(JSON.parse(logic));
 
               if (typeof fieldId === 'string' && fieldId.length > 0) {
                 // Store the logic for future user
@@ -2096,7 +2065,7 @@ var formcorp = (function () {
                   // Decode configuration strings to json objects as required
                   for (a = 0; a < jsonDecode.length; a += 1) {
                     if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
-                      field.config[jsonDecode[a]] = $.parseJSON(field.config[jsonDecode[a]]);
+                      field.config[jsonDecode[a]] = JSON.parse(field.config[jsonDecode[a]]);
 
                       // Whether or not the object needs to be converted to boolean logic
                       if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
@@ -2156,7 +2125,7 @@ var formcorp = (function () {
                   for (key in page.toCondition) {
                     if (page.toCondition.hasOwnProperty(key)) {
                       try {
-                        page.toCondition[key] = getBooleanLogic($.parseJSON(page.toCondition[key]));
+                        page.toCondition[key] = getBooleanLogic(JSON.parse(page.toCondition[key]));
                       } catch (ignore) {
                       }
                     }
@@ -2175,7 +2144,7 @@ var formcorp = (function () {
                     configKey = jsonDecode[a];
                     if (typeof section[configKey] === 'string') {
                       try {
-                        section[configKey] = $.parseJSON(section[configKey]);
+                        section[configKey] = JSON.parse(section[configKey]);
                       } catch (ignore) {
                       }
                     }
@@ -2489,7 +2458,7 @@ var formcorp = (function () {
             if (_.isArray(options)) {
               for (iterator = 0; iterator < options.length; iterator += 1) {
                 if (options[iterator].isJson()) {
-                  json = $.parseJSON(options[iterator]);
+                  json = JSON.parse(options[iterator]);
                   lineItemValue = json[0];
 
                   if (typeof lineItemValue === 'string' && lineItemValue === val) {
@@ -3051,7 +3020,7 @@ var formcorp = (function () {
 
                 // Attempt to convert to json object, continue if can not
                 try {
-                  json = $.parseJSON(option);
+                  json = JSON.parse(option);
                 } catch (ignore) {
                   continue;
                 }
@@ -3123,7 +3092,7 @@ var formcorp = (function () {
 
             // Attempt to decode to JSON object
             if (typeof definition === 'string') {
-              definition = $.parseJSON(definition);
+              definition = JSON.parse(definition);
             }
 
             if (!definition || !definition.rows) {
@@ -3327,7 +3296,7 @@ var formcorp = (function () {
             // Create an array of the field's values
             if (fc.fields[fieldId] !== undefined && typeof fc.fields[fieldId] === "string") {
               try {
-                json = $.parseJSON(fc.fields[fieldId]);
+                json = JSON.parse(fc.fields[fieldId]);
                 savedValues = json;
               } catch (ignore) {
               }
@@ -4455,7 +4424,7 @@ var formcorp = (function () {
             // If a string, output safely
             if (['[', '{'].indexOf(value.substring(0, 1)) > -1) {
               try {
-                json = $.parseJSON(value);
+                json = JSON.parse(value);
                 value = json;
               } catch (ignore) {
               }
@@ -4769,7 +4738,7 @@ var formcorp = (function () {
               initCallback = function (data) {
                 if (typeof data === 'string') {
                   try {
-                    data = $.parseJSON(data);
+                    data = JSON.parse(data);
                   } catch (ignore) {
                   }
                 }
@@ -7418,7 +7387,7 @@ var formcorp = (function () {
           var errors = [];
 
           try {
-            var validation = $.parseJSON(field.config.validation);
+            var validation = JSON.parse(field.config.validation);
           } catch (exception) {
             log('Malformed JSON string passed for validatoin');
             return errors;
@@ -7624,7 +7593,7 @@ var formcorp = (function () {
           html = '';
 
           try {
-            var validation = $.parseJSON(field.config.validation);
+            var validation = JSON.parse(field.config.validation);
           } catch (exception) {
             log('Malformed JSON string passed for validation');
             var validation = null;
@@ -11952,7 +11921,7 @@ var formcorp = (function () {
 
             // Attempt to typecast string to json
             try {
-              json = $.parseJSON(field);
+              json = JSON.parse(field);
               field = json;
             } catch (ignore) {
             }
