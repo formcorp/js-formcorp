@@ -468,7 +468,7 @@ var formcorp = (function () {
            * @return boolean
            */
           checkAllLibsLoaded = function () {
-            if (fc.loadedLibs.length >= fc.libs2Load.length) {
+            if ('object' === typeof fc.schemaData && fc.loadedLibs.length >= fc.libs2Load.length) {
               // If set to auto discover library files, initialise the render when all libs have loaded
               if (fc.config.autoDiscoverLibs) {
                 initRender(fc.schemaData);
@@ -499,6 +499,18 @@ var formcorp = (function () {
            */
           libHasLoaded = function (lib) {
             return fc.loadedLibs.indexOf(lib) >= 0;
+          },
+
+          /**
+           * Load a library file from a uri
+           * @param url
+           */
+          loadUrlLib = function (url) {
+            if (!libHasLoaded(url)) {
+              loadJsFile(cdnUrl() + url, function () {
+                registerLibLoaded(url);
+              });
+            }
           },
 
           /**
@@ -546,6 +558,9 @@ var formcorp = (function () {
                 // Load the material datepicker
                 case fc.libs.MATERIAL_DATEPICKER:
                   loadMaterialDatepicker();
+                  break;
+                default:
+                  loadUrlLib(lib);
                   break;
               }
             }
@@ -9693,7 +9708,7 @@ var formcorp = (function () {
          */
         registerOnePageListeners = function () {
           // When the user scrolls up/down, change the active page state depending on the offset
-          $(document).on('scroll', function () {
+          var scrollFunction = _.throttle(function () {
             var iterator, offset, page, el;
 
             for (iterator = 0; iterator < fc.pageOrders.length; iterator += 1) {
@@ -9718,7 +9733,9 @@ var formcorp = (function () {
               fc.domContainer.trigger(fc.jsEvents.onPageChange, [fc.activePage, page]);
               fc.activePage = page;
             }
-          });
+          }, 400);
+
+          $(document).on('scroll', scrollFunction);
         };
 
         /**
@@ -11054,7 +11071,9 @@ var formcorp = (function () {
 
             // Set default value for library files to load
             if (typeof this.libs2Load === 'undefined') {
-              this.libs2Load = [];
+              this.libs2Load = [
+                'lib/underscore/underscore-min.js'
+              ];
             }
 
             // Set default value for entity tokens
