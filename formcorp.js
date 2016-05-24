@@ -1912,59 +1912,29 @@ var formcorp = (function () {
               showErrors = true;
             }
 
+            var el = rootElement;
+            if (typeof rootElement === 'string') {
+              el = fc.domContainer.find(rootElement);
+            }
+
             // Test if required fields have a value
-            $(rootElement).find('.fc-field[fc-data-group]').each(function () {
+            el.find('.fc-field[fc-data-group]').each(function () {
               var obj = $(this),
-                dataId = obj.attr('fc-data-group'),
-                section = obj.parent(),
-                field = fc.fieldSchema[dataId],
-                value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId],
-                localErrors = [],
-                skipCheck = false,
-                target,
-                parts,
-                prefix = '',
-                belongsTo;
+                dataId = obj.attr('fc-data-group');
 
-              // If a repeatable field, ignore
-              if (obj.parent().attr("class").indexOf("repeatable") > -1 && obj.parent().attr('class').indexOf('fc-repeatable-row') === -1) {
+              // Form already knows the particular component is hidden, do not need any further processing
+              if (typeof fc.componentVisibility[dataId] === 'boolean' && !fc.componentVisibility[dataId]) {
+                log('Field is known to be hidden');
                 return;
               }
 
-              // If the field is hidden, not required to validate
-              if (obj.hasClass('fc-hide')) {
+              var belongsTo = obj.attr('fc-belongs-to');
+              if (typeof belongsTo === 'string'&& typeof fc.componentVisibility[dataId] === 'boolean' && !fc.componentVisibility[dataId]) {
+                log('Section is known to be hidden');
                 return;
               }
 
-              // If in modal, do nothing
-              if (inModal(obj)) {
-                return;
-              }
-
-              // Check if the section it belongs to is hidden
-              belongsTo = obj.attr('fc-belongs-to');
-              if (typeof belongsTo === 'string') {
-                section = fc.domContainer.find('.fc-section[formcorp-data-id="' + belongsTo + '"]');
-
-                // When the section is hidden, do not validate
-                if (section.length > 0 && section.hasClass('fc-hide')) {
-                  return;
-                }
-              }
-
-              // If the field belongs to a grouplet and the grouplet is hidden, not required to validate
-              if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-                parts = dataId.split(fc.constants.prefixSeparator);
-                target = $(rootElement).find('.fc-field[fc-data-group="' + parts[0] + '"]');
-                if (target.hasClass('fc-hide')) {
-                  return;
-                }
-              }
-
-              // Determine the prefix
-              if (field !== undefined && dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
-                prefix = dataId.replace(getId(field), '');
-              }
+              var field = fc.fieldSchema[dataId];
 
               // If not required, do nothing
               if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
@@ -1974,18 +1944,20 @@ var formcorp = (function () {
                 }
               }
 
+              // Determine the prefix
+              var prefix = '';
+              if (field !== undefined && dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+                prefix = dataId.replace(getId(field), '');
+              }
+
               // Check if the field requires a value
               if (typeof field.type === 'string' && godFields.indexOf(field.type) !== -1) {
                 return;
               }
 
-              // If section is hidden, return
-              if (section.hasClass('fc-hide')) {
-                return;
-              }
-
               // Retrieve the field errors
-              localErrors = getFieldErrors(dataId, value, prefix);
+              var value = fc.fields[dataId] === undefined ? '' : fc.fields[dataId];
+              var localErrors = getFieldErrors(dataId, value, prefix);
 
               // If have errors, output
               if (localErrors.length > 0) {
@@ -3934,7 +3906,10 @@ var formcorp = (function () {
 
             // If there exists a valid saved value, hide the button
             if (fc.fields[fieldId] && fc.fields[fieldId].length > 0 && fc.validAbns.indexOf(fc.fields[fieldId]) > -1) {
+              fc.componentVisibility[fieldId] = false;
               buttonClass += ' fc-hide';
+            } else {
+              fc.componentVisibility[fieldId] = true;
             }
 
             // Button to validate
@@ -8331,6 +8306,7 @@ var formcorp = (function () {
               }
             }
 
+            fc.componentVisibility[dataId] = visible;
             if (visible) {
               $('div.fc-section[formcorp-data-id=' + dataId + ']').removeClass('fc-hide');
             } else {
@@ -8385,6 +8361,7 @@ var formcorp = (function () {
                       // Evaludate the visibility logic to determine if the field should be visible
                       visible = checkLogic(visibility);
                       if (typeof visible === 'boolean') {
+                        fc.componentVisibility[dataId] = visible;
                         if (visible) {
                           $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
                         } else {
@@ -8492,6 +8469,7 @@ var formcorp = (function () {
             }
 
             if (typeof visible === 'boolean') {
+              fc.componentVisibility[dataId] = visible;
               if (visible) {
                 $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
               } else {
@@ -8524,19 +8502,33 @@ var formcorp = (function () {
          */
         updateMobileFieldsVisibility = function () {
           fc.domContainer.find('.fc-field.fc-mobile-field').each(function () {
-            if (fc.mobileView === true && $(this).hasClass('fc-hide')) {
-              $(this).removeClass('fc-hide');
-            } else if (fc.mobileView === false && !$(this).hasClass('fc-hide')) {
-              $(this).addClass('fc-hide');
+            var obj = $(this),
+              dataId = obj.attr('fc-data-group');
+
+            if (typeof dataId === 'string') {
+              fc.componentVisibility[dataId] = fc.mobileView;
+            }
+
+            if (fc.mobileView === true && obj.hasClass('fc-hide')) {
+              obj.removeClass('fc-hide');
+            } else if (fc.mobileView === false && !obj.hasClass('fc-hide')) {
+              obj.addClass('fc-hide');
             }
           });
 
           // Update desktop fields
           fc.domContainer.find('.fc-field.fc-desktop-field').each(function () {
-            if (fc.mobileView === true && !$(this).hasClass('fc-hide')) {
-              $(this).addClass('fc-hide');
-            } else if (fc.mobileView === false && $(this).hasClass('fc-hide')) {
-              $(this).removeClass('fc-hide');
+            var obj = $(this),
+              dataId = obj.attr('fc-data-group');
+
+            if (typeof dataId === 'string') {
+              fc.componentVisibility[dataId] = fc.mobileView;
+            }
+
+            if (fc.mobileView === true && !obj.hasClass('fc-hide')) {
+              obj.addClass('fc-hide');
+            } else if (fc.mobileView === false && obj.hasClass('fc-hide')) {
+              obj.removeClass('fc-hide');
             }
           });
 
@@ -8759,8 +8751,17 @@ var formcorp = (function () {
           }
 
           // If a next page exists and the current page is valid, load the next page
-          if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
+          log('>checkAutoLoad: check for valid page');
+          if (!validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
+            log('Current page not valid');
+            return false;
+          }
+
+          log('Check to see if has next page');
+          if (hasNextPage()) {
+            log('Prepare to load next page');
             fc.functions.loadNextPage(false);
+            log('Finished loading next page');
             return true;
           }
 
@@ -8847,11 +8848,6 @@ var formcorp = (function () {
             if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
               saveOriginalGroupletValue(dataId, value);
             }
-
-            // Flush the field visibility options
-            log('Prepare to flush visibility for valueChanged');
-            flushVisibility();
-            log('Successfully flushed valueChanged visibility');
           }
 
           log(fc.fields);
@@ -8922,10 +8918,12 @@ var formcorp = (function () {
           }
 
           // Set the active page id to the page that the field belongs to, delete later pages
+          log('Flush active page for field: ' + dataId);
           flushActivePageForField(dataId, true);
 
           // If the item belongs to a repeatable object (or grouplet in the DOM), do not store the changed value
           if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+            log('Field on update belongs to repeatable object');
             dataParams = dataId.split(fc.constants.prefixSeparator);
             parentId = dataParams[0];
             parentField = fc.fieldSchema[parentId];
@@ -8954,16 +8952,15 @@ var formcorp = (function () {
                 fc.saveQueue[dataId] = value;
               }
 
+              flushVisibility()
               return;
             }
           }
 
           // Don't perform operations on repeatable fields
           if (!fieldIsRepeatable(dataId)) {
+            log('Field is not repeatable, attempt to perform validation');
             fc.fields[dataId] = value;
-
-            // Flush the field visibility options
-            flushVisibility();
 
             // Check real time validation
             errors = fieldErrors(dataId);
@@ -9016,6 +9013,7 @@ var formcorp = (function () {
             }
 
             logEvent(fc.eventTypes.onValueChange, params);
+            log('Finished realtime validation processing');
           }
 
           // Check to see if the next page should be automatically loaded
@@ -9026,7 +9024,9 @@ var formcorp = (function () {
           if (fc.config.autoLoadPages) {
             if (pageId === fc.currentPage && allowAutoLoad) {
               // Pages have the option of opting out of autoloading
+              log('Prepare to check for auto load');
               loadedNextPage = checkAutoLoad();
+              log('Finished checking for auto load');
             }
           }
 
@@ -9038,6 +9038,7 @@ var formcorp = (function () {
           // If the field needs to trigger a re-rendering of an existing field, do it now
           tag = getConfig(fieldSchema, 'tag', '');
           if (tag.length > 0 && fc.reRenderOnValueChange[tag] !== undefined) {
+            log('Check for re-rendering');
             for (iterator = 0; iterator < fc.reRenderOnValueChange[tag].length; iterator += 1) {
               tmp = fc.reRenderOnValueChange[tag][iterator];
               replaceContainer = fc.domContainer.find('.fc-field[fc-data-group="' + tmp + '"]');
@@ -9057,8 +9058,11 @@ var formcorp = (function () {
                 }
               }
             }
+            log('Finished checking for re-rendering');
           }
 
+
+          flushVisibility();
           fc.domContainer.trigger(fc.jsEvents.onValueChanged, [dataId, value, force]);
         };
 
@@ -11182,6 +11186,7 @@ var formcorp = (function () {
             this.intervals = [];
             this.loadedLibs = [];
             this.languagePacks = {};
+            this.componentVisibility = {};
 
             // This allows the users/apps to override core functions within the SDK
             this.functions = {
