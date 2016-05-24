@@ -10643,6 +10643,8 @@ var formcorp = (function () {
                   continue;
                 }
 
+                // If custom visibility rules
+                if (typeof field.config.visibility === 'object' && Object.keys(field.config.visibility).length > 0) {
                   // Try to evaluate the boolean condition
                   try {
                     visible = checkLogic(field.config.visibility);
