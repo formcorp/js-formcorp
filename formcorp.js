@@ -875,7 +875,7 @@ var formcorp = (function () {
               tags[id] = prefix + fieldTag;
               grouplet = getConfig(field, 'grouplet', false);
 
-              if (grouplet && grouplet.field && $.isArray(grouplet.field) && grouplet.field.length > 0) {
+              if (grouplet && grouplet.field && _.isArray(grouplet.field) && grouplet.field.length > 0) {
                 for (iterator = 0; iterator < grouplet.field.length; iterator += 1) {
                   groupletTags = getFieldTags(grouplet.field[iterator], tags[id] + fc.constants.tagSeparator, id + fc.constants.prefixSeparator);
                   if (Object.keys(groupletTags).length > 0) {
@@ -939,7 +939,7 @@ var formcorp = (function () {
             // Rule specific vars
             var operator, value, fieldId, field;
 
-            if (typeof obj.rules === 'object' && $.isArray(obj.rules) && obj.rules.length > 0) {
+            if (typeof obj.rules === 'object' && _.isArray(obj.rules) && obj.rules.length > 0) {
               for (var iterator = 0; iterator < obj.rules.length; iterator += 1) {
                 rule = obj.rules[iterator];
 
@@ -1239,7 +1239,7 @@ var formcorp = (function () {
                 callback = window;
 
                 try {
-                  if (type === fc.constants.functionCallbackType && $.isArray(validator.params) && validator.params.length > 0 && validator.params[0].length > 0) {
+                  if (type === fc.constants.functionCallbackType && _.isArray(validator.params) && validator.params.length > 0 && validator.params[0].length > 0) {
                     // Custom callback function
                     if (typeof callback[validator.params[0]] !== 'function') {
                       log('Custom function \'' + validator.params[0] + '\' callback not defined.');
@@ -1455,7 +1455,7 @@ var formcorp = (function () {
               fieldId = field._id.$id;
               /*jslint nomen: false*/
 
-              if (typeof grouplet === 'object' && typeof grouplet.field === 'object' && $.isArray(grouplet.field)) {
+              if (typeof grouplet === 'object' && typeof grouplet.field === 'object' && _.isArray(grouplet.field)) {
                 for (fieldIterator = 0; fieldIterator < grouplet.field.length; fieldIterator += 1) {
                   groupletField = grouplet.field[fieldIterator];
 
@@ -1567,7 +1567,7 @@ var formcorp = (function () {
             * @param tokens
             */
           setEntityTokens = function (tokens) {
-            if (typeof tokens === 'object' && !$.isArray(tokens)) {
+            if (typeof tokens === 'object' && !_.isArray(tokens)) {
               fc.entityTokens = tokens;
             }
           },
@@ -2086,7 +2086,7 @@ var formcorp = (function () {
           updateFieldSchemas = function (fields) {
             var iterator, field, id, a, jsonDecode = ['visibility', 'validators'], toBoolean = ['visibility'], grouplet;
 
-            if (typeof fields === 'object' && $.isArray(fields) && fields.length > 0) {
+            if (typeof fields === 'object' && _.isArray(fields) && fields.length > 0) {
               for (iterator = 0; iterator < fields.length; iterator += 1) {
                 field = fields[iterator];
                 id = getId(field);
@@ -2434,7 +2434,7 @@ var formcorp = (function () {
            */
           groupletLength = function (fieldId) {
             var val = fc.fields[fieldId];
-            if ($.isArray(val)) {
+            if (_.isArray(val)) {
               return val.length;
             }
 
@@ -2486,7 +2486,7 @@ var formcorp = (function () {
             }
 
 
-            if ($.isArray(options)) {
+            if (_.isArray(options)) {
               for (iterator = 0; iterator < options.length; iterator += 1) {
                 if (options[iterator].isJson()) {
                   json = $.parseJSON(options[iterator]);
@@ -3256,7 +3256,7 @@ var formcorp = (function () {
 
             // Iterate through each option
             x = 0;
-            if (typeof options === 'object' && $.isArray(options) && options.length > 0) {
+            if (typeof options === 'object' && _.isArray(options) && options.length > 0) {
               if (getConfig(field, 'asButton', false)) {
                  html += '<div class="fc-radio-option-buttons">';
               }
@@ -3340,7 +3340,7 @@ var formcorp = (function () {
 
             // Iterate through each option
             x = 0;
-            if (typeof options === 'object' && $.isArray(options) && options.length > 0) {
+            if (typeof options === 'object' && _.isArray(options) && options.length > 0) {
               for (iterator = 0; iterator < options.length; iterator += 1) {
                 option = options[x];
 
@@ -4878,7 +4878,7 @@ var formcorp = (function () {
           stringHasTokens = function (str) {
             var tokens = str.match(/\{\{[a-zA-Z\_\-0-9\.]+\}\}/g);
 
-            return typeof tokens === 'object' && $.isArray(tokens) && tokens.length > 0;
+            return typeof tokens === 'object' && _.isArray(tokens) && tokens.length > 0;
           },
 
           /**
@@ -4904,7 +4904,7 @@ var formcorp = (function () {
               replacementObj;
 
             // Iterate through each token
-            if (tokens && $.isArray(tokens) && tokens.length > 0) {
+            if (tokens && _.isArray(tokens) && tokens.length > 0) {
               for (iterator = 0; iterator < tokens.length; iterator += 1) {
                 token = tokens[iterator].replace(/[\{\}]+/g, '');
 
@@ -6523,7 +6523,7 @@ var formcorp = (function () {
            * @param tags array
            */
           setTags = function (tags) {
-            if ($.isArray(tags)) {
+            if (_.isArray(tags)) {
               fc.tags = tags;
             }
           },
@@ -6551,7 +6551,7 @@ var formcorp = (function () {
               key = 'tags';
             }
 
-            return typeof obj === 'object' && typeof obj[key] === 'object' && $.isArray(obj[key]) && obj[key].length > 0;
+            return typeof obj === 'object' && typeof obj[key] === 'object' && _.isArray(obj[key]) && obj[key].length > 0;
           },
 
           /**
@@ -6575,7 +6575,7 @@ var formcorp = (function () {
            * @return boolean
            */
           hasTags = function (tags) {
-            if (typeof tags !== 'object' || !$.isArray(tags) || typeof fc.tags === 'undefined') {
+            if (typeof tags !== 'object' || !_.isArray(tags) || typeof fc.tags === 'undefined') {
               return false;
             }
 
@@ -6779,7 +6779,7 @@ var formcorp = (function () {
 
           // If the valid is valid, proceed
           if (value !== undefined) {
-            isValidObject = typeof value === "object" && (($.isArray(value) && value.length > 0) || !$.isEmptyObject(value));
+            isValidObject = typeof value === "object" && ((_.isArray(value) && value.length > 0) || !$.isEmptyObject(value));
             isValidString = typeof value === "string" && value.length > 0;
 
             // If object with enumerable keys or string with length greater than 0
@@ -6787,7 +6787,7 @@ var formcorp = (function () {
               if (isValidString) {
                 html += renderReviewTableString(field, value);
               } else if (isValidObject) {
-                if ($.isArray(value)) {
+                if (_.isArray(value)) {
                   html += renderReviewTableArray(field, value);
                 } else {
                   html += renderReviewTableGrouplet(field, value);
@@ -7247,7 +7247,7 @@ var formcorp = (function () {
                   fieldHtml += outputRepeatablePreDetermined(getId(field), getConfig(field, fc.constants.repeatableLinkedTo, 1), section);
                 } else {
                   // Style 1: in DOM (initial value must be how many are saved)
-                  if (fc.fields[getId(field)] !== undefined && $.isArray(fc.fields[getId(field)])) {
+                  if (fc.fields[getId(field)] !== undefined && _.isArray(fc.fields[getId(field)])) {
                     // If values have already been set, use it for the initial array length
                     amountOfRows = fc.fields[getId(field)].length;
                   } else {
@@ -7326,7 +7326,7 @@ var formcorp = (function () {
 
           // Check to ensure source field values is an array
           source = fc.fields[sourceField];
-          if (!$.isArray(source) || source.length === 0) {
+          if (!_.isArray(source) || source.length === 0) {
             return '';
           }
 
@@ -8433,7 +8433,7 @@ var formcorp = (function () {
                 logicMatches = logic.match(/"[a-f0-9]{24}"/g);
 
                 // If field IDs were found, perform checks on each one
-                if ($.isArray(logicMatches) && logicMatches.length > 0) {
+                if (_.isArray(logicMatches) && logicMatches.length > 0) {
                   processed = [];
 
                   // Iterate through each field ID
@@ -8821,7 +8821,7 @@ var formcorp = (function () {
           log('Prepopulate additional fields');
           if (typeof value === 'string') {
             prePopulate = getConfig(fieldSchema, 'prePopulate', []);
-            if ($.isArray(prePopulate) && prePopulate.length > 0) {
+            if (_.isArray(prePopulate) && prePopulate.length > 0) {
               for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
                 tmp = prePopulate[iterator]; // The data id to prepopulate
                 if (tmp.length > 0 && (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0)) {
@@ -8860,7 +8860,7 @@ var formcorp = (function () {
             if (fc.fieldSchema[parts[0]] !== undefined && parts.length > 1) {
               if (fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
                 // Initialise the base field if required
-                if (fc.fields[parts[0]] === undefined || !$.isArray(fc.fields[parts[0]])) {
+                if (fc.fields[parts[0]] === undefined || !_.isArray(fc.fields[parts[0]])) {
                   fc.fields[parts[0]] = [];
                 }
 
@@ -8888,7 +8888,7 @@ var formcorp = (function () {
                 // If the modal style is that so it is shown in the DOM, then process and add to the array
                 if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.fieldSchema[groupletID], 'repeatableStyle', 0))) >= 0) {
                   // If the core field value hasn't been set (as an array), set it first
-                  if (fc.fields[groupletID] === undefined || !$.isArray(fc.fields[groupletID])) {
+                  if (fc.fields[groupletID] === undefined || !_.isArray(fc.fields[groupletID])) {
                     fc.fields[groupletID] = [];
                   }
 
@@ -9477,7 +9477,7 @@ var formcorp = (function () {
           }
 
           // If not array, initialise as one
-          if (!$.isArray(fc.fields[fc.activeModalField])) {
+          if (!_.isArray(fc.fields[fc.activeModalField])) {
             fc.fields[fc.activeModalField] = [];
           }
           fc.fields[fc.activeModalField].push(values);
@@ -9998,7 +9998,7 @@ var formcorp = (function () {
                       flushActivePageForField(dataId, true);
 
                       // Need to update the values and save
-                      if (fc.fields[dataId] !== undefined && $.isArray(fc.fields[dataId])) {
+                      if (fc.fields[dataId] !== undefined && _.isArray(fc.fields[dataId])) {
                         if (currentRows - 1 <= 0) {
                           // If no rows, reset the array
                           fc.fields[dataId] = [];
@@ -10117,7 +10117,7 @@ var formcorp = (function () {
          * @returns {string}
          */
         renderAutoCompleteWidget = function (dataId, values, summaryTemplate) {
-          if (!$.isArray(values)) {
+          if (!_.isArray(values)) {
             return '';
           }
 
@@ -10766,7 +10766,7 @@ var formcorp = (function () {
 
           // Check for basic errors
           errors = getFieldErrors(dataId);
-          if ($.isArray(errors) && errors.length > 0) {
+          if (_.isArray(errors) && errors.length > 0) {
             return false;
           }
 
@@ -10806,7 +10806,7 @@ var formcorp = (function () {
           var iterator;
 
           // If a channel is supplied, try to load the channel page first
-          if (fc.channel && typeof fc.channel === 'string' && fc.channel.length > 0 && fc.schema.channel && $.isArray(fc.schema.channel) && fc.schema.channel.length > 0) {
+          if (fc.channel && typeof fc.channel === 'string' && fc.channel.length > 0 && fc.schema.channel && _.isArray(fc.schema.channel) && fc.schema.channel.length > 0) {
             for (iterator = 0; iterator < fc.schema.channel.length; iterator += 1) {
               if (fc.schema.channel[iterator].name && fc.schema.channel[iterator].name === fc.channel) {
                 /*jslint nomen: true*/
@@ -10978,7 +10978,7 @@ var formcorp = (function () {
           // Iterate through each field and load required libraries
           for (fieldsIterator = 0; fieldsIterator < fields.length; fieldsIterator += 1) {
             field = fields[fieldsIterator];
-            if (typeof fc.requiredFieldLibraries[field] === 'object' && $.isArray(fc.requiredFieldLibraries[field]) && fc.requiredFieldLibraries[field].length > 0) {
+            if (typeof fc.requiredFieldLibraries[field] === 'object' && _.isArray(fc.requiredFieldLibraries[field]) && fc.requiredFieldLibraries[field].length > 0) {
               for (libIterator = 0; libIterator < fc.requiredFieldLibraries[field].length; libIterator += 1) {
                 lib = fc.requiredFieldLibraries[field][libIterator];
                 loadLib(lib);
@@ -11516,7 +11516,7 @@ var formcorp = (function () {
            * @param branches array
            */
           setDevelopmentBranches: function (branches) {
-            if ($.isArray(branches)) {
+            if (_.isArray(branches)) {
               fc.developmentBranches = branches;
             }
           },
@@ -12040,7 +12040,7 @@ var formcorp = (function () {
             if (typeof field === 'string') {
               return field.length > 0;
             } else if (typeof field === 'object') {
-              if ($.isArray(field)) {
+              if (_.isArray(field)) {
                 return field.length > 0;
               } else {
                 return Object.keys(field).length > 0;
@@ -12061,7 +12061,7 @@ var formcorp = (function () {
             if (typeof field === 'string') {
               return field.length === 0;
             } else if (typeof field === 'object') {
-              if ($.isArray(field)) {
+              if (_.isArray(field)) {
                 return field.length === 0;
               } else {
                 return Object.keys(field).length === 0;
