@@ -6283,6 +6283,7 @@ var formcorp = (function () {
            */
           onSchemaLoaded = function () {
             initGreenId();
+            fc.logic.init();
           },
 
           /**
@@ -11822,6 +11823,11 @@ var formcorp = (function () {
           removeTag: removeTag,
           setTags: setTags,
           getTags: getTags,
+
+          /**
+           * Logging
+           */
+         log: log,
 
           /**
            * libraries
