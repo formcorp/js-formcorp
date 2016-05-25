@@ -672,7 +672,7 @@ var formcorp = (function () {
             var schema, value, functionReference;
 
             fieldId = getDataId(fieldId);
-            schema = fc.fieldSchema[fieldId];
+            schema = fc.logic.getComponent(fieldId);
             value = fc.fields[fieldId];
             functionReference;
 
@@ -893,7 +893,7 @@ var formcorp = (function () {
 
             for (key in fc.fieldSchema) {
               if (fc.fieldSchema.hasOwnProperty(key)) {
-                fieldTags = getFieldTags(fc.fieldSchema[key]);
+                fieldTags = getFieldTags(fc.logic.getComponent(key));
                 tagValues = {};
 
                 if (Object.keys(fieldTags).length > 0) {
@@ -928,7 +928,7 @@ var formcorp = (function () {
 
             for (key in fc.fieldSchema) {
               if (fc.fieldSchema.hasOwnProperty(key)) {
-                fieldTags = getFieldTags(fc.fieldSchema[key]);
+                fieldTags = getFieldTags(fc.logic.getComponent(key));
                 tagValues = {};
 
                 if (Object.keys(fieldTags).length > 0) {
@@ -987,13 +987,13 @@ var formcorp = (function () {
 
               dataId = $(field).attr('formcorp-data-id');
 
-              if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
+              if (typeof fc.logic.getComponent(dataId) !== 'undefined' && fc.logic.getComponent(dataId).type === 'matrix') {
                 return parseMatrixField(field, true);
               }
 
-              if (fc.fieldSchema[dataId] !== undefined) {
+              if (fc.logic.getComponent(dataId) !== undefined) {
                 // If read-only, do not record a value
-                return getConfig(fc.fieldSchema[dataId], 'readOnly', false) ? '' : field.val();
+                return getConfig(fc.logic.getComponent(dataId), 'readOnly', false) ? '' : field.val();
               }
             }
 
@@ -1005,7 +1005,7 @@ var formcorp = (function () {
             if (field.is('button')) {
               dataId = field.attr('formcorp-data-id');
               if (dataId) {
-                if (!getConfig(fc.fieldSchema[dataId], 'allowMultiple', false)) {
+                if (!getConfig(fc.logic.getComponent(dataId), 'allowMultiple', false)) {
                   dataValue = $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').attr('data-field-value');
                   if (dataValue) {
                     return decodeURIComponent(dataValue);
@@ -1162,7 +1162,7 @@ var formcorp = (function () {
             }
 
             section = fieldSelector.parent();
-            field = fc.fieldSchema[dataId];
+            field = fc.logic.getComponent(dataId);
 
             // If value has been mapped, use that
             if (fc.fields[dataId] !== undefined) {
@@ -1453,9 +1453,9 @@ var formcorp = (function () {
 
             for (iterator in fc.fieldSchema) {
               if (fc.fieldSchema.hasOwnProperty(iterator)) {
-                fieldTag = getConfig(fc.fieldSchema[iterator], 'tag', '');
+                fieldTag = getConfig(fc.logic.getComponent(iterator), 'tag', '');
                 if (fieldTag.length > 0 && fieldTag === tag) {
-                  return fc.fieldSchema[iterator];
+                  return fc.logic.getComponent(iterator);
                 }
               }
             }
@@ -1644,7 +1644,7 @@ var formcorp = (function () {
             // Fetch the field the object belongs to
             dataId = parentContainer.attr('fc-data-group');
             if (dataId !== undefined && dataId !== null) {
-              field = fc.fieldSchema[dataId];
+              field = fc.logic.getComponent(dataId);
               if (getConfig(field, 'repeatable', false)) {
                 // If the field is repeatable, its in a modal
                 return fc.constants.repeatableInModal.indexOf(parseInt(getConfig(field, 'repeatableStyle', 1))) > -1;
@@ -1661,7 +1661,7 @@ var formcorp = (function () {
            */
           getFieldErrors = function (fieldId, value, prefix) {
             var errors = [],
-              field = fc.fieldSchema[fieldId],
+              field = fc.logic.getComponent(fieldId),
               skipCheck = false,
               required;
 
@@ -1792,7 +1792,7 @@ var formcorp = (function () {
                 return;
               }
 
-              var field = fc.fieldSchema[dataId];
+              var field = fc.logic.getComponent(dataId);
 
               // If not required, do nothing
               if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
@@ -1839,42 +1839,6 @@ var formcorp = (function () {
             });
 
             return Object.keys(errors).length === 0;
-          },
-
-          /**
-           * Finds and returns a page by its id.
-           * @param pageId
-           * @returns {*}
-           */
-          getPageById = function (pageId) {
-            if (typeof fc.pages[pageId] === 'object') {
-              return fc.pages[pageId];
-            }
-
-            var x,
-              y,
-              stage,
-              page;
-            for (x = 0; x < fc.schema.stage.length; x += 1) {
-              stage = fc.schema.stage[x];
-              if (typeof stage.page === 'object' && stage.page.length > 0) {
-                for (y = 0; y < stage.page.length; y += 1) {
-                  page = stage.page[y];
-                  /*jslint nomen: true*/
-                  if (fc.pages[page._id.$id] === undefined) {
-                    fc.pages[page._id.$id] = {
-                      stage: stage,
-                      page: page
-                    };
-                  }
-                  /*jslint nomen: false*/
-                }
-              }
-            }
-
-            if (fc.pages[pageId]) {
-              return fc.pages[pageId];
-            }
           },
 
           /**
@@ -1938,122 +1902,12 @@ var formcorp = (function () {
           },
 
           /**
-           * Update schema definitions for a set of fields
-           * @param fields
-           */
-          updateFieldSchemas = function (fields) {
-            var iterator, field, id, a, jsonDecode = ['visibility', 'validators'], toBoolean = ['visibility'], grouplet;
-
-            if (typeof fields === 'object' && _.isArray(fields) && fields.length > 0) {
-              for (iterator = 0; iterator < fields.length; iterator += 1) {
-                field = fields[iterator];
-                id = getId(field);
-
-                // Add to field schema if doesn't already exist
-                if (fc.fieldSchema[id] === undefined) {
-                  // Decode configuration strings to json objects as required
-                  for (a = 0; a < jsonDecode.length; a += 1) {
-                    if (field.config[jsonDecode[a]] !== undefined && field.config[jsonDecode[a]].length > 0) {
-                      field.config[jsonDecode[a]] = JSON.parse(field.config[jsonDecode[a]]);
-
-                      // Whether or not the object needs to be converted to boolean logic
-                      if (toBoolean.indexOf(jsonDecode[a]) >= 0) {
-                        field.config[jsonDecode[a]] = getBooleanLogic(field.config[jsonDecode[a]], true);
-                      }
-                    }
-                  }
-
-                  fc.fieldSchema[id] = field;
-                }
-
-                // If the field is a grouplet, need to recursively update the field schema
-                if (field.type === "grouplet") {
-                  grouplet = getConfig(field, 'grouplet', {field: []});
-                  updateFieldSchemas(grouplet.field);
-                }
-              }
-            }
-          },
-
-          /**
-           * Update field schema (object stores the configuration of each field for easy access)
-           * @param stage
-           */
-          updateFieldSchema = function (stage) {
-            var jsonDecode = ['visibility', 'validators'],
-              toBoolean = ['visibility'],
-              x,
-              y,
-              key,
-              page,
-              configKey,
-              section,
-              a;
-
-            if (stage.page !== undefined) {
-              // Iterate through each page
-              for (x = 0; x < stage.page.length; x += 1) {
-                page = stage.page[x];
-                if (page.section === undefined) {
-                  continue;
-                }
-
-                // Convert page to conditions to JS boolean logic
-                if (typeof page.toCondition === 'object' && Object.keys(page.toCondition).length > 0) {
-                  for (key in page.toCondition) {
-                    if (page.toCondition.hasOwnProperty(key)) {
-                      try {
-                        page.toCondition[key] = getBooleanLogic(JSON.parse(page.toCondition[key]));
-                      } catch (ignore) {
-                      }
-                    }
-                  }
-                }
-
-                // Iterate through each section
-                for (y = 0; y < page.section.length; y += 1) {
-                  section = page.section[y];
-                  if (section.field === undefined || section.field.length === 0) {
-                    continue;
-                  }
-
-                  // Are any object keys required to be decoded to a json object?
-                  for (a = 0; a < jsonDecode.length; a += 1) {
-                    configKey = jsonDecode[a];
-                    if (typeof section[configKey] === 'string') {
-                      try {
-                        section[configKey] = JSON.parse(section[configKey]);
-                      } catch (ignore) {
-                      }
-                    }
-                  }
-
-                  // Are any object keys required to be converted to boolean logic?
-                  for (a = 0; a < toBoolean.length; a += 1) {
-                    if (typeof section[toBoolean[a]] === 'object') {
-                      section[toBoolean[a]] = getBooleanLogic(section[toBoolean[a]]);
-                    }
-                  }
-
-                  // Append to object sections dictionary
-                  if (fc.sections[getId(section)] === undefined) {
-                    fc.sections[getId(section)] = section;
-                  }
-
-                  // Iterate through each field
-                  updateFieldSchemas(section.field);
-                }
-              }
-            }
-          },
-
-          /**
            * Retrieves list of tags from a grouplet (used for templating)
            * @param fieldId
            * @returns {*}
            */
           getGroupletTags = function (fieldId) {
-            var schema = fc.fieldSchema[fieldId],
+            var schema = fc.logic.getComponent(fieldId),
               field,
               tags = {},
               counter,
@@ -2321,7 +2175,7 @@ var formcorp = (function () {
            */
           getContentRadioListMeta = function (fieldId, metaKey) {
             var val = getValue(fieldId, ""),
-              schema = fc.fieldSchema[fieldId],
+              schema = fc.logic.getComponent(fieldId),
               options = getConfig(schema, 'options', '').split("\n"),
               iterator,
               json,
@@ -2485,7 +2339,7 @@ var formcorp = (function () {
             var schema, price, conditionalPrices, booleanLogic, conditionalPrice, iterator;
 
             // Retrieve the field schema
-            schema = fc.fieldSchema[fieldId];
+            schema = fc.logic.getComponent(fieldId);
             if (schema === undefined) {
               return;
             }
@@ -2530,7 +2384,7 @@ var formcorp = (function () {
             var html = '',
               index,
               tags = getGroupletTags(fieldId),
-              field = fc.fieldSchema[fieldId],
+              field = fc.logic.getComponent(fieldId),
               layout = getConfig(field, fc.constants.configKeys.summaryLayout, "");
 
             // Requires a summary layout to work
@@ -2562,7 +2416,7 @@ var formcorp = (function () {
            * @returns {*|boolean}
            */
           fieldIsRepeatable = function (dataId) {
-            var fieldSchema = fc.fieldSchema[dataId];
+            var fieldSchema = fc.logic.getComponent(dataId);
 
             return fieldSchema && typeof fieldSchema.config.repeatable === 'boolean' && fieldSchema.config.repeatable;
           },
@@ -2587,7 +2441,7 @@ var formcorp = (function () {
             parentId = parts.join(fc.constants.prefixSeparator);
 
             // If no schema exists for the parent, return false
-            if (!fc.fieldSchema[parentId]) {
+            if (!fc.logic.getComponent(parentId)) {
               return false;
             }
 
@@ -2650,7 +2504,7 @@ var formcorp = (function () {
            */
           setFieldValue = function (obj, fieldId) {
             var value,
-              schema = fc.fieldSchema[fieldId],
+              schema = fc.logic.getComponent(fieldId),
               iterator,
               el,
               defaultValue,
@@ -2680,7 +2534,7 @@ var formcorp = (function () {
 
             // If a value was found, set the value in the DOM
             if (value !== undefined) {
-              schema = fc.fieldSchema[fieldId];
+              schema = fc.logic.getComponent(fieldId);
 
               // Check to see if the value shouldn't be restored
               if (unrestorableFieldTypes.indexOf(schema.type) >= 0) {
@@ -3264,7 +3118,7 @@ var formcorp = (function () {
             var form, input, key, schema, url;
 
             // Fetch the field schema
-            schema = fc.fieldSchema[dataId];
+            schema = fc.logic.getComponent(dataId);
             if (schema === undefined) {
               return;
             }
@@ -3376,7 +3230,7 @@ var formcorp = (function () {
               }
 
               // Fetch the field schema
-              schema = fc.fieldSchema[dataObjectId];
+              schema = fc.logic.getComponent(dataObjectId);
               if (schema === undefined) {
                 return false;
               }
@@ -3786,7 +3640,7 @@ var formcorp = (function () {
               data;
 
             // Retrieve the field schema
-            schema = fc.fieldSchema[fc.modalMeta.fieldId];
+            schema = fc.logic.getComponent(fc.modalMeta.fieldId);
             if (schema === undefined) {
               return false;
             }
@@ -4569,7 +4423,7 @@ var formcorp = (function () {
               pageDiv;
 
             // If the last edited field disables scrolling, do not scroll
-            if (fc.lastCompletedField && fc.fieldSchema[fc.lastCompletedField] && !getConfig(fc.fieldSchema[fc.lastCompletedField], 'allowAutoScroll', true)) {
+            if (fc.lastCompletedField && fc.logic.getComponent(fc.lastCompletedField) && !getConfig(fc.logic.getComponent(fc.lastCompletedField), 'allowAutoScroll', true)) {
               return;
             }
 
@@ -4910,7 +4764,7 @@ var formcorp = (function () {
             } else {
               // Otherwise look throughout the schema for a greenID field - if it exists, initialise libs
               for (fieldId in fc.fieldSchema) {
-                if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.fieldSchema[fieldId].type === 'greenIdVerification') {
+                if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.logic.getComponent(fieldId).type === 'greenIdVerification') {
                   hasGreenId = true;
                   break;
                 }
@@ -5001,7 +4855,7 @@ var formcorp = (function () {
 
               // Fetch the root container
               rootContainer = fc.domContainer.find('.fc-field[fc-data-group="' + rootId + '"]');
-              rootSchema = fc.fieldSchema[rootId];
+              rootSchema = fc.logic.getComponent(rootId);
 
               if (rootContainer.length === 0) {
                 // Ensure a root container exists
@@ -5911,7 +5765,7 @@ var formcorp = (function () {
 
               // Fetch the root container
               rootContainer = fc.domContainer.find('.fc-field[fc-data-group="' + rootId + '"]');
-              rootSchema = fc.fieldSchema[rootId];
+              rootSchema = fc.logic.getComponent(rootId);
 
               if (rootContainer.length === 0) {
                 // Ensure a root container exists
@@ -6124,7 +5978,7 @@ var formcorp = (function () {
 
               // Fetch the root container
               rootContainer = fc.domContainer.find('.fc-field[fc-data-group="' + rootId + '"]');
-              rootSchema = fc.fieldSchema[rootId];
+              rootSchema = fc.logic.getComponent(rootId);
 
               if (rootContainer.length === 0) {
                 // Ensure a root container exists
@@ -6283,7 +6137,6 @@ var formcorp = (function () {
            */
           onSchemaLoaded = function () {
             initGreenId();
-            fc.logic.init();
           },
 
           /**
@@ -6599,7 +6452,7 @@ var formcorp = (function () {
           // Grouplet, need to recursively output
           for (key in value) {
             if (value.hasOwnProperty(key)) {
-              html += renderSummaryField(fc.fieldSchema[key], value[key]);
+              html += renderSummaryField(fc.logic.getComponent(key), value[key]);
             }
           }
 
@@ -6710,7 +6563,7 @@ var formcorp = (function () {
           // Variable declaration
           var returnHTML = '',
             fieldsHTML = '',
-            field = fc.fieldSchema[fieldId],
+            field = fc.logic.getComponent(fieldId),
             iterator,
             tagValues = getFieldTagValues();
 
@@ -6875,8 +6728,8 @@ var formcorp = (function () {
 
             // Add to field class variable if doesnt exist
             dataId = fieldId;
-            if (fc.fieldSchema[dataId] === undefined) {
-              fc.fieldSchema[dataId] = field;
+            if (fc.logic.getComponent(dataId) === undefined) {
+              fc.logic.getComponent(dataId) = field;
             }
 
             // Description text - show before the label (for certain fields)
@@ -7557,7 +7410,7 @@ var formcorp = (function () {
                       year = date.getFullYear(),
                       hours = ("0" + date.getHours()).slice(-2),
                       minutes = ("0" + date.getMinutes()).slice(-2),
-                      fieldSchema = fc.fieldSchema[fieldId];
+                      fieldSchema = fc.logic.getComponent(fieldId);
 
                     if (typeof fieldSchema === 'object') {
                       // Retrieve individual date components
@@ -7656,7 +7509,7 @@ var formcorp = (function () {
                     val = result.data.values[key];
                     setValue(key, val);
 
-                    fc.fieldSchema[key] = {
+                    fc.logic.getComponent(key) = {
                       _id: {
                         '$id': key
                       },
@@ -8064,21 +7917,21 @@ var formcorp = (function () {
          */
         renderPage = function (page) {
           // Page details
-          var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '">',
+          var pageDiv = '<div class="fc-page fc-page-' + getId(page) + '" data-page-id="' + getId(page) + '" data-form-state="' + fc.formState + '">',
             submitText = fc.lang.submitText,
             nextPageObj,
             submitClasses = ['fc-submit'];
 
           pageDiv += '<h1>' + tokenise(page.stage.label) + '</h1>';
-          page = page.page;
+          fc.pageId = getId(page);
 
-          /*jslint nomen: true*/
-          fc.pageId = page._id.$id;
-          /*jslint nomen: false*/
-          if (typeof page.label === 'string' && page.label.length > 0) {
+          if (_.isString(page.label) && page.label.length > 0) {
+            // Output page title if exists
             pageDiv += '<h2>' + tokenise(page.label) + '</h2>';
           }
-          if (typeof page.description === 'string' && page.description.length > 0) {
+
+          if (_.isString(page.description) && page.description.length > 0) {
+            // Output page description if exists
             pageDiv += '<h3>' + tokenise(page.description) + '</h3>';
           }
 
@@ -8134,11 +7987,11 @@ var formcorp = (function () {
               section,
               visible;
 
-            if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.sections[dataId] !== 'object') {
+            if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.logic.getComponent(dataId) !== 'object') {
               return;
             }
 
-            section = fc.sections[dataId];
+            section = fc.logic.getComponent(dataId);
             if (objectHasTag(section)) {
               // If the object has tags, check to see if it should be visible
               visible = hasTags(section.tags);
@@ -8186,7 +8039,7 @@ var formcorp = (function () {
               groupletID = parts[0];
 
               // Only continue if the root element is a grouplet
-              field = fc.fieldSchema[groupletID];
+              field = fc.logic.getComponent(groupletID);
               if (field !== undefined && field.type === 'grouplet' && getConfig(field, 'repeatable', false)) {
                 // If the modal style is that so it is shown in the DOM, then process and add to the array
                 if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(field, 'repeatableStyle', 0))) >= 0) {
@@ -8194,8 +8047,8 @@ var formcorp = (function () {
                   fieldID = parts[2];
 
                   // If the field definition is supplied, fetch the visibility
-                  if (fc.fieldSchema[fieldID] !== undefined) {
-                    visibility = getConfig(fc.fieldSchema[fieldID], 'visibility', '');
+                  if (fc.logic.getComponent(fieldID) !== undefined) {
+                    visibility = getConfig(fc.logic.getComponent(fieldID), 'visibility', '');
                     if (visibility.length > 0) {
                       // By default, the visibility string will look something along the lines as that below:
                       // (fc.comparisonIn(fc.fields["55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"], ["Yes"], "55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"))
@@ -8243,12 +8096,12 @@ var formcorp = (function () {
               replace,
               re;
 
-            if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.fieldSchema[dataId] !== 'object') {
+            if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.logic.getComponent(dataId) !== 'object') {
               return;
             }
 
             // If field has a visibility configurative set, act on it
-            field = fc.fieldSchema[dataId];
+            field = fc.logic.getComponent(dataId);
             if (objectHasTag(field.config)) {
               visible = hasTags(field.config.tags);
             }
@@ -8272,7 +8125,7 @@ var formcorp = (function () {
               // each iteration.
               //
               // The implemented fix below matches all IDs, and checks to see if they exist in a global scope. If they do, it leave
-              // them, however if if no definition is found (fc.fieldSchema[ID]), it is assumed the condition is acting on a dynamic
+              // them, however if if no definition is found (fc.logic.getComponent(ID)), it is assumed the condition is acting on a dynamic
               // value within the row iteration, and the condition updated accordingly.
 
               // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
@@ -8291,7 +8144,7 @@ var formcorp = (function () {
                     // If the ID hasn't been processed previously for this condition, check now
                     if (processed.indexOf(temporaryId) < 0) {
                       // If the matched field ID doesn't exist in the global/root form definition, assume it belongs to the iteration
-                      if (fc.fieldSchema[temporaryId] === undefined) {
+                      if (fc.logic.getComponent(temporaryId) === undefined) {
                         parts = dataId.split(fc.constants.prefixSeparator);
 
                         // Replace with the row iteration id (dynamic - i.e 5th iteration has ID iteratorId_4_fieldId)
@@ -8394,19 +8247,17 @@ var formcorp = (function () {
             return;
           }
 
-          // If the page has already been rendered on the page, do not re-render
-          if (fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]').length > 0) {
-            return false;
-          }
-
-          var page = getPageById(pageId),
+          var page = fc.logic.getComponent(pageId),
             html = '';
 
           // Ensure returned a valid page
-          if (page === undefined) {
+          if (_.isUndefined(page)) {
             log('FC Error: Page not found');
             return;
           }
+
+          // Retrieve the page stage
+          page.stage = fc.logic.getComponent(page._belongsTo);
 
           if (typeof page.stage !== 'object') {
             return;
@@ -8414,22 +8265,19 @@ var formcorp = (function () {
 
           // Store the previous page
           if (isNextPage === true && fc.currentPage !== undefined) {
-            fc.prevPages[pageId] = getPageById(fc.currentPage);
+            fc.prevPages[pageId] = fc.logic.getComponent(fc.currentPage);
           }
 
           // Update the current page on render
           fc.currentPage = pageId;
-
-          // Store field schema locally
-          updateFieldSchema(page.stage);
           html += renderPage(page);
 
           if (!fc.config.onePage || isSubmitPage(page.page)) {
             // Show form in stages (if not one page, or if the submission page)
-            $(fc.jQueryContainer + ' .render').html(html);
+            fc.domContainer.find('.render').html(html);
           } else {
             // If a one-page form, append to the DOM
-            $(fc.jQueryContainer + ' .render').append(html);
+            fc.domContainer.find('.render').append(html);
             fc.pageOrders.push(pageId);
             fc.domContainer.find('.fc-pagination').hide();
             fc.domContainer.find('.fc-pagination:last').show();
@@ -8474,120 +8322,31 @@ var formcorp = (function () {
          * @returns {*}
          */
         nextPage = function (shouldRender, returnPage, pageId) {
-          if (typeof shouldRender !== 'boolean') {
+          if (!_.isBoolean(shouldRender)) {
             shouldRender = true;
           }
 
           // By default, should return boolean value
-          if (typeof returnPage !== 'boolean') {
+          if (!_.isBoolean(returnPage)) {
             returnPage = false;
           }
 
           // If no page id specified, use the current page
-          if (typeof pageId !== "string") {
+          if (!_.isString(pageId)) {
             pageId = fc.currentPage;
           }
 
-          var currentPage = getPageById(pageId),
-            id,
-            foundStage = false,
-            x,
-            y,
-            condition,
-            stage,
-            foundPage = false,
-            pageToRender;
-
-          if (!currentPage || !currentPage.page) {
-            return;
+          // Retrieve the next page
+          var nextPage = fc.logic.getNextPage(pageId);
+          if (nextPage === false) {
+            return false;
           }
 
-          // If have custom rules determining the page to navigate to, attempt to process them
-          if (typeof currentPage.page.toCondition === 'object' && Object.keys(currentPage.page.toCondition).length > 0) {
-            for (id in currentPage.page.toCondition) {
-              if (currentPage.page.toCondition.hasOwnProperty(id)) {
-                condition = currentPage.page.toCondition[id];
-                if (fc.logic.checkLogic(getBooleanLogic(condition))) {
-                  if (shouldRender) {
-                    render(id, true);
-                  }
-                  return returnPage ? getPageById(id) : true;
-                }
-              }
-            }
+          if (shouldRender) {
+            render(nextPage, true);
           }
 
-          // Render the next page by default (first page in next stage)
-          for (x = 0; x < fc.schema.stage.length; x += 1) {
-            stage = fc.schema.stage[x];
-
-            // If the stage has field tags, check to see if it should be ignored
-            if (objectHasTag(stage) && !hasTags(stage.tags)) {
-              // Do nothing if has tags but they don't match
-              continue;
-            }
-
-            if (!fc.config.renderOnlyVertical) {
-              // Look horizontally as well
-              if (getId(stage) === getId(currentPage.stage)) {
-                if (typeof stage.page === 'object' && stage.page.length > 0) {
-                  for (y = 0; y < stage.page.length; y += 1) {
-                    if (foundPage && typeof pageToRender === 'undefined') {
-                      if (objectHasTag(stage.page[y])) {
-                        // If the object has tags, check to see if it should be rendered
-                        if (hasTags(stage.page[y].tags)) {
-                          pageToRender = stage.page[y];
-                          break;
-                        }
-                      } else {
-                        // If the page doesn't have tags, it should always be rendered
-                        pageToRender = stage.page[y];
-                        break;
-                      }
-                    }
-
-                    if (getId(stage.page[y]) == getId(currentPage.page)) {
-                      foundPage = true;
-                    }
-                  }
-
-                  // After the loop is complete, default back to false
-                  foundPage = false;
-                }
-              }
-            }
-
-            // If the stage that is to be rendered has been found, do so
-            if (typeof pageToRender === 'undefined' && foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
-              // Only mark this page as the one to render if it hasn't been previously defined
-              if (objectHasTag(stage.page[0])) {
-                // If the object has tags, check to see if it should be rendered
-                if (hasTags(stage.page[0].tags)) {
-                  pageToRender = stage.page[0];
-                  break;
-                }
-              } else {
-                // If the page doesn't have tags, it should always be rendered
-                pageToRender = stage.page[0];
-                break;
-              }
-            }
-
-            // If the current iterative stage is the stage of the currently rendered page, mark the next stage to be rendered
-            if (getId(stage) === getId(currentPage.stage)) {
-              foundStage = true;
-            }
-          }
-
-          if (typeof pageToRender === 'object') {
-            // If found a page, render/return it
-            if (shouldRender) {
-              render(getId(pageToRender), true);
-            }
-            return returnPage ? getPageById(getId(pageToRender)) : true;
-          }
-
-          return false;
+          return returnPage ? fc.logic.getComponent(nextPage) : true;
         };
 
         /**
@@ -8623,7 +8382,7 @@ var formcorp = (function () {
          */
         valueChanged = function (dataId, value, force) {
           log('valueChanged(' + dataId + ',' + value + ',' + force + ')');
-          var fieldSchema = fc.fieldSchema[dataId],
+          var fieldSchema = fc.logic.getComponent(dataId),
             errors,
             params,
             dataParams,
@@ -8705,8 +8464,8 @@ var formcorp = (function () {
             parts = dataId.split(fc.constants.prefixSeparator);
 
             // If a repeatable iterator, store each value
-            if (fc.fieldSchema[parts[0]] !== undefined && parts.length > 1) {
-              if (fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
+            if (fc.logic.getComponent(parts[0]) !== undefined && parts.length > 1) {
+              if (fc.logic.getComponent(parts[0]).type === 'repeatableIterator') {
                 // Initialise the base field if required
                 if (fc.fields[parts[0]] === undefined || !_.isArray(fc.fields[parts[0]])) {
                   fc.fields[parts[0]] = [];
@@ -8731,10 +8490,10 @@ var formcorp = (function () {
                 // If the field value belongs to a grouplet, we have to check if its been repeated in the DOM
                 // If it has been repeated, need to treat the value as an array, and append it to the value
                 // The alternative is that it is shown in a modal window, and therefore needs to be treated differently
-              } else if (fc.fieldSchema[parts[0]].type === 'grouplet' && $.isNumeric(parts[1])) {
+              } else if (fc.logic.getComponent(parts[0]).type === 'grouplet' && $.isNumeric(parts[1])) {
                 groupletID = parts[0];
                 // If the modal style is that so it is shown in the DOM, then process and add to the array
-                if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.fieldSchema[groupletID], 'repeatableStyle', 0))) >= 0) {
+                if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.logic.getComponent(groupletID), 'repeatableStyle', 0))) >= 0) {
                   // If the core field value hasn't been set (as an array), set it first
                   if (fc.fields[groupletID] === undefined || !_.isArray(fc.fields[groupletID])) {
                     fc.fields[groupletID] = [];
@@ -8774,7 +8533,7 @@ var formcorp = (function () {
             log('Field on update belongs to repeatable object');
             dataParams = dataId.split(fc.constants.prefixSeparator);
             parentId = dataParams[0];
-            parentField = fc.fieldSchema[parentId];
+            parentField = fc.logic.getComponent(parentId);
 
             if (parentField !== undefined && getConfig(parentField, 'repeatable', false) === true) {
               errors = fieldErrors(dataId);
@@ -8866,7 +8625,7 @@ var formcorp = (function () {
 
           // Check to see if the next page should be automatically loaded
           pageId = getFieldPageId(dataId);
-          page = getPageById(pageId);
+          page = fc.logic.getComponent(pageId);
           allowAutoLoad = !page || !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
 
           if (fc.config.autoLoadPages) {
@@ -8879,7 +8638,7 @@ var formcorp = (function () {
           }
 
           // Scroll to the next field if required
-          if (getConfig(fc.fieldSchema[dataId], 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
+          if (getConfig(fc.logic.getComponent(dataId), 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
             autoScrollToField(dataId, nextField);
           }
 
@@ -8893,7 +8652,7 @@ var formcorp = (function () {
               if (replaceContainer.length > 0) {
                 // If the field exists, re-render
                 replaceSectionID = replaceContainer.attr('fc-belongs-to');
-                replaceSchema = fc.fieldSchema[tmp];
+                replaceSchema = fc.logic.getComponent(tmp);
                 if (replaceSchema !== undefined && replaceSchema.type === 'grouplet') {
                   replaceHTML = renderFields([replaceSchema], replaceSectionID);
                   if (replaceHTML.length > 0) {
@@ -8921,7 +8680,7 @@ var formcorp = (function () {
         setValueUpdate = function (obj) {
           var val = obj.val(),
             id = obj.attr('formcorp-data-id'),
-            schema = fc.fieldSchema[id],
+            schema = fc.logic.getComponent(id),
             el;
 
           if (schema && schema.type && schema.type === 'abnVerification') {
@@ -9067,7 +8826,7 @@ var formcorp = (function () {
 
               if (typeof result === "object") {
                 if (result.success && [true, "true"].indexOf(result.success) > -1) {
-                  mapField = getConfig(fc.fieldSchema[dataId], 'mapBusinessName', '');
+                  mapField = getConfig(fc.logic.getComponent(dataId), 'mapBusinessName', '');
 
                   // Set the business/entity name
                   if (mapField.length > 0 && result.entityName && result.entityName.length > 0) {
@@ -9114,13 +8873,13 @@ var formcorp = (function () {
               val = decodeURIComponent($(this).attr('data-field-value'));
             }
 
-            if (fc.fieldSchema[id] && fc.fieldSchema[id].type) {
+            if (fc.logic.getComponent(id) && fc.logic.getComponent(id).type) {
               // Attempt to map the button to a field and process it
-              if (['contentRadioList', 'optionTable'].indexOf(fc.fieldSchema[id].type) > -1) {
+              if (['contentRadioList', 'optionTable'].indexOf(fc.logic.getComponent(id).type) > -1) {
                 val = decodeURIComponent($(this).attr('data-field-value'));
 
                 // If its a radio list, only allow one to be selected
-                if (!getConfig(fc.fieldSchema[id], 'allowMultiple', false)) {
+                if (!getConfig(fc.logic.getComponent(id), 'allowMultiple', false)) {
                   fieldEl.find('button.checked').removeClass('checked');
                 } else {
                   // Checkbox list - allows multiple
@@ -9198,7 +8957,7 @@ var formcorp = (function () {
 
             fieldId = $(this).attr('formcorp-data-id');
             value = getFieldValue($(this));
-            field = fc.fieldSchema[fieldId];
+            field = fc.logic.getComponent(fieldId);
 
             // If custom errors exist, return false
             customErrors = getCustomErrors(field, value);
@@ -9331,7 +9090,7 @@ var formcorp = (function () {
           fc.fields[fc.activeModalField].push(values);
 
           // Render a repeatable summary table upon successful add if specified by the user (this should always be set to TRUE)
-          if (getConfig(fc.fieldSchema[fc.activeModalField], 'renderRepeatableTable', false)) {
+          if (getConfig(fc.logic.getComponent(fc.activeModalField), 'renderRepeatableTable', false)) {
             $('[fc-data-group="' + fc.activeModalField + '"] .fc-summary').html(renderRepeatableTable(fc.activeModalField, fc.fields[fc.activeModalField]));
           }
 
@@ -9745,7 +9504,7 @@ var formcorp = (function () {
           fc.domContainer.on('click', '.fc-repeatable a.fc-click.fc-add', function () {
             var dataId = $(this).attr('data-id'),
               html = '',
-              schema = fc.fieldSchema[dataId],
+              schema = fc.logic.getComponent(dataId),
               repeatableStyle,
               sectionId,
               fieldContainer,
@@ -9781,7 +9540,7 @@ var formcorp = (function () {
 
                   // Only perform the operation when under the maximum row threshold
                   if (currentRows < getConfig(schema, 'maxRows', 100000)) {
-                    html = outputRepeatablePreDetermined(dataId, currentRows + 1, fc.sections[sectionId]);
+                    html = outputRepeatablePreDetermined(dataId, currentRows + 1, fc.logic.getComponent(sectionId));
                     rowContainer.html(html);
 
                     // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
@@ -9810,7 +9569,7 @@ var formcorp = (function () {
           fc.domContainer.on('click', '.fc-repeatable a.fc-click.fc-remove', function () {
             var dataId = $(this).attr('data-id'),
               html = '',
-              schema = fc.fieldSchema[dataId],
+              schema = fc.logic.getComponent(dataId),
               repeatableStyle,
               sectionId,
               rowContainer,
@@ -9837,7 +9596,7 @@ var formcorp = (function () {
                   if (currentRows > getNumericTagValue(getConfig(schema, 'repeatableLinkedTo'))) {
                     if (confirm(getConfig(schema, 'removeAlertText'))) {
                       // Confirm the user wants to remove the selected row
-                      html = outputRepeatablePreDetermined(dataId, currentRows - 1, fc.sections[sectionId]);
+                      html = outputRepeatablePreDetermined(dataId, currentRows - 1, fc.logic.getComponent(sectionId));
                       rowContainer.html(html);
 
                       // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
@@ -10040,7 +9799,7 @@ var formcorp = (function () {
           fc.domContainer.on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput', function (event) {
             var fieldId = $(this).attr('formcorp-data-id'),
               fieldContainer = $('.fc-field[fc-data-group="' + fieldId + '"]'),
-              schema = fc.fieldSchema[fieldId],
+              schema = fc.logic.getComponent(fieldId),
               value = $(this).val(),
               apiUrl,
               requestType,
@@ -10157,7 +9916,7 @@ var formcorp = (function () {
           fc.domContainer.on('click', '.fc-suggest-row', function () {
             var json = JSON.parse(decodeURI($(this).attr('data-suggest'))),
               dataId = getDataId($(this).attr('data-id')),
-              schema = fc.fieldSchema[dataId],
+              schema = fc.logic.getComponent(dataId),
               map = getConfig(schema, 'mapResponse', '{}'),
               mapObj,
               tags,
@@ -10490,7 +10249,7 @@ var formcorp = (function () {
 
             for (dataId in fields) {
               if (fields.hasOwnProperty(dataId)) {
-                field = fc.fieldSchema[dataId];
+                field = fc.logic.getComponent(dataId);
                 if (field === undefined) {
                   continue;
                 }
@@ -10550,7 +10309,7 @@ var formcorp = (function () {
           // Can pass through either an id to retrieve the schema, or the schema itself
           try {
             if (typeof dataId === "string") {
-              schema = fc.fieldSchema[dataId];
+              schema = fc.logic.getComponent(dataId);
             } else if (typeof dataId === "object") {
               schema = dataId;
               dataId = getId(schema);
@@ -10671,96 +10430,6 @@ var formcorp = (function () {
         };
 
         /**
-         * Retrieve the first page (if the user has an active session, the opening page might be later on in the process)
-         * @returns {*}
-         */
-        getFirstPage = function () {
-          var id = getFirstPageId(),
-            page,
-            nextPageObj,
-            fields,
-            valid,
-            allowAutoLoad,
-            continueLoading = false,
-            checkedFields = [];
-
-          // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
-          do {
-            page = getPageById(id);
-            if (page === undefined) {
-              break;
-            }
-
-            // If no stage exists, consider an erroneous page and break out
-            if (typeof page.stage !== 'object') {
-              break;
-            }
-            fc.currentPage = id;
-
-            // Update the browser hash when required
-            if (fc.config.updateHash) {
-              setHashVar(fc.config.hashPrefix, id);
-            }
-
-            // Store field schema locally
-            updateFieldSchema(page.stage);
-            fields = pruneNonPageFields(page, fc.fields);
-            fields = removeInvisibleSectionFields(page, fields);
-            fields = pruneInvisibleFields(fields);
-
-            // If using a one page form structure, output
-            if (fc.config.onePage) {
-              render(id);
-
-              // Flush visibility when mode isn't set to prepopulate
-              if (fc.mode !== fc.modes.PREPOPULATE) {
-                flushVisibility();
-              }
-
-              if (fc.mode === fc.modes.PREPOPULATE) {
-                // If in pre-population mode, continue loading regardless
-                continueLoading = true;
-              } else {
-                // If one page, can use the DOM to determine whether or not to continue loading (a safer indicator)
-                continueLoading = validForm(fc.jQueryContainer, false) && !isSubmitPage(page.page);
-              }
-            } else {
-              if (fc.mode === fc.modes.PREPOPULATE) {
-                // If in pre-population mode, continue loading regardless
-                continueLoading = true;
-              } else {
-                // Continue loading regardless (as in primary data population mode)
-                valid = formFieldsValid(fields);
-                continueLoading = valid && !isSubmitPage(page.page);
-              }
-            }
-
-            // On page load, ignore the autoLoad flag (if user is directed back to this form, need to continue loading until pretty late)
-            if (continueLoading) {
-              nextPageObj = nextPage(false, true);
-              // @todo problem here - why we cant go back
-              if (nextPageObj !== undefined && typeof nextPageObj === "object") {
-                /*jslint nomen: true*/
-                id = nextPageObj.page._id.$id;
-                /*jslint nomen: false*/
-                fc.prevPages[id] = page;
-
-                // If next page is a submit page, do not render it
-                if (isSubmitPage(nextPageObj.page) === true) {
-                  valid = false;
-                  break;
-                }
-              } else {
-                valid = false;
-                break;
-              }
-            }
-          } while (continueLoading);
-
-          return id;
-        };
-
-        /**
          * Load form settings from the server
          * @param callback
          */
@@ -10784,14 +10453,22 @@ var formcorp = (function () {
           // Render the opening page for the form
           if (data.stage !== undefined) {
             fc.schema = orderSchema(data);
-            if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
-              firstPageId = getFirstPage();
+            fc.logic.init();
 
-              // If one page layout, getFirstPage() already rendered
-              if (!fc.config.onePage) {
-                render(firstPageId);
+            var pageTrail = fc.logic.getPageTrail();
+            if (pageTrail.length > 0) {
+              if (fc.config.onePage) {
+                // Render all of the pages
+                _.each(pageTrail, function (pageId) {
+                  render(pageId);
+                });
+              } else {
+                // Only render one page
+                render(_.last(pageTrail));
               }
             }
+
+            fc.log('Finished initial render');
           }
 
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
@@ -10814,8 +10491,8 @@ var formcorp = (function () {
           if (typeof fc.fieldSchema === 'object' && Object.keys(fc.fieldSchema).length > 0) {
             for (var key in fc.fieldSchema) {
               if (fc.fieldSchema.hasOwnProperty(key)) {
-                if (typeof fc.fieldSchema[key] === 'object' && typeof fc.fieldSchema[key].type === 'string' && fields.indexOf(fc.fieldSchema[key].type) == -1) {
-                  fields.push(fc.fieldSchema[key].type);
+                if (typeof fc.logic.getComponent(key) === 'object' && typeof fc.logic.getComponent(key).type === 'string' && fields.indexOf(fc.logic.getComponent(key).type) == -1) {
+                  fields.push(fc.logic.getComponent(key).type);
                 }
               }
             }
@@ -10864,7 +10541,7 @@ var formcorp = (function () {
                 if (data.data.hasOwnProperty(key)) {
                   fc.fields[key] = data.data[key];
                   // If an ABN field, assume valid if previously set
-                  if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
+                  if (fc.logic.getComponent(key) && fc.logic.getComponent(key).type && fc.logic.getComponent(key).type === 'abnVerification' && fc.fields[key].length > 0) {
                     fc.validAbns.push(fc.fields[key]);
                   }
 
@@ -11524,7 +11201,7 @@ var formcorp = (function () {
            * @returns false|object
            */
           getFieldDefinition: function (id) {
-            return fc.fieldSchema[id] || false;
+            return fc.logic.getComponent(id) || false;
           },
 
           /**
@@ -11810,8 +11487,6 @@ var formcorp = (function () {
               return validForm(selector, false);
             }
           },
-
-          getPageById: getPageById,
 
           /**
            * Expose get hashvar
