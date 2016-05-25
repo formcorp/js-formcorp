@@ -4305,19 +4305,6 @@ var formcorp = (function () {
           },
 
           /**
-           * Returns true if a page is deemed to be a submission page
-           * @param page
-           * @returns {boolean}
-           */
-          isSubmitPage = function (page) {
-            if (typeof page !== "object" || page.completion === undefined) {
-              return false;
-            }
-
-            return page.completion === true || (typeof page.completion === 'string' && ["1", "true"].indexOf(page.completion.toLowerCase()) !== -1);
-          },
-
-          /**
            * Deletes a session and forces the user to fill out a new application.
            * @param changeDom
            */
@@ -7943,15 +7930,15 @@ var formcorp = (function () {
           nextPageObj = nextPage(false, true);
 
           // Submit button when a next page exists, or no next page exists
-          if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
+          if (typeof nextPageObj === "object" || (fc.logic.isHardCodedCompletionPage(page) === false && nextPageObj === false)) {
             // If the next stage is a completion page, alter the submission text
-            if ((isSubmitPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && isSubmitPage(nextPageObj.page))) {
+            if ((fc.logic.isHardCodedCompletionPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && fc.logic.isHardCodedCompletionPage(nextPageObj.page))) {
               submitText = fc.lang.submitFormText;
               submitClasses.push('fc-submit-form');
             }
 
             // Only render pagination on non-submission pages
-            if (!isSubmitPage(page)) {
+            if (!fc.logic.isHardCodedCompletionPage(page)) {
               pageDiv += '<div class="fc-pagination" data-form-state="' + fc.formState + '">';
 
               // Show the prev stage button
@@ -8271,8 +8258,9 @@ var formcorp = (function () {
           // Update the current page on render
           fc.currentPage = pageId;
           html += renderPage(page);
+          fc.log(fc.logic.isCompletionPage(page));
 
-          if (!fc.config.onePage || isSubmitPage(page.page)) {
+          if (!fc.config.onePage || fc.logic.isHardCodedCompletionPage(page)) {
             // Show form in stages (if not one page, or if the submission page)
             fc.domContainer.find('.render').html(html);
           } else {
@@ -9238,7 +9226,7 @@ var formcorp = (function () {
           // Determine whether the application should be marked as complete
           page = nextPage(false, true);
 
-          if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
+          if ((page && typeof page.page === "object" && fc.logic.isHardCodedCompletionPage(page.page)) || page === false) {
             data.complete = true;
 
             if (!forceSubmit && isDevelopmentBranch()) {
@@ -9334,7 +9322,7 @@ var formcorp = (function () {
                 fc.nextPageLoadedTimestamp = Date.now();
 
                 // If the application is complete, raise completion event
-                if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                if (typeof page.page === "object" && fc.logic.isHardCodedCompletionPage(page.page)) {
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
                 }
