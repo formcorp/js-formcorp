@@ -10998,7 +10998,8 @@ var formcorp = (function () {
               underscoreLibrary: 'lib/underscore/underscore-min.js',
               libs: {
                 formcorp: {
-                  logic: 'lib/formcorp/logic.js'
+                  logic: 'lib/formcorp/logic.js',
+                  helpers: 'lib/formcorp/helpers.js'
                 }
               }
             };
@@ -11057,7 +11058,8 @@ var formcorp = (function () {
             if (typeof this.libs2Load === 'undefined') {
               this.libs2Load = [
                 this.constants.underscoreLibrary,
-                this.constants.libs.formcorp.logic
+                this.constants.libs.formcorp.logic,
+                this.constants.libs.formcorp.helpers
               ];
             }
 
