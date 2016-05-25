@@ -11823,6 +11823,7 @@ var formcorp = (function () {
           removeTag: removeTag,
           setTags: setTags,
           getTags: getTags,
+          hasTags: hasTags,
 
           /**
            * Logging
@@ -12002,77 +12003,11 @@ var formcorp = (function () {
     return self.forms[id];
   };
 
-  var validators = {
-    /**
-     * Tests if a value is within a particular range.
-     * @param params
-     * @param value
-     * @returns {boolean}
-     */
-    range: function (params, value) {
-      if (!$.isNumeric(value)) {
-        return false;
-      }
-
-      var min = parseFloat(params[0]),
-        max = parseFloat(params[1]),
-        val = parseFloat(value);
-
-      return val >= min && val <= max;
-    },
-
-    /**
-     * Tests if above a minimum value.
-     * @param params
-     * @param value
-     * @returns {boolean}
-     */
-    min: function (params, value) {
-      // Replace commas
-      value = value.replace(/\,/g, '');
-
-      if (!$.isNumeric(value)) {
-        return false;
-      }
-
-      return parseFloat(value) >= parseFloat(params[0]);
-    },
-
-    /**
-     * Test if below minimum value.
-     * @param params
-     * @param value
-     * @returns {boolean}
-     */
-    max: function (params, value) {
-      // Replace commas
-      value = value.replace(/\,/g, '');
-
-      if (!$.isNumeric(value)) {
-        return false;
-      }
-
-      return parseFloat(value) <= parseFloat(params[0]);
-    },
-
-    /**
-     * Test a string against a regular expression.
-     * @param params
-     * @param value
-     * @returns {boolean|*}
-     */
-    regularExpression: function (params, value) {
-      var re = new RegExp(params[0]);
-      return re.test(value);
-    }
-  };
-
   return {
     create: create,
     destroyForm: destroyForm,
     forms: self.forms,
     getForms: getForms,
-    getForm: getForm,
-    validators: validators
+    getForm: getForm
   };
 }());
