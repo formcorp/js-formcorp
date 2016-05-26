@@ -1683,7 +1683,7 @@ var formcorp = (function () {
               skipCheck = true;
             } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
               // If email or sms verification, check if verified
-              if (fc.fields[getId(field)] === undefined || !validVerificationResult(fc.fields[getId(field)])) {
+              if (fc.fields[getId(field)] === undefined || !formcorp.customValidators.validVerificationResult(fc.fields[getId(field)])) {
                 errors.push(fc.lang.fieldMustBeVerified);
               } else {
                 // Successfully verified
@@ -1737,19 +1737,6 @@ var formcorp = (function () {
             }
 
             return errors;
-          },
-
-          /**
-           * Whether or not a value is a valid verification result
-           * @param value string
-           * @returns boolean
-           */
-          validVerificationResult = function (value) {
-            if (typeof value !== 'string') {
-              return false;
-            }
-
-            return value.length >= 48;
           },
 
           /**
@@ -2429,6 +2416,12 @@ var formcorp = (function () {
            */
           fieldParentIsRepeatable = function (dataId) {
             var parts, parentId;
+
+            log(dataId);
+
+            if (!_.isString(dataId)) {
+              return false;
+            }
 
             parts = dataId.split(fc.constants.prefixSeparator);
             parts.pop();
@@ -3864,7 +3857,7 @@ var formcorp = (function () {
             // Start formatting the html to output
             var html = '',
               fieldValue = fc.fields[getId(field)],
-              verified = validVerificationResult(fieldValue),
+              verified = formcorp.customValidators.validVerificationResult(fieldValue),
               buttonText = getConfig(field, 'sendButtonText', ''),
               verificationButtonText = getConfig(field, 'verificationButtonText', ''),
               verifyClass
@@ -4066,7 +4059,7 @@ var formcorp = (function () {
             /// Start formatting the html to output
             var html = '',
               fieldValue = fc.fields[getId(field)],
-              verified = validVerificationResult(fieldValue),
+              verified = formcorp.customValidators.validVerificationResult(fieldValue),
               verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline',
               verificationButtonText = getConfig(field, 'verificationButtonText', '');
 
@@ -8321,6 +8314,7 @@ var formcorp = (function () {
           }
 
           fc.domContainer.trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
+          log(dataId);
 
           // Store when not a repeatable value
           if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
@@ -10551,7 +10545,8 @@ var formcorp = (function () {
               libs: {
                 formcorp: {
                   logic: 'lib/formcorp/logic.js',
-                  helpers: 'lib/formcorp/helpers.js'
+                  helpers: 'lib/formcorp/helpers.js',
+                  customValidators: 'lib/formcorp/custom-validators.js'
                 }
               }
             };
@@ -10611,7 +10606,8 @@ var formcorp = (function () {
               this.libs2Load = [
                 this.constants.underscoreLibrary,
                 this.constants.libs.formcorp.logic,
-                this.constants.libs.formcorp.helpers
+                this.constants.libs.formcorp.helpers,
+                this.constants.libs.formcorp.customValidators
               ];
             }
 
