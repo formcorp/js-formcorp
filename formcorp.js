@@ -7930,7 +7930,7 @@ var formcorp = (function () {
           nextPageObj = nextPage(false, true);
 
           // Submit button when a next page exists, or no next page exists
-          if (typeof nextPageObj === "object" || (fc.logic.isHardCodedCompletionPage(page) === false && nextPageObj === false)) {
+          if (_.isObject(nextPageObj) || (fc.logic.isHardCodedCompletionPage(page) === false && nextPageObj === false)) {
             // If the next stage is a completion page, alter the submission text
             if ((fc.logic.isHardCodedCompletionPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && fc.logic.isHardCodedCompletionPage(nextPageObj.page))) {
               submitText = fc.lang.submitFormText;
@@ -7970,32 +7970,9 @@ var formcorp = (function () {
          */
         flushSectionVisibility = function () {
           fc.domContainer.find('.fc-section').each(function () {
-            var dataId = $(this).attr('formcorp-data-id'),
-              section,
-              visible;
+            var dataId = $(this).attr('formcorp-data-id');
 
-            if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.logic.getComponent(dataId) !== 'object') {
-              return;
-            }
-
-            section = fc.logic.getComponent(dataId);
-            if (objectHasTag(section)) {
-              // If the object has tags, check to see if it should be visible
-              visible = hasTags(section.tags);
-            }
-
-            if (typeof visible !== 'boolean') {
-              // Only perform a visibility check if hasn't previously been determined
-              if (typeof section.visibility === 'object' && Object.keys(section.visibility).length > 0) {
-                visible = fc.logic.checkLogic(section.visibility);
-              } else {
-                // Default section visibility to true
-                visible = true;
-              }
-            }
-
-            fc.componentVisibility[dataId] = visible;
-            if (visible) {
+            if (fc.logic.isComponentVisible(dataId)) {
               $('div.fc-section[formcorp-data-id=' + dataId + ']').removeClass('fc-hide');
             } else {
               $('div.fc-section[formcorp-data-id=' + dataId + ']').addClass('fc-hide');
@@ -8071,102 +8048,15 @@ var formcorp = (function () {
          */
         flushFieldVisibility = function () {
           fc.domContainer.find('.fc-field').each(function () {
-            var dataId = $(this).attr('fc-data-group'),
-              field,
-              visible,
-              logic,
-              logicMatches,
-              processed = [],
-              temporaryId,
-              iter,
-              parts,
-              replace,
-              re;
+            var obj = $(this),
+              dataId = obj.attr('fc-data-group'),
+              field = fc.logic.getComponent(dataId);
 
-            if (typeof dataId !== 'string' || dataId.length === 0 || typeof fc.logic.getComponent(dataId) !== 'object') {
-              return;
+            if (fc.logic.isComponentVisible(field.config)) {
+              obj.removeClass('fc-hide');
+            } else {
+              obj.addClass('fc-hide');
             }
-
-            // If field has a visibility configurative set, act on it
-            field = fc.logic.getComponent(dataId);
-            if (objectHasTag(field.config)) {
-              visible = hasTags(field.config.tags);
-            }
-
-            //======================================================================
-            // PUT OTHER VISIBILITY CHECKS HERE
-            //======================================================================
-
-            if (typeof visible !== 'boolean') {
-              // Retrieve the logic object
-              if (typeof field.config.visibility === 'string' && field.config.visibility.length > 0) {
-                logic = getBooleanLogic(field.config.visibility, getId(field));
-              } else if (typeof field.config.visibility === 'object') {
-                logic = field.config.visibility;
-              }
-
-              // Fields that exist within an iterator who have conditional can create problems. They need to be able to respond to
-              // fields that exist within the target grouplet (which have dynamic IDs in the format: iteratorId_iteration_fieldId)
-              // However, they also need to be able to act on fields that exist in a global form scope (i.e. standard form fields).
-              // Therefore the condition has to be dynamic. We can't set a static condition as this won't evaluate fields within
-              // each iteration.
-              //
-              // The implemented fix below matches all IDs, and checks to see if they exist in a global scope. If they do, it leave
-              // them, however if if no definition is found (fc.logic.getComponent(ID)), it is assumed the condition is acting on a dynamic
-              // value within the row iteration, and the condition updated accordingly.
-
-              // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
-              if (typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
-                // Match all field IDs within the condition
-                logicMatches = logic.match(/"[a-f0-9]{24}"/g);
-
-                // If field IDs were found, perform checks on each one
-                if (_.isArray(logicMatches) && logicMatches.length > 0) {
-                  processed = [];
-
-                  // Iterate through each field ID
-                  for (iter = 0; iter < logicMatches.length; iter += 1) {
-                    temporaryId = logicMatches[iter].replace(/"/g, '', logicMatches[iter]);
-
-                    // If the ID hasn't been processed previously for this condition, check now
-                    if (processed.indexOf(temporaryId) < 0) {
-                      // If the matched field ID doesn't exist in the global/root form definition, assume it belongs to the iteration
-                      if (fc.logic.getComponent(temporaryId) === undefined) {
-                        parts = dataId.split(fc.constants.prefixSeparator);
-
-                        // Replace with the row iteration id (dynamic - i.e 5th iteration has ID iteratorId_4_fieldId)
-                        if (parts.length >= 2) {
-                          replace = [parts[0], parts[1], temporaryId].join(fc.constants.prefixSeparator);
-                          re = new RegExp(temporaryId, 'g');
-                          logic = logic.replace(re, replace);
-                        }
-                      }
-                      processed.push(temporaryId);
-                    }
-                  }
-                }
-              }
-
-              // todo: check iterator logic
-
-              // Evaluate the logic
-              if (typeof logic === 'object' && Object.keys(logic).length > 0) {
-                visible = fc.logic.checkLogic(logic);
-              }
-
-            }
-
-            if (typeof visible === 'boolean') {
-              fc.componentVisibility[dataId] = visible;
-              if (visible) {
-                $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
-              } else {
-                $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
-              }
-            }
-
-            // Flush repeatable grouplet visibility (logic to determine if code should actually run exists within the function)
-            flushRepeatableGroupletVisibility(dataId, field);
           });
         };
 
@@ -8183,6 +8073,7 @@ var formcorp = (function () {
 
           log('Prepare to flush mobile visibility');
           updateMobileFieldsVisibility();
+          log('flushVisibility() finished');
         };
 
         /**
@@ -8258,7 +8149,6 @@ var formcorp = (function () {
           // Update the current page on render
           fc.currentPage = pageId;
           html += renderPage(page);
-          fc.log(fc.logic.isCompletionPage(page));
 
           if (!fc.config.onePage || fc.logic.isHardCodedCompletionPage(page)) {
             // Show form in stages (if not one page, or if the submission page)
@@ -8291,9 +8181,6 @@ var formcorp = (function () {
           if (fc.config.updateHash) {
             setHashVar(fc.config.hashPrefix, pageId);
           }
-
-          // Update mobile visibility
-          updateMobileFieldsVisibility();
 
           // Fire the event to signal form finished rendering
           fc.domContainer.trigger(fc.jsEvents.onFinishRender);
