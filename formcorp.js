@@ -8249,6 +8249,11 @@ var formcorp = (function () {
          * @param value
          */
         valueChanged = function (dataId, value, force) {
+          if (_.isUndefined(dataId)) {
+            // Make sure the data ID is defined
+            return;
+          }
+
           log('valueChanged(' + dataId + ',' + value + ',' + force + ')');
           var fieldSchema = fc.logic.getComponent(dataId),
             errors,
