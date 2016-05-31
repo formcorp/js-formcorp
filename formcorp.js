@@ -9020,6 +9020,10 @@ var formcorp = (function () {
           hideModal();
         };
 
+        /**
+         * Add errors to a page.
+         * @param pageId
+         */
         var addErrorsToPage = function (pageId) {
           if (!_.isString(pageId) || pageId.length === 0) {
             pageId = fc.currentPage;
@@ -9032,7 +9036,7 @@ var formcorp = (function () {
               showFieldError(fieldId, errors);
             });
           }
-        }
+        };
 
         /**
          * Load the next page
@@ -9062,11 +9066,8 @@ var formcorp = (function () {
 
             // Scroll to first error
             if (showError) {
-              var page = fc.logic.getComponent(fc.currentPage);
-              console.log(page);
-              var fields = fc.logic.getPageFields(fc.currentPage, true);
               addErrorsToPage(fc.currentPage);
-              console.log(fields);
+
               if (fc.config.scrollOnSubmitError) {
                 scrollToFirstError();
               }
