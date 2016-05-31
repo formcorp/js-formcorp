@@ -1696,7 +1696,7 @@ var formcorp = (function () {
               skipCheck = true;
             } else if (["emailVerification", "smsVerification"].indexOf(field.type) > -1) {
               // If email or sms verification, check if verified
-              if (fc.fields[getId(field)] === undefined || !formcorp.customValidators.validVerificationResult(fc.fields[getId(field)])) {
+              if (fc.fields[getId(field)] === undefined || !formcorp.customValidators.validVerificationResult(fc.fields[getId(field)], getId(field), fc)) {
                 errors.push(fc.lang.fieldMustBeVerified);
               } else {
                 // Successfully verified
@@ -3870,7 +3870,7 @@ var formcorp = (function () {
             // Start formatting the html to output
             var html = '',
               fieldValue = fc.fields[getId(field)],
-              verified = formcorp.customValidators.validVerificationResult(fieldValue),
+              verified = formcorp.customValidators.validVerificationResult(fieldValue, getId(field), fc),
               buttonText = getConfig(field, 'sendButtonText', ''),
               verificationButtonText = getConfig(field, 'verificationButtonText', ''),
               verifyClass
@@ -4072,7 +4072,7 @@ var formcorp = (function () {
             /// Start formatting the html to output
             var html = '',
               fieldValue = fc.fields[getId(field)],
-              verified = formcorp.customValidators.validVerificationResult(fieldValue),
+              verified = formcorp.customValidators.validVerificationResult(fieldValue, getId(field), fc),
               verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline',
               verificationButtonText = getConfig(field, 'verificationButtonText', '');
 
@@ -8162,7 +8162,9 @@ var formcorp = (function () {
           fc.domContainer.trigger(fc.jsEvents.onFinishRender);
 
           // Initialise greenID fields
-          fc.greenID.initGreenIdDOMFields();
+          if (!_.isUndefined(fc.greenID)) {
+            fc.greenID.initGreenIdDOMFields();
+          }
         };
 
         /**
