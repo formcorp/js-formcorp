@@ -3376,7 +3376,7 @@ var formcorp = (function () {
 
             // Retrieve the field value and check to see if it's completed
             fieldValue = fc.fields[getId(field)];
-            if (fieldValue !== undefined && fieldValue['success'] == true) {
+            if (formcorp.customValidators.isValidCreditCard(fieldValue)) {
               return html += renderCompletedPayment(fieldValue);
             }
 
