@@ -483,6 +483,19 @@ var formcorp = (function () {
               fc.loadedLibs.push(lib);
             }
 
+            // Get the machine friendly name
+            var libName = lib.replace(/\.js/g, '', lib)
+              .replace(/\//g, '.')
+              .replace(/[^a-zA-Z0-9\.\-]+/g, '')
+              .replace(/[\-_]{1}([a-z])/g, function (match, group) {
+                return group.toUpperCase()
+              });
+
+            // If a callback function exists, call it
+            if (typeof formcorp.libCallbacks[libName] === 'function') {
+              formcorp.libCallbacks[libName](fc);
+            }
+
             checkAllLibsLoaded();
           },
 
@@ -4707,24 +4720,6 @@ var formcorp = (function () {
 
 
           /**
-           * Initialise all greenID field DOM elements
-           */
-          initGreenIdDOMFields = function () {
-            if (fc.greenID === undefined) {
-              return;
-            }
-
-            var greenIdFields = fc.domContainer.find('.fc-field-greenIdVerification');
-
-            if (greenIdFields.length > 0) {
-              greenIdFields.each(function () {
-                var dataId = $(this).attr('fc-data-group');
-                fcGreenID.initGreenIdDOMField(dataId);
-              });
-            }
-          },
-
-          /**
            * Initialise greenID field.
            */
           initGreenId = function () {
@@ -4749,18 +4744,6 @@ var formcorp = (function () {
                   break;
                 }
               }
-            }
-
-            // If the form field has green id verification,
-            if (hasGreenId) {
-              // Initialise the worker and set the event listener
-              fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
-                fc.greenID = fcGreenID;
-                fc.greenID.init();
-                initGreenIdDOMFields();
-              });
-
-              loadJsFile(cdnUrl() + fc.constants.greenId.scriptPath);
             }
 
             // Need to pre-populate fields with values that have already been entered. This needs to cater for both iterable fieldSchema
@@ -8179,7 +8162,7 @@ var formcorp = (function () {
           fc.domContainer.trigger(fc.jsEvents.onFinishRender);
 
           // Initialise greenID fields
-          initGreenIdDOMFields();
+          fc.greenID.initGreenIdDOMFields();
         };
 
         /**
@@ -10382,8 +10365,8 @@ var formcorp = (function () {
           if (typeof fc.fieldSchema === 'object' && Object.keys(fc.fieldSchema).length > 0) {
             for (var key in fc.fieldSchema) {
               if (fc.fieldSchema.hasOwnProperty(key)) {
-                if (typeof fc.logic.getComponent(key) === 'object' && typeof fc.logic.getComponent(key).type === 'string' && fields.indexOf(fc.logic.getComponent(key).type) == -1) {
-                  fields.push(fc.logic.getComponent(key).type);
+                if (typeof fc.fieldSchema[key] === 'object' && typeof fc.fieldSchema[key].type === 'string' && fields.indexOf(fc.fieldSchema[key].type) == -1) {
+                  fields.push(fc.fieldSchema[key].type);
                 }
               }
             }
@@ -10568,7 +10551,8 @@ var formcorp = (function () {
                 formcorp: {
                   logic: 'lib/formcorp/logic.js',
                   helpers: 'lib/formcorp/helpers.js',
-                  customValidators: 'lib/formcorp/custom-validators.js'
+                  customValidators: 'lib/formcorp/custom-validators.js',
+                  greenId: 'lib/formcorp/green-id.js'
                 }
               }
             };
@@ -10620,7 +10604,8 @@ var formcorp = (function () {
 
             // Fields that require library fieldPages
             this.requiredFieldLibraries = {
-              'date': [this.libs.MATERIAL_DATEPICKER]
+              'date': [this.libs.MATERIAL_DATEPICKER],
+              'greenIdVerification': [this.constants.libs.formcorp.greenId]
             };
 
             // Set default value for library files to load
@@ -11578,6 +11563,7 @@ var formcorp = (function () {
     destroyForm: destroyForm,
     forms: self.forms,
     getForms: getForms,
-    getForm: getForm
+    getForm: getForm,
+    libCallbacks: {}
   };
 }());
