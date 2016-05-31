@@ -9020,6 +9020,20 @@ var formcorp = (function () {
           hideModal();
         };
 
+        var addErrorsToPage = function (pageId) {
+          if (!_.isString(pageId) || pageId.length === 0) {
+            pageId = fc.currentPage;
+          }
+
+          var fieldErrors = fc.logic.getPageErrors(pageId);
+          console.log(fieldErrors);
+          if (_.isObject(fieldErrors) && Object.keys(fieldErrors).length > 0) {
+            _.each(fieldErrors, function (errors, fieldId) {
+              showFieldError(fieldId, errors);
+            });
+          }
+        }
+
         /**
          * Load the next page
          * @param showError
@@ -9043,17 +9057,19 @@ var formcorp = (function () {
           logEvent(fc.eventTypes.onNextPageClick);
 
           // Only perform validation on the current page (performance boost)
-          var currentPage = fc.domContainer.find('.fc-page[data-page-id="' + fc.currentPage + '"]');
-          if (currentPage.length === 0) {
-            return;
-          }
-
-          if (!validForm(currentPage, showError)) {
+          if (!fc.logic.isPageValid(fc.currentPage)) {
             logEvent(fc.eventTypes.onNextPageError);
 
             // Scroll to first error
-            if (showError && fc.config.scrollOnSubmitError) {
-              scrollToFirstError();
+            if (showError) {
+              var page = fc.logic.getComponent(fc.currentPage);
+              console.log(page);
+              var fields = fc.logic.getPageFields(fc.currentPage, true);
+              addErrorsToPage(fc.currentPage);
+              console.log(fields);
+              if (fc.config.scrollOnSubmitError) {
+                scrollToFirstError();
+              }
             }
 
             return false;
