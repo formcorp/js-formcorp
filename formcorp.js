@@ -7585,10 +7585,23 @@ var fc = (function ($) {
           if (typeof data === 'object' && data.success === true) {
             api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
               if (typeof data === 'object' && data.success === true) {
-                html = '<iframe src="' + data.data.url + '" width="100%" height="350"></iframe>';
+                html = '<iframe class="fc-field-digsigIframe" src="' + data.data.url + '" width="100%" height="350"></iframe>';
 
                 $('.fc-field-digsigCollect').append(html);
                 $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+
+                // Poll the OmniSign API every second to determine if it is signed.
+                var digsigCheck = setInterval(function () {
+                  api('digsig/gateway/data', { 'field_id' : field._id.$id, 'uuid' : data.data.data }, 'POST', function(data) {
+                    if (data.data.data.signed_at > 0) {
+                      $('.fc-field-digsigIframe').remove();
+                      clearInterval(digsigCheck);
+                      html = '<span>You have successfully submitted your Digital Signature</span>';
+                      $('.fc-field-digsigCollect').append(html);
+                    }
+                  });
+                }, 1000);
+
               } else {
                 html = '<span>There was an error connecting to OmniSign</span>';
                 $('.fc-field-digsigCollect').append(html);
