@@ -7582,15 +7582,18 @@ var fc = (function ($) {
         };
 
         api('page/submit', data, 'put', function(data) {
-          console.log(data);
           if (typeof data === 'object' && data.success === true) {
-            console.log('init dig sig');
-
             api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
-              html = '<iframe src="' + data.data.url + '" width="100%" height="350"></iframe>';
+              if (typeof data === 'object' && data.success === true) {
+                html = '<iframe src="' + data.data.url + '" width="100%" height="350"></iframe>';
 
-              $('.fc-field-digsigCollect').append(html);
-              $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+                $('.fc-field-digsigCollect').append(html);
+                $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+              } else {
+                html = '<span>There was an error connecting to OmniSign</span>';
+                $('.fc-field-digsigCollect').append(html);
+                $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+              }
             });
           }
         });
