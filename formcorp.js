@@ -4059,7 +4059,7 @@ var formcorp = (function () {
 
               // Perform the API request
               api('verification/verify', data, 'POST', function (data) {
-                if (typeof data === 'object' && typeof data.verificationCode === 'string' && data.verificationCode.length > 0) {
+                if (typeof data === 'object') {
                   var message = data.message || "";
 
                   parent.removeClass('loading');
@@ -4080,6 +4080,8 @@ var formcorp = (function () {
                   $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
                 }
               });
+
+              return false;
             });
 
             // Open the modal
@@ -4260,7 +4262,7 @@ var formcorp = (function () {
 
               // Perform the API request
               api('verification/verify', data, 'POST', function (data) {
-                if (typeof data === 'object' && typeof data.verificationCode === 'string' && data.verificationCode.length > 0) {
+                if (typeof data === 'object') {
                   var message = data.message || "";
 
                   parent.removeClass('loading');
@@ -4281,6 +4283,8 @@ var formcorp = (function () {
                   $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
                 }
               });
+
+              return false;
             });
 
 
@@ -4292,7 +4296,7 @@ var formcorp = (function () {
               return false;
             });
 
-            fc.processedActions[fc.processes.emailListeners] = true;
+            fc.processedActions[fc.processes.smsListeners] = true;
           },
 
           /**
