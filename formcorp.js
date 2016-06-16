@@ -656,16 +656,28 @@ var formcorp = (function () {
            * @return {mixed}
            */
           getValue = function (fieldId, defaultValue) {
+            log('getValue');
+            log(fieldId);
+            log(defaultValue);
             if (defaultValue === undefined) {
               defaultValue = '';
             }
 
             var schema, value, functionReference;
 
+            // 16.06.16: everything is now stored in arrays, so need to recursively look through
+            // to attempt to look at nested arrays.
             fieldId = getDataId(fieldId);
             schema = fc.fieldSchema[fieldId];
-            value = fc.fields[fieldId];
-            functionReference;
+            var parts = fieldId.split(fc.constants.prefixSeparator);
+            var lookUp = fc.fields;
+            for (var i = 0; i < parts.length; i++) {
+              value = lookUp[parts[i]];
+              if (typeof value === 'undefined') {
+                return defaultValue;
+              }
+              lookUp = value;
+            }
 
             if (schema !== undefined) {
               functionReference = getConfig(schema, 'functionReference', '');
@@ -2749,6 +2761,9 @@ var formcorp = (function () {
            * @param fieldId
            */
           setFieldValue = function (obj, fieldId) {
+            log('setFieldValue');
+            log(obj);
+            log(fieldId);
             var value,
               schema = fc.fieldSchema[fieldId],
               iterator,
@@ -2759,7 +2774,7 @@ var formcorp = (function () {
               unrestorableFieldTypes = ['emailVerification', 'smsVerification'];
 
             // If no value found, try and use default
-            value = fc.fields[fieldId];
+            value = getValue(fieldId);
             if (value === undefined && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
@@ -3395,8 +3410,14 @@ var formcorp = (function () {
            * @param value
            */
           forceUpdateFieldValue = function (fieldId, value) {
-            fc.fields[fieldId] = value;
-            fc.saveQueue[fieldId] = value;
+            log('forceUpdateFieldValue');
+            log(fieldId);
+            log(value);
+
+            if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
+              fc.fields[fieldId] = value;
+              fc.saveQueue[fieldId] = value;
+            }
           },
 
           /**
@@ -6544,7 +6565,10 @@ var formcorp = (function () {
            * @param value
            */
           setVirtualValue = function (fieldId, value) {
-            if (fieldId.length > 0 && typeof fieldId === 'string') {
+            log('setVirtualValue');
+            log(fieldId);
+            log(value);
+            if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
               fc.fields[fieldId] = value;
 
               if (fc.config.saveInRealTime) {
@@ -8366,8 +8390,8 @@ var formcorp = (function () {
               // value within the row iteration, and the condition updated accordingly.
 
               // If the field exists within a repeatable iterator, need to check if checks need to be made against other repeatable iterator fields
-              if (typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
-                // Match all field IDs within the condition
+              if (typeof logic !== 'undefined' && typeof dataId === 'string' && fc.withinIterator[dataId] === true) {
+                // Match all field IDs within the condition\
                 logicMatches = logic.match(/"[a-f0-9]{24}"/g);
 
                 // If field IDs were found, perform checks on each one
@@ -8732,7 +8756,7 @@ var formcorp = (function () {
             }
           }
 
-          log(fc.fields);
+          log($.extend({}, fc.fields));
 
           // If the value hasn't actually changed, return
           if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
@@ -8742,11 +8766,17 @@ var formcorp = (function () {
           fc.domContainer.trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
 
           // Store when not a repeatable value
-          if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
-            fc.fields[dataId] = value;
+          if (dataId.indexOf(fc.constants.prefixSeparator) == -1 && !fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
+            console.log(1);
+            console.log($.extend({}, fc.fields));
+            if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
+              fc.fields[dataId] = value;
+            }
 
             // If a grouplet, save the original state of the grouplet
             if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+              console.log(2);
+              console.log($.extend({}, fc.fields));
               saveOriginalGroupletValue(dataId, value);
             }
 
@@ -8754,78 +8784,47 @@ var formcorp = (function () {
             flushVisibility();
           }
 
-          log(fc.fields);
+          log($.extend({}, fc.fields));
 
           // Store against array values when sub field (field_1, field_2) for a repeatable iterator
           if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+            console.log(3);
+            console.log(dataId);
+            console.log($.extend({}, fc.fields));
             parts = dataId.split(fc.constants.prefixSeparator);
-
-            // If a repeatable iterator, store each value
-            if (fc.fieldSchema[parts[0]] !== undefined && parts.length > 1) {
-              if (fc.fieldSchema[parts[0]].type === 'repeatableIterator') {
-                // Initialise the base field if required
-                if (fc.fields[parts[0]] === undefined || !$.isArray(fc.fields[parts[0]])) {
-                  fc.fields[parts[0]] = [];
+            var save = fc.fields;
+            for (var i = 0; i < parts.length - 1; i++) {
+              var id = parts[i];
+              console.log("id: " + id);
+              if (typeof save[id] === 'undefined') {
+                console.log(id);
+                if (typeof id !== 'undefined' && $.isNumeric(id)) {
+                  save[id] = {};
+                } else {
+                  save[id] = [];
                 }
-
-                field = fc.fields[parts[0]];
-
-                for (iterator = 1; iterator < parts.length; iterator += 1) {
-                  if (iterator === (parts.length - 1)) {
-                    field[parts[iterator]] = value;
-                  } else {
-                    if (field[parts[iterator]] === undefined) {
-                      field[parts[iterator]] = {};
-                    }
-                    field = field[parts[iterator]];
-                  }
-                }
-
-                // Queue to be saved
-                fc.saveQueue[parts[0]] = fc.fields[parts[0]];
-
-                // If the field value belongs to a grouplet, we have to check if its been repeated in the DOM
-                // If it has been repeated, need to treat the value as an array, and append it to the value
-                // The alternative is that it is shown in a modal window, and therefore needs to be treated differently
-              } else if (fc.fieldSchema[parts[0]].type === 'grouplet' && $.isNumeric(parts[1])) {
-                groupletID = parts[0];
-                // If the modal style is that so it is shown in the DOM, then process and add to the array
-                if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.fieldSchema[groupletID], 'repeatableStyle', 0))) >= 0) {
-                  // If the core field value hasn't been set (as an array), set it first
-                  if (fc.fields[groupletID] === undefined || !$.isArray(fc.fields[groupletID])) {
-                    fc.fields[groupletID] = [];
-                  }
-
-                  // The array/row index to update
-                  index = parseInt(parts[1]);
-
-                  // The user doesn't necessarily have to update the values in incrementing order
-                  // They might update the nth row before the first row, and you can't update the nth row of an array
-                  // without values existing from 0 to n-1. Therefore, need to iterate through and ensure n-1
-                  // rows exist within the array.
-                  if (typeof fc.fields[groupletID][index] !== 'object') {
-                    for (iterator = 0; iterator <= index; iterator += 1) {
-                      if (typeof fc.fields[groupletID][iterator] !== 'object') {
-                        fc.fields[groupletID].push({});
-                      }
-                    }
-                  }
-
-                  // It is now safe to add the object value to the array
-                  fc.fields[groupletID][index][parts[2]] = value;
-                }
-
-                // The value has been safely updated, update the save queue
-                fc.saveQueue[groupletID] = fc.fields[groupletID];
               }
+
+              save = save[id];
             }
+
+            var saveId = parts[parts.length - 1];
+            save[saveId] = value;
+
+            console.log(id);
+            console.log(parts[parts.length - 1]);
+
+            fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+            console.log($.extend({}, fc.saveQueue));
           }
+          console.log(4);
+          console.log($.extend({}, fc.fields));
 
           // Set the active page id to the page that the field belongs to, delete later pages
           flushActivePageForField(dataId, true);
 
           // If the item belongs to a repeatable object (or grouplet in the DOM), do not store the changed value
-          if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+          if (false && dataId.indexOf(fc.constants.prefixSeparator) > -1) {
             dataParams = dataId.split(fc.constants.prefixSeparator);
             parentId = dataParams[0];
             parentField = fc.fieldSchema[parentId];
@@ -8860,7 +8859,12 @@ var formcorp = (function () {
 
           // Don't perform operations on repeatable fields
           if (!fieldIsRepeatable(dataId)) {
-            fc.fields[dataId] = value;
+            if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId) && dataId.indexOf(fc.constants.prefixSeparator) == -1) {
+              fc.fields[dataId] = value;
+
+              console.log(5);
+              console.log($.extend({}, fc.fields));
+            }
 
             // Flush the field visibility options
             flushVisibility();
@@ -8884,7 +8888,7 @@ var formcorp = (function () {
             }
 
             // Store the changed value for intermittent saving
-            if (fc.config.saveInRealTime === true) {
+            if (fc.config.saveInRealTime === true && dataId.indexOf(fc.constants.prefixSeparator) == -1) {
               fc.saveQueue[dataId] = value;
             }
 
@@ -8967,6 +8971,8 @@ var formcorp = (function () {
          * @param obj
          */
         setValueUpdate = function (obj) {
+          log('setvalueUpdate()');
+          log(obj);
           var val = obj.val(),
             id = obj.attr('formcorp-data-id'),
             schema = fc.fieldSchema[id],
@@ -8990,7 +8996,9 @@ var formcorp = (function () {
             }
 
             // Need to update the stored value to ensure proper validation
-            fc.fields[id] = val;
+            if (typeof id === 'string' && id.length > 0 && !$.isNumeric(id)) {
+              fc.fields[id] = val;
+            }
 
             return;
           }
@@ -9126,7 +9134,9 @@ var formcorp = (function () {
                           entityName = result.entityName;
                         }
 
-                        fc.fields[id] = entityName;
+                        if (typeof id === 'string' && id.length > 0 && !$.isNumeric(id)) {
+                          fc.fields[id] = entityName;
+                        }
                         container = $('.fc-field[fc-data-group="' + id + '"]');
                         setFieldValue(container, id);
                       }
@@ -9365,14 +9375,21 @@ var formcorp = (function () {
 
           // Add the values to the array
           if (typeof fc.fields[fc.activeModalField] !== 'object') {
-            fc.fields[fc.activeModalField] = [];
+            if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
+              fc.fields[fc.activeModalField] = [];
+            }
           }
 
           // If not array, initialise as one
           if (!$.isArray(fc.fields[fc.activeModalField])) {
-            fc.fields[fc.activeModalField] = [];
+            if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
+              fc.fields[fc.activeModalField] = [];
+            }
           }
-          fc.fields[fc.activeModalField].push(values);
+
+          if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
+            fc.fields[fc.activeModalField].push(values);
+          }
 
           // Render a repeatable summary table upon successful add if specified by the user (this should always be set to TRUE)
           if (getConfig(fc.fieldSchema[fc.activeModalField], 'renderRepeatableTable', false)) {
@@ -9400,7 +9417,9 @@ var formcorp = (function () {
 
             // Add the values to the array
             if (typeof fc.fields[fc.activeModalField] !== 'object') {
-              fc.fields[fc.activeModalField] = [];
+              if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
+                fc.fields[fc.activeModalField] = [];
+              }
             }
 
             if (fc.fields[fc.modalMeta.fieldId] && fc.fields[fc.modalMeta.fieldId][fc.modalMeta.index]) {
@@ -9878,14 +9897,16 @@ var formcorp = (function () {
 
                       // Need to update the values and save
                       if (fc.fields[dataId] !== undefined && $.isArray(fc.fields[dataId])) {
-                        if (currentRows - 1 <= 0) {
-                          // If no rows, reset the array
-                          fc.fields[dataId] = [];
-                          fc.saveQueue[dataId] = fc.fields[dataId];
-                        } else {
-                          // Otherwise splice it, pop the final value off the end
-                          fc.fields[dataId].splice(currentRows - 1);
-                          fc.saveQueue[dataId] = fc.fields[dataId];
+                        if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
+                          if (currentRows - 1 <= 0) {
+                            // If no rows, reset the array
+                            fc.fields[dataId] = [];
+                            fc.saveQueue[dataId] = fc.fields[dataId];
+                          } else {
+                            // Otherwise splice it, pop the final value off the end
+                            fc.fields[dataId].splice(currentRows - 1);
+                            fc.saveQueue[dataId] = fc.fields[dataId];
+                          }
                         }
                       }
 
@@ -10902,7 +10923,9 @@ var formcorp = (function () {
             if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
               for (key in data.data) {
                 if (data.data.hasOwnProperty(key)) {
-                  fc.fields[key] = data.data[key];
+                  if (typeof key === 'string' && key.length > 0 && !$.isNumeric(key)) {
+                    fc.fields[key] = data.data[key];
+                  }
                   // If an ABN field, assume valid if previously set
                   if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
                     fc.validAbns.push(fc.fields[key]);
