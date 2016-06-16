@@ -3415,8 +3415,7 @@ var formcorp = (function () {
             log(value);
 
             if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
-              fc.fields[fieldId] = value;
-              fc.saveQueue[fieldId] = value;
+              setVirtualValue(fieldId, value);
             }
           },
 
@@ -6569,11 +6568,39 @@ var formcorp = (function () {
             log(fieldId);
             log(value);
             if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
-              fc.fields[fieldId] = value;
+              var parts = fieldId.split(fc.constants.prefixSeparator);
+              var save = fc.fields;
+              var saveId = fieldId;
 
-              if (fc.config.saveInRealTime) {
-                fc.saveQueue[fieldId] = value;
+              if (parts.length > 1) {
+                // If a grouplet, or repeatable, or iterator, need to potentially construct and save as a nested value
+                for (var i = 0; i < parts.length - 1; i++) {
+                  var id = parts[i];
+                  if (typeof save[id] === 'undefined') {
+                    if (typeof id !== 'undefined' && $.isNumeric(id)) {
+                      save[id] = {};
+                    } else {
+                      save[id] = [];
+                    }
+                  }
+
+                  save = save[id];
+                }
+
+                saveId = parts[parts.length - 1];
+
+                // Save the entire root object in the queue
+                if (fc.config.saveInRealTime) {
+                  fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+                }
+              } else {
+                if (fc.config.saveInRealTime) {
+                  // Save the simple value
+                  fc.saveQueue[fieldId] = value;
+                }
               }
+
+              save[saveId] = value;
             }
           },
 
@@ -7290,6 +7317,9 @@ var formcorp = (function () {
             return html;
           }
 
+          console.log('1a');
+          console.log($.extend({}, fc.fields));
+
           // Check to ensure source field values is an array
           source = fc.fields[sourceField];
           if (!$.isArray(source) || source.length === 0) {
@@ -7301,6 +7331,9 @@ var formcorp = (function () {
           tagValues = getFieldTagValues();
 
           html += '<div class="fc-iterator">';
+
+          console.log('2a');
+          console.log($.extend({}, fc.fields));
 
           // Iterate through each value row
           for (iterator = 0; iterator < source.length; iterator += 1) {
@@ -7324,6 +7357,9 @@ var formcorp = (function () {
             row = replaceTokensInDom($(row), data);
             html += row.prop('outerHTML');
           }
+
+          console.log('3a');
+          console.log($.extend({}, fc.fields));
 
           html += '</div>';
 
@@ -8770,7 +8806,7 @@ var formcorp = (function () {
             console.log(1);
             console.log($.extend({}, fc.fields));
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
-              fc.fields[dataId] = value;
+              setVirtualValue(dataId, value);
             }
 
             // If a grouplet, save the original state of the grouplet
@@ -8788,34 +8824,7 @@ var formcorp = (function () {
 
           // Store against array values when sub field (field_1, field_2) for a repeatable iterator
           if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-            console.log(3);
-            console.log(dataId);
-            console.log($.extend({}, fc.fields));
-            parts = dataId.split(fc.constants.prefixSeparator);
-            var save = fc.fields;
-            for (var i = 0; i < parts.length - 1; i++) {
-              var id = parts[i];
-              console.log("id: " + id);
-              if (typeof save[id] === 'undefined') {
-                console.log(id);
-                if (typeof id !== 'undefined' && $.isNumeric(id)) {
-                  save[id] = {};
-                } else {
-                  save[id] = [];
-                }
-              }
-
-              save = save[id];
-            }
-
-            var saveId = parts[parts.length - 1];
-            save[saveId] = value;
-
-            console.log(id);
-            console.log(parts[parts.length - 1]);
-
-            fc.saveQueue[parts[0]] = fc.fields[parts[0]];
-            console.log($.extend({}, fc.saveQueue));
+            setVirtualValue(dataId, value);
           }
           console.log(4);
           console.log($.extend({}, fc.fields));
@@ -8860,7 +8869,7 @@ var formcorp = (function () {
           // Don't perform operations on repeatable fields
           if (!fieldIsRepeatable(dataId)) {
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId) && dataId.indexOf(fc.constants.prefixSeparator) == -1) {
-              fc.fields[dataId] = value;
+              setVirtualValue(dataId, value);
 
               console.log(5);
               console.log($.extend({}, fc.fields));
@@ -8997,7 +9006,7 @@ var formcorp = (function () {
 
             // Need to update the stored value to ensure proper validation
             if (typeof id === 'string' && id.length > 0 && !$.isNumeric(id)) {
-              fc.fields[id] = val;
+              setVirtualValue(id, val);
             }
 
             return;
@@ -9135,7 +9144,7 @@ var formcorp = (function () {
                         }
 
                         if (typeof id === 'string' && id.length > 0 && !$.isNumeric(id)) {
-                          fc.fields[id] = entityName;
+                          setVirtualValue(id, entityName);
                         }
                         container = $('.fc-field[fc-data-group="' + id + '"]');
                         setFieldValue(container, id);
@@ -9376,14 +9385,14 @@ var formcorp = (function () {
           // Add the values to the array
           if (typeof fc.fields[fc.activeModalField] !== 'object') {
             if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
-              fc.fields[fc.activeModalField] = [];
+              setVirtualValue(fc.activeModalField, []);
             }
           }
 
           // If not array, initialise as one
           if (!$.isArray(fc.fields[fc.activeModalField])) {
             if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
-              fc.fields[fc.activeModalField] = [];
+              setVirtualValue(fc.activeModalField, []);
             }
           }
 
@@ -9418,7 +9427,7 @@ var formcorp = (function () {
             // Add the values to the array
             if (typeof fc.fields[fc.activeModalField] !== 'object') {
               if (typeof fc.activeModalField === 'string' && fc.activeModalField.length > 0 && !$.isNumeric(fc.activeModalField)) {
-                fc.fields[fc.activeModalField] = [];
+                setVirtualValue(fc.activeModalField, []);
               }
             }
 
@@ -9900,8 +9909,7 @@ var formcorp = (function () {
                         if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
                           if (currentRows - 1 <= 0) {
                             // If no rows, reset the array
-                            fc.fields[dataId] = [];
-                            fc.saveQueue[dataId] = fc.fields[dataId];
+                            setVirtualValue(dataId, []);
                           } else {
                             // Otherwise splice it, pop the final value off the end
                             fc.fields[dataId].splice(currentRows - 1);
@@ -10924,7 +10932,7 @@ var formcorp = (function () {
               for (key in data.data) {
                 if (data.data.hasOwnProperty(key)) {
                   if (typeof key === 'string' && key.length > 0 && !$.isNumeric(key)) {
-                    fc.fields[key] = data.data[key];
+                    setVirtualValue(key, data.data[key]);
                   }
                   // If an ABN field, assume valid if previously set
                   if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
@@ -11494,6 +11502,7 @@ var formcorp = (function () {
 
           /* Set a value on the application */
           setValue: setValue,
+          setVirtualValue: setVirtualValue,
 
           /* Delete the user session */
           deleteSession: deleteSession,
