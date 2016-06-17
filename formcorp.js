@@ -8004,7 +8004,14 @@ var formcorp = (function () {
           }
 
           // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
-          if (!bypass && (typeof fc.fields[prefix + getId(field)] !== 'object' || fc.fields[prefix + getId(field)].result === undefined || fc.fields[prefix + getId(field)].result.userId === 'undefined')) {
+          var fieldId = prefix + getId(field);
+          var value = getValue(fieldId);
+          console.log(value);
+          console.log(prefix);
+          console.log(field);
+          console.log(getId(field));
+          if (!bypass && (typeof value !== 'object' || typeof value.result === 'undefined' || typeof value.result.userId === 'undefined')) {
+            console.log('initGreenIdFieldInDOM');
             return initGreenIdFieldInDOM(field, prefix);
           }
 
@@ -8031,9 +8038,11 @@ var formcorp = (function () {
             packageHtml,
             sourcesRequiredHtml,
             packages,
-            fieldValue = fc.fields[prefix + getId(field)],
+            fieldValue = value,
             licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
             licenseType;
+
+          console.log(fieldValue);
 
           if (getConfig(field, 'allowSkipping', true)) {
             options.push({
