@@ -990,8 +990,10 @@ var formcorp = (function () {
 
               dataId = $(field).attr('formcorp-data-id');
 
-              if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
-                return parseMatrixField(field, true);
+              if (typeof fc.fieldSchema[dataId] !== 'undefined') {
+                if (fc.fieldSchema[dataId].type === 'matrix') {
+                  return parseMatrixField(field, true);
+                }
               }
 
               if (fc.fieldSchema[dataId] !== undefined) {
@@ -1006,7 +1008,13 @@ var formcorp = (function () {
 
             // Return the value for rendered buttons
             if (field.is('button')) {
-              dataId = field.attr('formcorp-data-id');
+              dataId = field.attr('formcorp-data-id').replace('_rootSelection', '');
+
+              var schema = fc.fieldSchema[dataId];
+              if (typeof schema === 'object' && schema.type === 'greenIdVerification') {
+                return getValue(dataId);
+              }
+
               if (dataId) {
                 if (!getConfig(fc.fieldSchema[dataId], 'allowMultiple', false)) {
                   dataValue = $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').attr('data-field-value');
@@ -1712,6 +1720,9 @@ var formcorp = (function () {
               // Grouplet field as a whole doesn't need to be validated
               return;
             } else if (field.type === "greenIdVerification") {
+              // Retrieve value from object, not DOM
+              value = getValue(fieldId);
+
               // Validate a Green ID field
               if (fc.greenID === undefined) {
                 // Green ID has yet to be initialised
@@ -6563,13 +6574,21 @@ var formcorp = (function () {
            * @param fieldId
            * @param value
            */
-          setVirtualValue = function (fieldId, value) {
+          setVirtualValue = function (fieldId, value, obj) {
             log('setVirtualValue');
             log(fieldId);
             log(value);
+
+            if (typeof obj !== 'object') {
+              obj = fc.fields;
+            }
+
             if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
+              // Replaces junk data within the field ID
+              fieldId = fieldId.replace('_rootSelection', '');
+
               var parts = fieldId.split(fc.constants.prefixSeparator);
-              var save = fc.fields;
+              var save = obj;
               var saveId = fieldId;
 
               if (parts.length > 1) {
@@ -6591,7 +6610,7 @@ var formcorp = (function () {
 
                 // Save the entire root object in the queue
                 if (fc.config.saveInRealTime) {
-                  fc.saveQueue[parts[0]] = fc.fields[parts[0]];
+                  fc.saveQueue[parts[0]] = obj[parts[0]];
                 }
               } else {
                 if (fc.config.saveInRealTime) {
@@ -7317,9 +7336,6 @@ var formcorp = (function () {
             return html;
           }
 
-          console.log('1a');
-          console.log($.extend({}, fc.fields));
-
           // Check to ensure source field values is an array
           source = fc.fields[sourceField];
           if (!$.isArray(source) || source.length === 0) {
@@ -7331,9 +7347,6 @@ var formcorp = (function () {
           tagValues = getFieldTagValues();
 
           html += '<div class="fc-iterator">';
-
-          console.log('2a');
-          console.log($.extend({}, fc.fields));
 
           // Iterate through each value row
           for (iterator = 0; iterator < source.length; iterator += 1) {
@@ -7357,9 +7370,6 @@ var formcorp = (function () {
             row = replaceTokensInDom($(row), data);
             html += row.prop('outerHTML');
           }
-
-          console.log('3a');
-          console.log($.extend({}, fc.fields));
 
           html += '</div>';
 
@@ -8006,12 +8016,8 @@ var formcorp = (function () {
           // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
           var fieldId = prefix + getId(field);
           var value = getValue(fieldId);
-          console.log(value);
-          console.log(prefix);
-          console.log(field);
-          console.log(getId(field));
+
           if (!bypass && (typeof value !== 'object' || typeof value.result === 'undefined' || typeof value.result.userId === 'undefined')) {
-            console.log('initGreenIdFieldInDOM');
             return initGreenIdFieldInDOM(field, prefix);
           }
 
@@ -8041,8 +8047,6 @@ var formcorp = (function () {
             fieldValue = value,
             licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
             licenseType;
-
-          console.log(fieldValue);
 
           if (getConfig(field, 'allowSkipping', true)) {
             options.push({
@@ -8813,16 +8817,12 @@ var formcorp = (function () {
 
           // Store when not a repeatable value
           if (dataId.indexOf(fc.constants.prefixSeparator) == -1 && !fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
-            console.log(1);
-            console.log($.extend({}, fc.fields));
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
               setVirtualValue(dataId, value);
             }
 
             // If a grouplet, save the original state of the grouplet
             if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-              console.log(2);
-              console.log($.extend({}, fc.fields));
               saveOriginalGroupletValue(dataId, value);
             }
 
@@ -8836,8 +8836,6 @@ var formcorp = (function () {
           if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
             setVirtualValue(dataId, value);
           }
-          console.log(4);
-          console.log($.extend({}, fc.fields));
 
           // Set the active page id to the page that the field belongs to, delete later pages
           flushActivePageForField(dataId, true);
@@ -8880,9 +8878,6 @@ var formcorp = (function () {
           if (!fieldIsRepeatable(dataId)) {
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId) && dataId.indexOf(fc.constants.prefixSeparator) == -1) {
               setVirtualValue(dataId, value);
-
-              console.log(5);
-              console.log($.extend({}, fc.fields));
             }
 
             // Flush the field visibility options
@@ -9518,24 +9513,18 @@ var formcorp = (function () {
             newPage,
             fields = getPageVisibleFieldsFromDom(fc.currentPage);
 
-          console.log(fields);
-
           if (fields !== false) {
             fields.each(function () {
               var fieldObj = $(this);
               dataId = fieldObj.attr('formcorp-data-id');
-              console.log(dataId);
 
               if (dataId.length) {
                 var rootFieldObj = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"]');
                 // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
                 if (rootFieldObj.parent().hasClass('fc-data-repeatable-grouplet')) {
                   // Grouplet is repeatable, do nothing
-                  console.log('do nothing');
                 } else if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
-                  if (formData[dataId] === undefined) {
-                    formData[dataId] = fc.fields[dataId];
-                  }
+                  setVirtualValue(dataId, getValue(dataId), formData);
                 } else {
                   // Regular fields can be added to the flat dictionary
                   value = getFieldValue(fieldObj);
@@ -9543,13 +9532,11 @@ var formcorp = (function () {
                     setVirtualValue(dataId, value);
                   }
 
-                  formData[dataId] = value;
+                  setVirtualValue(dataId, value, formData);
                 }
               }
             });
           }
-
-          console.log(formData);
 
           // Merge form data with the save queue
           if (Object.keys(fc.saveQueue).length) {
