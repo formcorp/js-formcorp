@@ -8776,6 +8776,7 @@ var formcorp = (function () {
 
           // If unable to locate the field schema, do nothing (i.e. credit card field changes)
           if (!force && fieldSchema === undefined) {
+            log('Schema not defined');
             return;
           }
 
@@ -9508,14 +9509,21 @@ var formcorp = (function () {
             newPage,
             fields = getPageVisibleFieldsFromDom(fc.currentPage);
 
+          console.log(fields);
+
           if (fields !== false) {
             fields.each(function () {
               var fieldObj = $(this);
               dataId = fieldObj.attr('formcorp-data-id');
+              console.log(dataId);
 
               if (dataId.length) {
+                var rootFieldObj = fc.domContainer.find('.fc-field[fc-data-group="' + dataId + '"]');
                 // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
-                if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
+                if (rootFieldObj.parent().hasClass('fc-data-repeatable-grouplet')) {
+                  // Grouplet is repeatable, do nothing
+                  console.log('do nothing');
+                } else if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
                   if (formData[dataId] === undefined) {
                     formData[dataId] = fc.fields[dataId];
                   }
@@ -9531,6 +9539,8 @@ var formcorp = (function () {
               }
             });
           }
+
+          console.log(formData);
 
           // Merge form data with the save queue
           if (Object.keys(fc.saveQueue).length) {
