@@ -1036,6 +1036,11 @@ var formcorp = (function () {
               }
             }
 
+            var dataReference = field.attr('data-reference');
+            if ('string' === typeof dataReference && dataReference.length > 0) {
+              return dataReference;
+            }
+
             // If a signature, set a string as the json value of the signature
             dataId = field.attr('fc-data-group');
             if ((fc.renderedSignatures !== undefined && fc.renderedSignatures[dataId] !== undefined) || field.hasClass(fc.config.signatureClass)) {
@@ -6596,6 +6601,8 @@ var formcorp = (function () {
                 for (var i = 0; i < parts.length - 1; i++) {
                   var id = parts[i];
                   if (typeof save[id] === 'undefined') {
+                    console.log(id);
+                    console.log(save);
                     if (typeof id !== 'undefined' && $.isNumeric(id)) {
                       save[id] = {};
                     } else {
@@ -7200,6 +7207,11 @@ var formcorp = (function () {
                 fieldDOMHTML= renderMatrixField(field, prefix);
                 break;
               case 'groupletReference':
+                fieldDOMHTML = '<div formcorp-data-id="' + prefix + getId(field) + '" data-reference="' + getConfig(field, 'groupletReference') + '"></div>';
+                break;
+              case 'fieldReference':
+                fieldDOMHTML = '<div formcorp-data-id="' + prefix + getId(field) + '" data-reference="' + getConfig(field, 'fieldReference') + '"></div>';
+                break;
               case 'formReference':
               case 'functionReference':
                 // Do nothing
