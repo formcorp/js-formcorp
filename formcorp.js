@@ -7945,7 +7945,13 @@ var formcorp = (function () {
           var summaryHtml = '',
             nameHtml = '',
             addressHtml = '',
-            values = fc.fields[fieldId].values;
+            value = getValue(fieldId);
+
+          if (typeof value !== 'object') {
+            return '';
+          }
+
+          var values = value.values;
 
           // First line: name
           if (typeof values.title === 'string' && values.title.length > 0) {
