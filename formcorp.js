@@ -5255,7 +5255,7 @@ var formcorp = (function () {
 
                   // Terms of service
                   html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_act_tos">';
-                  html += '<label for="' + rootId + '_act_tos">&nbsp;I have read and accepted <a href="http://www.rego.act.gov.au/aboutus/?a=527482">ACT Government\'s privacy statement</a>.</label>';
+                  html += '<label for="' + rootId + '_act_tos">&nbsp;I have read and accepted <a href="http://www.act.gov.au/privacy">ACT Government\'s privacy statement</a>.</label>';
                   html += '</div>';
 
                   // Button
@@ -5313,7 +5313,7 @@ var formcorp = (function () {
 
                   // Show the drivers license
                   html += '<div class="child-temp">';
-                  html += '<div class="drivers-license fc-green-field"><label>NSW driver\'s licence number: <span class="fc-required-caret">*</span></label>';
+                  html += '<div class="drivers-license fc-green-field"><label>NSW driver\'s licence number <strong><em>(front of license)</em></strong>: <span class="fc-required-caret">*</span></label>';
                   html += renderTextfield(fields.license);
                   html += '</div>';
 
@@ -5330,7 +5330,7 @@ var formcorp = (function () {
                   fc.helpData.push(helpData);
                   fc.helpTitle.push('Where is this?');
 
-                  html += '<div class="card-number fc-green-field"><label>Card ID number: <span class="fc-required-caret">*</span> ';
+                  html += '<div class="card-number fc-green-field"><label>Card ID number <strong><em>(back of license)</em></strong>: <span class="fc-required-caret">*</span> ';
                   html += ' <a class="fc-help-link" tabindex="-1" href="#" data-for="' + (fc.helpData.length - 1) + '">where is this?</a>';
                   html += '</label>';
                   html += renderTextfield(fields.licenseCardNumber);
@@ -5568,7 +5568,8 @@ var formcorp = (function () {
                             '$id': rootId + '_vic_address_2'
                           },
                           config: {
-                            placeholder: 'Address (line 2)'
+                            placeholder: 'Address (line 2)',
+                            require: false
                           }
                         },
                         {
@@ -5576,7 +5577,8 @@ var formcorp = (function () {
                             '$id': rootId + '_vic_address_3'
                           },
                           config: {
-                            placeholder: 'Address (line 3)'
+                            placeholder: 'Address (line 3)',
+                            require: false
                           }
                         }
                       ],
@@ -5627,7 +5629,7 @@ var formcorp = (function () {
 
                   // Terms of service
                   html += '<div class="tos"><input type="checkbox" class="fc-tos" id="' + rootId + '_vic_tos">';
-                  html += '<label for="' + rootId + '_vic_tos">&nbsp;I have read and accepted <a href="https://www.vicroads.vic.gov.au/privacy">VicRoads\' privacy statement</a>.</label>';
+                  html += '<label for="' + rootId + '_vic_tos">&nbsp;I have read and accepted <a href="https://www.vicroads.vic.gov.au/website-terms/privacy">VicRoads\' privacy statement</a>.</label>';
                   html += '</div>';
 
                   html += '<div class="fc-clear"></div>';
