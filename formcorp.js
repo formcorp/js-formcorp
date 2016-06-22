@@ -6636,9 +6636,7 @@ var formcorp = (function () {
                 }
               }
 
-              if (typeof save === 'object') {
-                save[saveId] = value;
-              }
+              save[saveId] = value;
             }
           },
 
