@@ -6607,7 +6607,7 @@ var formcorp = (function () {
               var parts = fieldId.split(fc.constants.prefixSeparator);
               var save = obj;
               var saveId = fieldId;
-              
+
               if (parts.length > 1) {
                 // If a grouplet, or repeatable, or iterator, need to potentially construct and save as a nested value
                 for (var i = 0; i < parts.length - 1; i++) {
@@ -6911,6 +6911,12 @@ var formcorp = (function () {
           // If no amount of times specified, default to 1
           if (amountOfTimes === undefined || !$.isNumeric(amountOfTimes)) {
             amountOfTimes = getNumericTagValue(amountOfTimes);
+          }
+
+          var existingValue = getValue(fieldId);
+          if (typeof existingValue === 'object' && $.isArray(existingValue) && existingValue.length > amountOfTimes) {
+            existingValue.splice(amountOfTimes, existingValue.length - amountOfTimes);
+            setVirtualValue(fieldId, existingValue);
           }
 
           // If no config defined, do nothing
