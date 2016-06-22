@@ -6607,17 +6607,11 @@ var formcorp = (function () {
               var parts = fieldId.split(fc.constants.prefixSeparator);
               var save = obj;
               var saveId = fieldId;
-              console.log(parts);
-              console.log(save);
-              console.log(saveId);
-
+              
               if (parts.length > 1) {
                 // If a grouplet, or repeatable, or iterator, need to potentially construct and save as a nested value
                 for (var i = 0; i < parts.length - 1; i++) {
                   var id = parts[i];
-                  console.log(id);
-                  console.log(save[id]);
-                  console.log(typeof save);
                   if (typeof save[id] === 'undefined' || (i < (parts.length - 1) && typeof save[id] !== 'object')) {
                     // If undefined, or not the last element (and not an object), ensure it's set properly
                     if (typeof id !== 'undefined' && $.isNumeric(id)) {
@@ -6626,15 +6620,11 @@ var formcorp = (function () {
                       save[id] = [];
                     }
                   }
-                  console.log(save[id]);
 
                   save = save[id];
-                  console.log(save);
-                  console.log(typeof save);
                 }
 
                 saveId = parts[parts.length - 1];
-                console.log(saveId);
 
                 // Save the entire root object in the queue
                 if (fc.config.saveInRealTime) {
@@ -6646,10 +6636,6 @@ var formcorp = (function () {
                   fc.saveQueue[fieldId] = value;
                 }
               }
-              console.log(saveId);
-              console.log(save);
-              console.log(value);
-
               save[saveId] = value;
             }
           },
