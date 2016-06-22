@@ -991,7 +991,7 @@ var formcorp = (function () {
               dataId = $(field).attr('formcorp-data-id');
 
               if (typeof fc.fieldSchema[dataId] !== 'undefined') {
-                if (fc.fieldSchema[dataId].type === 'matrix') {
+                if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
                   return parseMatrixField(field, true);
                 }
               }
