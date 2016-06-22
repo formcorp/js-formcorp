@@ -6618,7 +6618,8 @@ var formcorp = (function () {
                   console.log(id);
                   console.log(save[id]);
                   console.log(typeof save);
-                  if (typeof save[id] === 'undefined') {
+                  if (typeof save[id] === 'undefined' || (i < (parts.length - 1) && typeof save[id] !== 'object')) {
+                    // If undefined, or not the last element (and not an object), ensure it's set properly
                     if (typeof id !== 'undefined' && $.isNumeric(id)) {
                       save[id] = {};
                     } else {
