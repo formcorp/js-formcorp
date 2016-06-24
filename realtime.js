@@ -121,9 +121,6 @@ var fcAnalytics = (function ($) {
         initEventQueue = function () {
             // Send events off to the server
             setInterval(function () {
-                if (fc.expired === true) {
-                    return;
-                }
                 processEventQueue();
             }, fc.config.eventQueueInterval);
         };
