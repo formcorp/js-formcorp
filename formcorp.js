@@ -9116,12 +9116,12 @@ var formcorp = (function () {
           }
 
           // Input types text changed
-          fc.domContainer.on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+          fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             setValueUpdate($(this));
           });
 
           // Register the focus event
-          fc.domContainer.on('focus', 'input[type=text].fc-fieldinput', function () {
+          fc.domContainer.on('focus', 'input[type=text].fc-fieldinput,textarea.fc-fieldinput', function () {
             var obj = $(this),
               val = obj.val(),
               id = obj.attr('formcorp-data-id');
