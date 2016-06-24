@@ -11383,11 +11383,15 @@ var formcorp = (function () {
                 // Initialise in dev mode
                 if (isDevelopmentBranch()) {
                   fc.domContainer.on(fc.jsEvents.onFinishRender, function () {
-                    var devHtml = $('<div></div>');
-                    devHtml.attr('class', 'fc-dev-status');
-                    devHtml.append('<span></span>');
-                    devHtml.find('span').html('in development');
-                    $(document).find('body').append(devHtml);
+                    var doc = $(document);
+
+                    if (doc.find('.fc-dev-status').length === 0) {
+                      var devHtml = $('<div></div>');
+                      devHtml.attr('class', 'fc-dev-status');
+                      devHtml.append('<span></span>');
+                      devHtml.find('span').html('in development');
+                      doc.find('body').append(devHtml);
+                    }
                   });
                 }
 
