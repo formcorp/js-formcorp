@@ -10440,14 +10440,14 @@ var formcorp = (function () {
             '<div class="modal-dialog">' +
             '<div class="modal-header">' +
             '<h2>' + fc.lang.addModalHeader + '</h2>' +
-            '<a href="#" class="btn btn-danger fc-btn-close">x</a> ' +
+            (fc.config.showModalCloseInHeader ? '<a href="#" class="btn btn-danger fc-btn-close">x</a> ' : '' ) +
             '</div>' +
             '<div class="modal-body">' +
             '</div>' +
             '<div class="modal-footer">' +
             '<div class="fc-loading fc-hide"></div>' +
             '<div class="fc-error fc-hide"></div>' +
-            '<a href="#" class="btn btn-danger fc-btn-close">' + fc.lang.closeModalText + '</a> ' +
+            (fc.config.showModalCloseInFooter ? '<a href="#" class="btn btn-danger fc-btn-close">' + fc.lang.closeModalText + '</a> ' : '') +
             '<a href="#" class="btn btn-success fc-btn-add">' + fc.lang.addModalText + '</a> ' +
             '</div>' +
             '</div>' +
@@ -11639,6 +11639,8 @@ var formcorp = (function () {
               helpAsModal: false,
               staticHelpModalLink: false,
               hideModal: false,
+              showModalCloseInFooter: true,
+              showModalCloseInHeader: true,
               helpDefaultWhenNoTitleText: true,
               hashPrefix: 'h:',
               hashSeparator: ',',
