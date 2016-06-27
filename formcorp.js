@@ -4275,7 +4275,9 @@ var formcorp = (function () {
 
                 // On successful request, load a dialog to input the code
                 if (typeof data === "object" && data.success !== undefined && data.success) {
-                  showSmsVerificationModal(fieldId);
+                  if (fc.config.verificationModal) {
+                    showSmsVerificationModal(fieldId);
+                  }
                   waitForVerification(fieldId);
                 }
               });
@@ -11650,7 +11652,8 @@ var formcorp = (function () {
               },
               renderOnlyVertical: true,
               datePickerIconOffset: 25,
-              autoDiscoverLibs: true
+              autoDiscoverLibs: true,
+              verificationModal: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
@@ -11723,7 +11726,7 @@ var formcorp = (function () {
                 sendEmail: "Send email",
                 fieldValidated: "<p>Successfully verified</p>",
                 fieldMustBeVerified: "You must first complete verification",
-                sendSms: "Send SMS",
+                sendSms: "Re-Send SMS",
                 payNow: "Pay now",
                 creditCardSuccess: "<p>Your payment has successfully been processed.</p>",
                 paymentRequired: "Payment is required before proceeding.",
