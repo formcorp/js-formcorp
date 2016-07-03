@@ -3194,10 +3194,20 @@ var formcorp = (function () {
 
             // Format string to object
             if (typeof input === 'string') {
+              var optionValue, optionDisplay, parts;
               arr = input.split("\n");
 
               for (var x = 0; x < arr.length; x += 1) {
-                options[fc.lang.optionPrefix + arr[x]] = arr[x].replace(/(\r\n|\n|\r)/gm, "").trim();
+                optionValue = arr[x];
+                optionDisplay = arr[x];
+
+                if (optionValue.indexOf(fc.constants.optionValueSeparator)) {
+                  // If a separate option value was supplied, need to use it instead (1|Good)
+                  parts = optionValue.split(fc.constants.optionValueSeparator);
+                  optionValue = parts[0];
+                  optionDisplay = parts[1];
+                }
+                options[fc.lang.optionPrefix + optionValue] = optionDisplay.replace(/(\r\n|\n|\r)/gm, "").trim();
               }
             }
 
@@ -3208,6 +3218,11 @@ var formcorp = (function () {
                 obj[key.trim()] = options[key];
                 optionsArr.push(obj);
               }
+            }
+
+            if (random) {
+              // Randomise the array if needed
+              optionsArr = shuffle(optionsArr);
             }
 
             return random ? shuffle(optionsArr) : optionsArr;
@@ -11273,7 +11288,9 @@ var formcorp = (function () {
               formLoadedClass: 'fc-form-loaded',
 
               // Form states
-              stateLoadingEntityRecord: 'loadingEntityRecord'
+              stateLoadingEntityRecord: 'loadingEntityRecord',
+
+              optionValueSeparator: '|'
             };
 
             /**
