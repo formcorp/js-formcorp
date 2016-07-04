@@ -10103,7 +10103,7 @@ var formcorp = (function () {
 
           // Replace the curly braces in the template tokens
           if (templateTokens.length === 0) {
-            return;
+            return '';
           }
 
           for (iterator = 0; iterator < templateTokens.length; iterator += 1) {
@@ -10147,6 +10147,10 @@ var formcorp = (function () {
             return false
           }
 
+          // Un-register the click handler
+          fc.domContainer.off('click.' + dataId);
+
+          // Remove the auto suggest box
           fieldContainer.find('.fc-auto-suggest').remove();
         };
 
@@ -10252,6 +10256,14 @@ var formcorp = (function () {
                   existingAutoSuggest.remove();
                 }
 
+                // Register a click listener
+                fc.domContainer.on('click.' + fieldId, function(event) {
+                  if ($(event.target).is('.fc-auto-suggest[data-id="' + fieldId + '"]')) {
+                    return false;
+                  }
+                  removeAutoCompleteWidget(fieldId);
+                });
+
                 fieldContainer.find('.fc-fieldgroup').append(html);
               }
             };
@@ -10271,7 +10283,6 @@ var formcorp = (function () {
           fc.domContainer.on('click', '.fc-suggest-close a', function () {
             var dataId = $(this).parent().parent().attr('data-id');
             removeAutoCompleteWidget(dataId);
-
             return false;
           });
 
