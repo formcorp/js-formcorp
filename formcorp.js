@@ -3198,17 +3198,17 @@ var formcorp = (function () {
             if (typeof input === 'string') {
               var optionValue, optionDisplay, parts;
               arr = input.split("\n");
-
-              for (var x = 0; x < arr.length; x += 1) {
+              for (var i = 0; i < arr.length; i++) {
                 optionValue = arr[x];
                 optionDisplay = arr[x];
 
-                if (optionValue.indexOf(fc.constants.optionValueSeparator)) {
+                if (optionValue.indexOf(fc.constants.optionValueSeparator) >= 0) {
                   // If a separate option value was supplied, need to use it instead (1|Good)
                   parts = optionValue.split(fc.constants.optionValueSeparator);
                   optionValue = parts[0];
                   optionDisplay = parts[1];
                 }
+
                 options[fc.lang.optionPrefix + optionValue] = optionDisplay.replace(/(\r\n|\n|\r)/gm, "").trim();
               }
             }
