@@ -3198,7 +3198,7 @@ var formcorp = (function () {
             if (typeof input === 'string') {
               var optionValue, optionDisplay, parts;
               arr = input.split("\n");
-              for (var i = 0; i < arr.length; i++) {
+              for (var x = 0; x < arr.length; x++) {
                 optionValue = arr[x];
                 optionDisplay = arr[x];
 
