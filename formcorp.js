@@ -12426,8 +12426,8 @@ var formcorp = (function () {
      */
     validAbn: function (value) {
       if (value.replace(/[^0-9]/g, '').length === 0) {
-        // If no value set, return true
-        return true;
+        // If no value set, return false
+        return false;
       }
 
       var hash = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
@@ -12463,8 +12463,8 @@ var formcorp = (function () {
      */
     validAcn: function (value) {
       if (value.replace(/[^0-9]/g, '').length === 0) {
-        // If no value set, return true
-        return true;
+        // If no value set, return false
+        return false;
       }
 
       var hash = [8, 7, 6, 5, 4, 3, 2, 1],
@@ -12512,8 +12512,8 @@ var formcorp = (function () {
      */
     validTFN: function (value) {
       if (value.replace(/[^0-9]/g, '').length === 0) {
-        // If no value set, return true
-        return true;
+        // If no value set, return false
+        return false;
       }
 
       // Test to ensure a 9 digit value
