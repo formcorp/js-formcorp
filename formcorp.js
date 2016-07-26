@@ -2805,6 +2805,7 @@ var formcorp = (function () {
 
             // If no value found, try and use default
             value = getValue(fieldId);
+
             if (value === undefined && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
@@ -3338,8 +3339,8 @@ var formcorp = (function () {
                 savedValues = json;
               } catch (ignore) {
               }
-            } else if (typeof fc.fields[fieldId] === "object") {
-              savedValues = fc.fields[fieldId];
+            } else {
+              savedValues = getValue(fieldId);
             }
 
             // Determine the css class to use
