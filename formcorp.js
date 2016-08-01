@@ -7987,13 +7987,17 @@ var formcorp = (function () {
 
           switch (deliveryMethod) {
             case 'BUTTON':
+              // Render a button to download the file
               var buttonText = getConfig(field, 'buttonText', fc.lang.downloadButtonText);
               html += '<button class="fc-button" data-for="' + fieldId + '">' + buttonText + '</button>';
               if (fc.registeredDownloadButtonListeners !== true) {
                 registerDownloadListeners();
-                break;
               }
+              break;
 
+            case 'AUTO':
+              // Automatically download the file
+              downloadFieldFile(fieldId);
               break;
           }
 
