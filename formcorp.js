@@ -465,13 +465,18 @@ var formcorp = (function () {
 
           /**
            * Check to see if all libs have loaded
+           * @param {object} data Form schema
            * @return boolean
            */
-          checkAllLibsLoaded = function () {
+          checkAllLibsLoaded = function (data) {
             if (fc.loadedLibs.length >= fc.libs2Load.length) {
               // If set to auto discover library files, initialise the render when all libs have loaded
               if (fc.config.autoDiscoverLibs) {
-                initRender(fc.schemaData);
+                if (sessionRequiresVerification(data)) {
+                  verifySession();
+                } else {
+                  initRender(fc.schemaData);
+                }
               }
 
               return true;
@@ -2805,6 +2810,7 @@ var formcorp = (function () {
 
             // If no value found, try and use default
             value = getValue(fieldId);
+
             if (value === undefined && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
@@ -3338,8 +3344,8 @@ var formcorp = (function () {
                 savedValues = json;
               } catch (ignore) {
               }
-            } else if (typeof fc.fields[fieldId] === "object") {
-              savedValues = fc.fields[fieldId];
+            } else {
+              savedValues = getValue(fieldId);
             }
 
             // Determine the css class to use
@@ -4342,9 +4348,14 @@ var formcorp = (function () {
                     parent.addClass('error');
                   } else if (data.success) {
                     // The field was successfully verified
-                    $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
-                    setVirtualValue(fieldId, data.verificationCode);
-                    valueChanged(fieldId, data.verificationCode, true);
+                    if (fieldId === 'preVerification') {
+                        // Pre-verification is a special use case
+                        preVerificationComplete();
+                    } else {
+                      $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
+                      setVirtualValue(fieldId, data.verificationCode);
+                      valueChanged(fieldId, data.verificationCode, true);
+                    }
                   }
 
                   $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
@@ -4417,7 +4428,7 @@ var formcorp = (function () {
             html += '</div>';
             /*!fc-success*/
 
-            // Auto send the email
+            // Auto send the SMS
             if (!verified && fieldValue === undefined && getConfig(field, 'autoDeliverOnFirstRender', false)) {
               // Send the api callback to deliver the email
               api('verification/callback', {field: getId(field)}, 'POST', function (data) {
@@ -4867,6 +4878,15 @@ var formcorp = (function () {
                 scrollToOffset(topDistance);
               }
             }
+          },
+
+          /**
+           * Checks to see whether the session requires verification
+           * @param {object} schema
+           * @return {boolean}
+           */
+          sessionRequiresVerification = function (schema) {
+            return typeof schema.verify === 'object' && schema.verify.perform === true;
           },
 
           /**
@@ -6681,6 +6701,9 @@ var formcorp = (function () {
           loadSettings,
           initRender,
           autoLoadLibs,
+          setSchemaData,
+          verifySession,
+          preVerificationComplete,
           loadSchema,
           hasNextPage,
           loadNextPage,
@@ -6721,7 +6744,11 @@ var formcorp = (function () {
           parseMatrixField,
           buildMatrixTable,
           renderMatrixField,
+          renderDigitalSignatureField,
           renderDateField,
+          renderDownloadField,
+          registerDownloadListeners,
+          downloadFieldFile,
           renderCustomerRecord,
           registerApiLookupListener,
           renderAutoCompleteWidget,
@@ -7246,6 +7273,9 @@ var formcorp = (function () {
               case 'matrix':
                 fieldDOMHTML= renderMatrixField(field, prefix);
                 break;
+              case 'digsigCollect':
+                fieldDOMHTML= renderDigitalSignatureField(field, prefix);
+                break;
               case 'groupletReference':
                 fieldDOMHTML = '<div formcorp-data-id="' + prefix + getId(field) + '" data-reference="' + getConfig(field, 'groupletReference') + '"></div>';
                 break;
@@ -7262,6 +7292,9 @@ var formcorp = (function () {
                 break;
               case 'date':
                 fieldDOMHTML = renderDateField(field, prefix);
+                break;
+              case 'download':
+                fieldDOMHTML = renderDownloadField(field, prefix);
                 break;
               default:
                 log('Unknown field type: ' + field.type);
@@ -7740,6 +7773,98 @@ var formcorp = (function () {
         };
 
         /**
+         * Render a digital signature field
+         * @param field
+         * @param prefix
+         * @returns {*}
+         */
+        renderDigitalSignatureField = function (field, prefix) {
+          var data, html;
+
+          if (prefix === undefined) {
+            prefix = "";
+          }
+
+          data = {
+            "values" : fc.fields
+          };
+
+          html = '<a class="fc-button">Sign Document</a>';
+
+          fc.domContainer.on('click', '.fc-field-digsigCollect .fc-button', function() {
+            var formData = {},
+              obj = $(this),
+              data,
+              page,
+              value,
+              dataId,
+              oldPage,
+              newPage,
+              fields = getPageVisibleFieldsFromDom(fc.currentPage);
+
+            if (fields !== false) {
+              fields.each(function () {
+                var fieldObj = $(this);
+                dataId = fieldObj.attr('formcorp-data-id');
+
+                // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+                if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
+                  if (formData[dataId] === undefined) {
+                    formData[dataId] = fc.fields[dataId];
+                  }
+                } else {
+                  // Regular fields can be added to the flat dictionary
+                  value = getFieldValue(fieldObj);
+                  if (fc.fields[dataId] !== value) {
+                    setVirtualValue(dataId, value);
+                  }
+
+                  formData[dataId] = value;
+                }
+              });
+            }
+
+            // Build the data object to send with the request
+            data = {
+              form_id: fc.formId,
+              page_id: fc.currentPage,
+              form_values: formData
+            };
+
+            api('page/submit', data, 'put', function(data) {
+              if (typeof data === 'object' && data.success === true) {
+                api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
+                  if (typeof data === 'object' && data.success === true) {
+                    html = '<iframe class="fc-field-digsigIframe" src="' + data.data.url + '" width="100%" height="350"></iframe>';
+
+                    $('.fc-field-digsigCollect').append(html);
+                    $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+
+                    // Poll the OmniSign API every second to determine if it is signed.
+                    var digsigCheck = setInterval(function () {
+                      api('digsig/gateway/data', { 'field_id' : field._id.$id, 'uuid' : data.data.data }, 'POST', function(data) {
+                        if (data.data.data.signed_at > 0) {
+                          $('.fc-field-digsigIframe').remove();
+                          clearInterval(digsigCheck);
+                          html = '<span>You have successfully submitted your Digital Signature</span>';
+                          $('.fc-field-digsigCollect').append(html);
+                        }
+                      });
+                    }, 1000);
+                  } else {
+                    html = '<span>There was an error connecting to OmniSign</span>';
+                    $('.fc-field-digsigCollect').append(html);
+                    $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+                  }
+                });
+              }
+            });
+          });
+
+          return html;
+        };
+
+        /**
          * Render a date field
          * @param field
          * @returns {string}
@@ -7815,6 +7940,88 @@ var formcorp = (function () {
           }
 
           html = '<input class="fc-fieldinput ' + additionalClasses.join(' ')  + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '"><i class="fa fa-calendar"></i>';
+
+          return html;
+        };
+
+        /**
+         * Download a file
+         * @param {string} fieldId
+         */
+        downloadFieldFile = function (fieldId) {
+          var field = fc.fieldSchema[fieldId];
+
+          if (typeof field !== 'object' || field.type !== 'download') {
+            return false;
+          }
+
+          var fileSource = getConfig(field, 'fileSource', false);
+          if (!fileSource) {
+            return false;
+          }
+
+          var key = getConfig(field, 'attachmentKey', false);
+          if (!key) {
+            return false;
+          }
+
+          api('download/attachment?key=' + key, {}, 'post', function (result) {
+            if (typeof result === 'object' && result.success) {
+              var downloadKey = result.key;
+              var downloadUrl = apiUrl() + 'download/download-attachment?key=' + downloadKey;
+
+              $("body").append("<iframe src='" + downloadUrl + "' style='display: none;' ></iframe>");
+            }
+          });
+
+        };
+
+        /**
+         * Register the download event listeners
+         */
+        registerDownloadListeners = function () {
+          if (fc.registeredDownloadButtonListeners) {
+            return;
+          }
+
+          fc.domContainer.on('click', '.fc-field-download .fc-button', function () {
+            var obj = $(this);
+            var fieldId = obj.attr('data-for');
+            downloadFieldFile(fieldId);
+
+            return false;
+          });
+
+          fc.registeredDownloadButtonListeners = true;
+        };
+
+        /**
+         * Render the download field
+         * @param {object} field
+         * @param {!string} prefix
+         * @return {string}
+         */
+        renderDownloadField = function (field, prefix) {
+          var fieldId = prefix + getId(field);
+          var deliveryMethod = getConfig(field, 'deliveryMethod');
+          var fileSource = getConfig(field, 'fileSource');
+          var html = '';
+
+          switch (deliveryMethod) {
+            case 'BUTTON':
+              // Render a button to download the file
+              var buttonText = getConfig(field, 'buttonText', fc.lang.downloadButtonText);
+              html += '<button class="fc-button" data-for="' + fieldId + '">' + buttonText + '</button>';
+              if (fc.registeredDownloadButtonListeners !== true) {
+                registerDownloadListeners();
+              }
+              break;
+
+            case 'AUTO':
+              // Automatically download the file
+              downloadFieldFile(fieldId);
+              break;
+          }
 
           return html;
         };
@@ -11050,8 +11257,108 @@ var formcorp = (function () {
 
           // If no libs need to be loaded, render the form
           if (!libsLoaded) {
-            checkAllLibsLoaded();
+            checkAllLibsLoaded(data);
           }
+        };
+
+        /**
+         * Set data returned by the server through the form/schema call
+         * @param {object} data
+         */
+        setSchemaData = function (data) {
+          // If data returned by the API server, set locally
+          if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
+            for (var key in data.data) {
+              if (data.data.hasOwnProperty(key)) {
+                if (typeof key === 'string' && key.length > 0 && !$.isNumeric(key)) {
+                  setVirtualValue(key, data.data[key]);
+                }
+                // If an ABN field, assume valid if previously set
+                if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
+                  fc.validAbns.push(fc.fields[key]);
+                }
+
+                // If a grouplet, also store the entire state
+                if (key.indexOf(fc.constants.prefixSeparator) > -1) {
+                  saveOriginalGroupletValue(key, data.data[key]);
+                }
+              }
+            }
+          }
+        };
+
+        /**
+         * Once verification is complete, need to render form
+         */
+        preVerificationComplete = function () {
+          api('form/data', {}, 'post', function (result) {
+            if (typeof result === 'object' && result.success) {
+              fc.domContainer.html('<div class="render"></div>');
+
+              // Update schema
+              setSchemaData(result);
+              fc.schemaData.data = result.data;
+              fc.schemaData.files = result.files;
+              fc.schemaData.verify = {
+                perform: false
+              };
+
+              // Initialise proper render
+              initRender(fc.schemaData);
+            }
+          });
+        };
+
+        /**
+         * Verify the user session prior to output
+         */
+        verifySession = function () {
+          var verify = fc.schemaData.verify;
+
+          var html = '';
+          html += '<div class="fc-page fc-page-verify-session">';
+          html += '<div class="fc-section">';
+
+          // Section header
+          html += '<div class="fc-section-header">';
+          html += '<div class="fc-section-label">';
+          html += '<h4>Verify session</h4>';
+          html += '</div>'; //!fc-section-label
+          html += '</div>'; //!fc-section-header
+
+          // Section body
+          html += '<div class="fc-section-body">';
+          html += '<p>In order to re-enter the form, you must first verify your credentials. Please complete verification below.</p>';
+          html += '<div class="fc-field fc-field-smsVerification">';
+
+          switch (verify.against) {
+            case 'mobile':
+              var options = {
+                _id: {
+                  $id: 'preVerification'
+                },
+                config: {
+                  autoDeliverOnFirstRender: true,
+                  renderAsModal: false,
+                  verificationButtonText: fc.lang.verify
+                }
+              };
+              html += renderSmsVerification(options);
+              break;
+          }
+
+          html += '</div>'; //!fc-field-smsVerification
+          html += '<div class="fc-clear"></div>';
+          html += '</div>'; //!fc-section-body
+
+          html += '</div>'; //!fc-section
+          html += '</div>'; //!fc-page
+
+          fc.domContainer.html(html);
+
+          // On loaded
+          fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
+          onSchemaLoaded();
         };
 
         /**
@@ -11066,30 +11373,12 @@ var formcorp = (function () {
             }
 
             var key;
-
             if (data && data.stage) {
               setFieldSchemas(data.stage);
             }
 
-            // If data returned by the API server, set locally
-            if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
-              for (key in data.data) {
-                if (data.data.hasOwnProperty(key)) {
-                  if (typeof key === 'string' && key.length > 0 && !$.isNumeric(key)) {
-                    setVirtualValue(key, data.data[key]);
-                  }
-                  // If an ABN field, assume valid if previously set
-                  if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
-                    fc.validAbns.push(fc.fields[key]);
-                  }
-
-                  // If a grouplet, also store the entire state
-                  if (key.indexOf(fc.constants.prefixSeparator) > -1) {
-                    saveOriginalGroupletValue(key, data.data[key]);
-                  }
-                }
-              }
-            }
+            // Set the data returned by the server
+            setSchemaData(data);
 
             if (typeof data.lang === 'object') {
               loadLanguagePack(data.lang);
@@ -11097,6 +11386,11 @@ var formcorp = (function () {
 
             // If library files aren't marked to be auto discovered, initialise the render
             if (!fc.config.autoDiscoverLibs) {
+              if (sessionRequiresVerification(data)) {
+                verifySession();
+
+                return;
+              }
               initRender(data);
             } else {
               autoLoadLibs(data);
@@ -11875,7 +12169,8 @@ var formcorp = (function () {
                 loading: 'Loading...',
                 dateCorrectFormat: 'Date must be in a valid format',
                 optionPrefix: "opt_",
-                urlSessionPrefix: 's:'
+                urlSessionPrefix: 's:',
+                downloadButtonText: 'Download'
               };
             }
 
@@ -12330,8 +12625,8 @@ var formcorp = (function () {
      */
     validAbn: function (value) {
       if (value.replace(/[^0-9]/g, '').length === 0) {
-        // If no value set, return true
-        return true;
+        // If no value set, return false
+        return false;
       }
 
       var hash = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
@@ -12367,8 +12662,8 @@ var formcorp = (function () {
      */
     validAcn: function (value) {
       if (value.replace(/[^0-9]/g, '').length === 0) {
-        // If no value set, return true
-        return true;
+        // If no value set, return false
+        return false;
       }
 
       var hash = [8, 7, 6, 5, 4, 3, 2, 1],
@@ -12416,8 +12711,8 @@ var formcorp = (function () {
      */
     validTFN: function (value) {
       if (value.replace(/[^0-9]/g, '').length === 0) {
-        // If no value set, return true
-        return true;
+        // If no value set, return false
+        return false;
       }
 
       // Test to ensure a 9 digit value
