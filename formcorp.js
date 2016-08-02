@@ -4383,8 +4383,6 @@ var formcorp = (function () {
            * @returns {string}
            */
           renderSmsVerification = function (field) {
-            console.log(field);
-
             // Register the email verification event listeners if required
             if (!processed(fc.processes.smsListeners)) {
               registerSmsVerificationListeners();
@@ -4396,8 +4394,6 @@ var formcorp = (function () {
               verified = validVerificationResult(fieldValue),
               verifyClass = getConfig(field, 'renderAsModal', true) ? 'fc-verify-as-modal' : 'fc-verify-inline',
               verificationButtonText = getConfig(field, 'verificationButtonText', '');
-
-            console.log(verifyClass);
 
             // If not verified, show the form to verify
             if (!verified) {
@@ -4432,13 +4428,8 @@ var formcorp = (function () {
             html += '</div>';
             /*!fc-success*/
 
-            console.log(verified);
-            console.log(fieldValue);
-            console.log(getConfig(field, 'autoDeliverOnFirstRender', false));
-
             // Auto send the SMS
             if (!verified && fieldValue === undefined && getConfig(field, 'autoDeliverOnFirstRender', false)) {
-              console.log('auto deliver');
               // Send the api callback to deliver the email
               api('verification/callback', {field: getId(field)}, 'POST', function (data) {
                 // On successful request, load a dialog to input the code
@@ -11302,8 +11293,10 @@ var formcorp = (function () {
         preVerificationComplete = function () {
           api('form/data', {}, 'post', function (result) {
             if (typeof result === 'object' && result.success) {
+              fc.domContainer.html('<div class="render"></div>');
+
               // Update schema
-              setSchemaData(result.data);
+              setSchemaData(result);
               fc.schemaData.data = result.data;
               fc.schemaData.files = result.files;
               fc.schemaData.verify = {
@@ -11380,7 +11373,6 @@ var formcorp = (function () {
             }
 
             var key;
-
             if (data && data.stage) {
               setFieldSchemas(data.stage);
             }
