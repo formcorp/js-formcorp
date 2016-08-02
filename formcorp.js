@@ -4348,9 +4348,14 @@ var formcorp = (function () {
                     parent.addClass('error');
                   } else if (data.success) {
                     // The field was successfully verified
-                    $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
-                    setVirtualValue(fieldId, data.verificationCode);
-                    valueChanged(fieldId, data.verificationCode, true);
+                    if (fieldId === 'preVerification') {
+                        // Pre-verification is a special use case
+                        preVerificationComplete();
+                    } else {
+                      $('[fc-data-group="' + fieldId + '"]').addClass('fc-verified');
+                      setVirtualValue(fieldId, data.verificationCode);
+                      valueChanged(fieldId, data.verificationCode, true);
+                    }
                   }
 
                   $('.fc-modal .modal-footer .fc-loading').addClass('fc-hide');
@@ -6707,6 +6712,7 @@ var formcorp = (function () {
           autoLoadLibs,
           setSchemaData,
           verifySession,
+          preVerificationComplete,
           loadSchema,
           hasNextPage,
           loadNextPage,
@@ -11288,6 +11294,26 @@ var formcorp = (function () {
               }
             }
           }
+        };
+
+        /**
+         * Once verification is complete, need to render form
+         */
+        preVerificationComplete = function () {
+          api('form/data', {}, 'post', function (result) {
+            if (typeof result === 'object' && result.success) {
+              // Update schema
+              setSchemaData(result.data);
+              fc.schemaData.data = result.data;
+              fc.schemaData.files = result.files;
+              fc.schemaData.verify = {
+                perform: false
+              };
+
+              // Initialise proper render
+              initRender(fc.schemaData);
+            }
+          });
         };
 
         /**
