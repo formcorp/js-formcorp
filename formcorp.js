@@ -1368,6 +1368,13 @@ var formcorp = (function () {
           },
 
           /**
+           * Mark as read only
+           */
+          readOnly = function () {
+            fc.domContainer.find(':input').attr('readonly','readonly');
+          },
+
+          /**
            * Returns the page id a field belongs to
            * @param fieldId
            * @param useDOM
@@ -1499,6 +1506,10 @@ var formcorp = (function () {
            * @param mode string
            */
           setMode = function (mode) {
+            if (typeof fc.domContainer !== 'undefined') {
+              fc.domContainer.find('.render').attr('data-mode', mode);
+            }
+
             fc.mode = mode;
           },
 
@@ -3257,12 +3268,16 @@ var formcorp = (function () {
               option,
               id,
               json,
-              savedValues = [],
+              savedValue,
               htmlItems = [],
               iterator,
               tmpHtml,
-              checked;
+              checked,
+              value,
+              isChecked;
             /*jslint nomen: false*/
+
+            savedValue = fc.fields[fieldId];
 
             // Determine the css class to use
             cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
@@ -3281,20 +3296,23 @@ var formcorp = (function () {
                   for (key in option) {
                     if (option.hasOwnProperty(key)) {
                       id = prefix + getId(field) + '_' + x++;
-                      checked = getConfig(field, 'default') === option ? ' checked' : '';
+                      value = htmlEncode(key.trim().substr(fc.lang.optionPrefix.length));
+                      checked = value == savedValue || getConfig(field, 'default') === option ? ' checked' : '';
 
                       if (getConfig(field, 'asButton', false)) {
                         tmpHtml = '<div class="fc-option-buttons ' + cssClass + '">';
-                        tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(htmlEncode(key.trim().substr(fc.lang.optionPrefix.length))) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
+                        tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(value) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
                         tmpHtml += '</div>';
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
-                        tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + htmlEncode(key.trim().substr(fc.lang.optionPrefix.length)) + '" data-required="' + required + '"' + checked + '>';
+                        tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + encodeURIComponent(value) + '" data-required="' + required + '"' + checked + '>';
                         tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                         tmpHtml += '</div>';
                       }
 
-                      htmlItems.push(tmpHtml);
+                      if (fc.mode !== formcorp.MODE_REVIEW || checked) {
+                        htmlItems.push(tmpHtml);
+                      }
                     }
                   }
                 }
@@ -3351,6 +3369,8 @@ var formcorp = (function () {
             // Determine the css class to use
             cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
 
+            var checked = false;
+
             // Iterate through each option
             x = 0;
             if (typeof options === 'object' && $.isArray(options) && options.length > 0) {
@@ -3367,7 +3387,15 @@ var formcorp = (function () {
                       tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(finalKey) + '" data-required="' + required + '"';
 
                       if (savedValues.indexOf(finalKey) > -1) {
+                        checked = true;
                         tmpHtml += ' checked="checked"';
+                      } else {
+                        checked = false;
+                      }
+
+                      if (fc.mode === formcorp.MODE_REVIEW) {
+                        // When in review mode, should not be able to update
+                        tmpHtml += ' readonly="readonly" onclick="return false;"';
                       }
 
                       tmpHtml += '>';
@@ -3377,7 +3405,9 @@ var formcorp = (function () {
                       tmpHtml += '</label>';
                       tmpHtml += '</div>';
 
-                      htmlItems.push(tmpHtml);
+                      if (fc.mode !== formcorp.MODE_REVIEW || checked) {
+                        htmlItems.push(tmpHtml);
+                      }
                     }
                   }
                 }
@@ -11214,6 +11244,10 @@ var formcorp = (function () {
             }
           }
 
+          if (fc.mode === formcorp.MODE_REVIEW) {
+            readOnly();
+          }
+
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
 
           // Initialise the on schema loaded event
@@ -11402,6 +11436,11 @@ var formcorp = (function () {
          * Process the save queue
          */
         processSaveQueue = function () {
+          if (fc.mode === formcorp.MODE_REVIEW) {
+            // When in review mode, nothing should be updated
+            return;
+          }
+
           if (fc.config.saveInRealTime !== true) {
             return;
           }
@@ -11739,6 +11778,8 @@ var formcorp = (function () {
                 return false;
               }
               fc.formId = fc.domContainer.attr('data-id');
+
+              fc.domContainer.attr('data-mode', fc.mode);
 
               // Initialise the parser
               loadJsFile(parserUrl(), function () {
@@ -12758,6 +12799,8 @@ var formcorp = (function () {
     forms: self.forms,
     getForms: getForms,
     getForm: getForm,
-    validators: validators
+    validators: validators,
+
+    MODE_REVIEW: 'review'
   };
 }());
