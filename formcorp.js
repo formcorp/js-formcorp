@@ -12510,7 +12510,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           comparisonGreater: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field > comparisonValue;
+            return $.isNumeric(field) && $.isNumeric(comparisonValue) && parseFloat(field) > parseFloat(comparisonValue);
           },
 
           /**
@@ -12520,7 +12520,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           comparisonGreater_or_equal: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field >= comparisonValue;
+            return $.isNumeric(field) && $.isNumeric(comparisonValue) && parseFloat(field) >= parseFloat(comparisonValue);
           },
 
           /**
@@ -12530,7 +12530,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           comparisonLess: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field < comparisonValue;
+            return $.isNumeric(field) && $.isNumeric(comparisonValue) && parseFloat(field) < parseFloat(comparisonValue);
           },
 
           /**
@@ -12540,7 +12540,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           comparisonLess_or_equal: function (field, comparisonValue) {
-            return $.isNumeric(field) && $.isNumeric(comparisonValue) && field <= comparisonValue;
+            return $.isNumeric(field) && $.isNumeric(comparisonValue) && parseFloat(field) <= parseFloat(comparisonValue);
           },
 
           /**
