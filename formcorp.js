@@ -3301,11 +3301,11 @@ var formcorp = (function () {
 
                       if (getConfig(field, 'asButton', false)) {
                         tmpHtml = '<div class="fc-option-buttons ' + cssClass + '">';
-                        tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + encodeURIComponent(value) + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
+                        tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + value + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
                         tmpHtml += '</div>';
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
-                        tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + encodeURIComponent(value) + '" data-required="' + required + '"' + checked + '>';
+                        tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + value + '" data-required="' + required + '"' + checked + '>';
                         tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                         tmpHtml += '</div>';
                       }
