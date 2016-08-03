@@ -12363,6 +12363,10 @@ var formcorp = (function () {
             } catch (ignore) {
             }
 
+            if (typeof field === 'number') {
+              field = '' + field;
+            }
+
             // Field can be string
             if (typeof field === 'string') {
               if (typeof comparisonValue === 'object') {
