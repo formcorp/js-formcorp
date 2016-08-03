@@ -4916,7 +4916,7 @@ var formcorp = (function () {
            * @return {boolean}
            */
           sessionRequiresVerification = function (schema) {
-            return typeof schema.verify === 'object' && schema.verify.perform === true;
+            return typeof schema === 'object' && typeof schema.verify === 'object' && schema.verify.perform === true;
           },
 
           /**
