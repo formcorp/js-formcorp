@@ -291,7 +291,7 @@ var formcorp = (function () {
            */
           apiUrl = function () {
             if (!isDev()) {
-              return '//api.formcorp.com.au/';
+              return 'https://api.formcorp.com.au/';
             }
 
             // If in development mode, check to see if api URL set
