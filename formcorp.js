@@ -8640,7 +8640,7 @@ var formcorp = (function () {
           }
 
           // Input types text changed
-          fc.domContainer.on('change', 'input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+          fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             log('FC input field clicked, prepare to call setValueUpdate');
             setValueUpdate($(this));
             log('FC input finished click handling');
