@@ -6787,8 +6787,6 @@ var formcorp = (function () {
             fieldHtml += '<div class="fc-fieldgroup">';
             fieldHtml += '<div class="fc-field-element-container">';
 
-            console.log('rendering: ' + field.type);
-
             switch (field.type) {
               case 'text':
                 fieldDOMHTML = renderTextfield(field, prefix);
