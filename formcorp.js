@@ -6787,6 +6787,8 @@ var formcorp = (function () {
             fieldHtml += '<div class="fc-fieldgroup">';
             fieldHtml += '<div class="fc-field-element-container">';
 
+            console.log('rendering: ' + field.type);
+
             switch (field.type) {
               case 'text':
                 fieldDOMHTML = renderTextfield(field, prefix);
@@ -8028,6 +8030,9 @@ var formcorp = (function () {
               dataId = obj.attr('fc-data-group'),
               field = fc.logic.getComponent(dataId);
 
+            console.log(dataId);
+            console.log(field);
+
             if (fc.logic.isComponentVisible(field.config)) {
               obj.removeClass('fc-hide');
             } else {
@@ -9030,7 +9035,9 @@ var formcorp = (function () {
          * @returns {boolean}
          */
         loadNextPage = function (showError, forceSubmit) {
+          console.log('load next page');
           if (fc.preventNextPageLoad) {
+            console.log('prevent next page load');
             return;
           }
 
@@ -9047,6 +9054,7 @@ var formcorp = (function () {
 
           // Only perform validation on the current page (performance boost)
           if (!fc.logic.isPageValid(fc.currentPage)) {
+            console.log('page is not valid');
             logEvent(fc.eventTypes.onNextPageError);
 
             // Scroll to first error
