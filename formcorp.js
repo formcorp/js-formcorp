@@ -8028,12 +8028,24 @@ var formcorp = (function () {
           fc.domContainer.find('.fc-field').each(function () {
             var obj = $(this),
               dataId = obj.attr('fc-data-group'),
-              field = fc.logic.getComponent(dataId);
+              field = fc.logic.getComponent(dataId),
+              iteration,
+              belongs;
 
+            // If the field belongs to a grouplet
+            if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+              var groupletComponents = dataId.match(formcorp.logic._CONST.GROUPLET_FIELD_REGEX);
+              if (_.isArray(groupletComponents) && groupletComponents.length === 4) {
+                iteration = groupletComponents[2];
+                belongs = groupletComponents[1];
+              }
+            }
             console.log(dataId);
             console.log(field);
+            console.log(belongs);
+            console.log(iteration);
 
-            if (fc.logic.isComponentVisible(field.config)) {
+            if (fc.logic.isComponentVisible(field.config, 'visibility', 'tags', belongs, iteration)) {
               obj.removeClass('fc-hide');
             } else {
               obj.addClass('fc-hide');
