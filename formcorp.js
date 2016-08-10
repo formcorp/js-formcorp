@@ -8040,10 +8040,6 @@ var formcorp = (function () {
                 belongs = groupletComponents[1];
               }
             }
-            console.log(dataId);
-            console.log(field);
-            console.log(belongs);
-            console.log(iteration);
 
             if (fc.logic.isComponentVisible(field.config, 'visibility', 'tags', belongs, iteration)) {
               obj.removeClass('fc-hide');
