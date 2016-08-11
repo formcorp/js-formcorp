@@ -686,7 +686,26 @@ var formcorp = (function () {
 
             fieldId = getDataId(fieldId);
             schema = fc.logic.getComponent(fieldId);
-            value = fc.fields[fieldId];
+
+            // Everything is now stored in objects, need to look recursively through
+            var parts = fieldId.split(fc.constants.prefixSeparator);
+            var last;
+            var values = fc.fields;
+            var partId;
+            for (var i = 0, l = parts.length; i < l; i++) {
+              last = i === parts.length - 1;
+              partId = parts[i];
+
+              if (last) {
+                return values[partId];
+              }
+
+              values = values[partId];
+              if (typeof values === 'undefined') {
+                return defaultValue;
+              }
+            }
+            
             functionReference;
 
             if (schema !== undefined) {
@@ -2509,6 +2528,9 @@ var formcorp = (function () {
            * @param fieldId
            */
           setFieldValue = function (obj, fieldId) {
+            log('setFieldValue');
+            log(fieldId);
+            log(obj);
             var value,
               schema = fc.logic.getComponent(fieldId),
               iterator,
