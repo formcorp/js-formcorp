@@ -6302,35 +6302,9 @@ var formcorp = (function () {
 
             if (fieldId.length > 0 && typeof fieldId === 'string') {
               var parts = fieldId.split(fc.constants.prefixSeparator);
-              var save = fc.fields;
-              var partId;
-              var last;
-
-              for (var i = 0, l = parts.length; i < l; i++) {
-                last = i === l - 1;
-                partId = parts[i];
-
-                if (!last) {
-                  if (typeof save[partId] !== 'object') {
-                    log('override');
-                    // Not last, need to construct the element
-                    if (formcorp.logic.isNumber(partId)) {
-                      // If numeric, should be an object
-                      save[partId] = {};
-                    } else {
-                      // Otherwise an array
-                      save[partId] = [];
-                    }
-                  }
-
-                  save = save[partId];
-                } else {
-                  log('set ' + partId + ' to: ');
-                  log(value);
-                  log(save);
-                  save[partId] = value;
-                }
-              }
+              var setRegex = new RegExp('\\' + fc.constants.prefixSeparator, 'g');
+              var setId = fieldId.replace(setRegex, '.');
+              _.set(fc.fields, setId, value);
 
               if (fc.config.saveInRealTime && shouldSave) {
                 fc.saveQueue[parts[0]] = fc.fields[parts[0]];
