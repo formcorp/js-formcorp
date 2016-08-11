@@ -705,7 +705,7 @@ var formcorp = (function () {
                 return defaultValue;
               }
             }
-            
+
             functionReference;
 
             if (schema !== undefined) {
@@ -2541,7 +2541,7 @@ var formcorp = (function () {
               unrestorableFieldTypes = ['emailVerification', 'smsVerification'];
 
             // If no value found, try and use default
-            value = fc.fields[fieldId];
+            value = getValue(fieldId);
             if (value === undefined && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
