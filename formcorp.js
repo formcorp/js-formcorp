@@ -2435,6 +2435,7 @@ var formcorp = (function () {
            * @returns {*|boolean}
            */
           fieldIsRepeatable = function (dataId) {
+            log('Check field is repeatable for: ' + dataId);
             var fieldSchema = fc.logic.getComponent(dataId);
 
             return fieldSchema && typeof fieldSchema.config.repeatable === 'boolean' && fieldSchema.config.repeatable;
@@ -3770,6 +3771,7 @@ var formcorp = (function () {
             // Update the application value
             log($.extend(true, {}, fc.fields));
             forceUpdateFieldValue(fieldId, value);
+            log('Update field value finished');
             log($.extend(true, {}, fc.fields));
 
             // Update the value in the DOM as required
@@ -6319,11 +6321,13 @@ var formcorp = (function () {
                       // Otherwise an array
                       save[partId] = [];
                     }
-
-                    save = save[partId];
                   }
+
+                  save = save[partId];
                 } else {
-                  log('set');
+                  log('set ' + partId + ' to: ');
+                  log(value);
+                  log(save);
                   save[partId] = value;
                 }
               }
@@ -8368,235 +8372,9 @@ var formcorp = (function () {
 
           log($.extend(true, {}, fc.fields));
 
-          // If the value hasn't actually changed, return
-          if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
-            return;
-          }
+          setVirtualValue(dataId, value);
 
-          fc.domContainer.trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
-          log(dataId);
-
-          // Store when not a repeatable value
-          if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
-            setVirtualValue(dataId, value);
-
-            // If a grouplet, save the original state of the grouplet
-            if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-              saveOriginalGroupletValue(dataId, value);
-            }
-          }
-
-          log(fc.fields);
-
-          // Store against array values when sub field (field_1, field_2) for a repeatable iterator
-          if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-            parts = dataId.split(fc.constants.prefixSeparator);
-
-            // If a repeatable iterator, store each value
-            if (fc.logic.getComponent(parts[0]) !== undefined && parts.length > 1) {
-              if (fc.logic.getComponent(parts[0]).type === 'repeatableIterator') {
-                // Initialise the base field if required
-                if (fc.fields[parts[0]] === undefined || !_.isArray(fc.fields[parts[0]])) {
-                  fc.fields[parts[0]] = [];
-                }
-
-                field = fc.fields[parts[0]];
-
-                for (iterator = 1; iterator < parts.length; iterator += 1) {
-                  if (iterator === (parts.length - 1)) {
-                    field[parts[iterator]] = value;
-                  } else {
-                    if (field[parts[iterator]] === undefined) {
-                      field[parts[iterator]] = {};
-                    }
-                    field = field[parts[iterator]];
-                  }
-                }
-
-                // Queue to be saved
-                fc.saveQueue[parts[0]] = fc.fields[parts[0]];
-
-                // If the field value belongs to a grouplet, we have to check if its been repeated in the DOM
-                // If it has been repeated, need to treat the value as an array, and append it to the value
-                // The alternative is that it is shown in a modal window, and therefore needs to be treated differently
-              } else if (fc.logic.getComponent(parts[0]).type === 'grouplet' && $.isNumeric(parts[1])) {
-                groupletID = parts[0];
-                // If the modal style is that so it is shown in the DOM, then process and add to the array
-                if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.logic.getComponent(groupletID), 'repeatableStyle', 0))) >= 0) {
-                  // If the core field value hasn't been set (as an array), set it first
-                  if (fc.fields[groupletID] === undefined || !_.isArray(fc.fields[groupletID])) {
-                    setVirtualValue(groupletID, []);
-                  }
-
-                  // The array/row index to update
-                  index = parseInt(parts[1]);
-
-                  // The user doesn't necessarily have to update the values in incrementing order
-                  // They might update the nth row before the first row, and you can't update the nth row of an array
-                  // without values existing from 0 to n-1. Therefore, need to iterate through and ensure n-1
-                  // rows exist within the array.
-                  if (typeof fc.fields[groupletID][index] !== 'object') {
-                    for (iterator = 0; iterator <= index; iterator += 1) {
-                      if (typeof fc.fields[groupletID][iterator] !== 'object') {
-                        fc.fields[groupletID].push({});
-                      }
-                    }
-                  }
-
-                  // It is now safe to add the object value to the array
-                  fc.fields[groupletID][index][parts[2]] = value;
-                }
-
-                // The value has been safely updated, update the save queue
-                fc.saveQueue[groupletID] = fc.fields[groupletID];
-              }
-            }
-          }
-
-          // Set the active page id to the page that the field belongs to, delete later pages
-          log('Flush active page for field: ' + dataId);
-          flushActivePageForField(dataId, true);
-
-          // If the item belongs to a repeatable object (or grouplet in the DOM), do not store the changed value
-          if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-            log('Field on update belongs to repeatable object');
-            dataParams = dataId.split(fc.constants.prefixSeparator);
-            parentId = dataParams[0];
-            parentField = fc.logic.getComponent(parentId);
-
-            if (parentField !== undefined && getConfig(parentField, 'repeatable', false) === true) {
-              errors = fieldErrors(dataId);
-              if (fc.config.realTimeValidation === true) {
-                if (errors !== undefined && errors.length > 0) {
-                  // Log the error event
-                  logEvent(fc.eventTypes.onFieldError, {
-                    fieldId: dataId,
-                    errors: errors
-                  });
-
-                  removeFieldSuccess(dataId);
-                  showFieldError(dataId, errors);
-                  return;
-                } else {
-                  removeFieldError(dataId);
-                  showFieldSuccess(dataId);
-                }
-              }
-
-              // Store the changed value for intermittent saving
-              if (fc.config.saveInRealTime === true) {
-                fc.saveQueue[dataId] = value;
-              }
-
-              flushVisibility()
-              return;
-            }
-          }
-
-          // Don't perform operations on repeatable fields
-          if (!fieldIsRepeatable(dataId)) {
-            log('Field is not repeatable, attempt to perform validation');
-            setVirtualValue(dataId, value);
-
-            // Check real time validation
-            errors = fieldErrors(dataId);
-            if (fc.config.realTimeValidation === true) {
-              if (errors !== undefined && errors.length > 0) {
-                // Log the error event
-                logEvent(fc.eventTypes.onFieldError, {
-                  fieldId: dataId,
-                  errors: errors
-                });
-
-                removeFieldSuccess(dataId);
-                showFieldError(dataId, errors);
-              } else {
-                showFieldSuccess(dataId);
-                removeFieldError(dataId);
-              }
-            }
-
-            // Store the changed value for intermittent saving
-            if (fc.config.saveInRealTime === true) {
-              fc.saveQueue[dataId] = value;
-            }
-
-            // Need to get the next value field
-            nextField = nextVisibleField(dataId);
-
-            // Register the value changed event
-            params = {
-              fieldId: dataId,
-              success: !errors || errors.length === 0
-            };
-
-            if (nextField) {
-              params.nextField = nextField;
-            }
-
-            // If success, update the completion time
-            if (params.success) {
-              params.completionTime = (Date.now() - fc.lastCompletedTimestamp) / 1000;
-
-              // If a hesitation time has been recorded, subtract it from the completion time
-              if (fc.lastHesitationTime > 0) {
-                params.completionTime -= fc.lastHesitationTime;
-              }
-
-              // Update timestamps and mark the field as completed
-              fc.lastCompletedField = dataId;
-              fc.lastCompletedTimestamp = Date.now();
-            }
-
-            logEvent(fc.eventTypes.onValueChange, params);
-            log('Finished realtime validation processing');
-          }
-
-          // Check to see if the next page should be automatically loaded
-          pageId = getFieldPageId(dataId);
-          page = fc.logic.getComponent(pageId);
-          allowAutoLoad = !page || !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
-
-          if (fc.config.autoLoadPages) {
-            if (pageId === fc.currentPage && allowAutoLoad) {
-              // Pages have the option of opting out of autoloading
-              log('Prepare to check for auto load');
-              loadedNextPage = checkAutoLoad();
-              log('Finished checking for auto load');
-            }
-          }
-
-          // Scroll to the next field if required
-          if (getConfig(fc.logic.getComponent(dataId), 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
-            autoScrollToField(dataId, nextField);
-          }
-
-          // If the field needs to trigger a re-rendering of an existing field, do it now
-          tag = getConfig(fieldSchema, 'tag', '');
-          if (tag.length > 0 && fc.reRenderOnValueChange[tag] !== undefined) {
-            log('Check for re-rendering');
-            for (iterator = 0; iterator < fc.reRenderOnValueChange[tag].length; iterator += 1) {
-              tmp = fc.reRenderOnValueChange[tag][iterator];
-              replaceContainer = fc.domContainer.find('.fc-field[fc-data-group="' + tmp + '"]');
-              if (replaceContainer.length > 0) {
-                // If the field exists, re-render
-                replaceSectionID = replaceContainer.attr('fc-belongs-to');
-                replaceSchema = fc.logic.getComponent(tmp);
-                if (replaceSchema !== undefined && replaceSchema.type === 'grouplet') {
-                  replaceHTML = renderFields([replaceSchema], replaceSectionID);
-                  if (replaceHTML.length > 0) {
-                    replaceHTMLDOM = $(replaceHTML);
-                    replaceContainer.html($(replaceHTML).html());
-
-                    // Re-set the fields on the element (whenever the DOM is updated, the field values need to be re-applied)
-                    setFieldValues(replaceContainer);
-                  }
-                }
-              }
-            }
-            log('Finished checking for re-rendering');
-          }
-
+          // Delete a whole bunch of code
 
           flushVisibility();
           fc.domContainer.trigger(fc.jsEvents.onValueChanged, [dataId, value, force]);
@@ -10558,7 +10336,7 @@ var formcorp = (function () {
               // Delete values from the save queue
               for (key in temporaryQueue) {
                 if (temporaryQueue.hasOwnProperty(key)) {
-                  if (typeof fc.saveQueue[key] === "string" && fc.saveQueue[key] === temporaryQueue[key]) {
+                  if (fc.saveQueue[key] === temporaryQueue[key]) {
                     delete fc.saveQueue[key];
                   }
                 }
