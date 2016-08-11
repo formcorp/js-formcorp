@@ -1307,7 +1307,7 @@ var formcorp = (function () {
             // If inline validation enabled, output error message(s)
             if (fc.config.inlineValidation === true) {
               for (x = 0; x < errors.length; x += 1) {
-                msg += errors[x] + '<br>';
+                msg += errors[x].msg + '<br>';
               }
               dataGroup.find('.fc-error-text').html(msg);
             }
@@ -6700,7 +6700,7 @@ var formcorp = (function () {
               fieldHtml += fieldClass + ' ';
             }
 
-            fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '" data-field-count="' + fc.fieldCount + '" data-form-state="' + fc.formState + '"';
+            fieldHtml += 'fc-field fc-field-' + field.type + '" id="' + fieldId + '" fc-data-group="' + fieldId + '" data-required="' + required + '" data-field-count="' + fc.fieldCount + '" data-form-state="' + fc.formState + '"';
 
             // If a section was passed through, track which section the field belongs to
             if (section !== undefined && typeof section === "object") {
@@ -8840,7 +8840,8 @@ var formcorp = (function () {
           }
 
           var fieldErrors = fc.logic.getPageErrors(pageId);
-          console.log(fieldErrors);
+          console.log(fc.logic.errors);
+
           if (_.isObject(fieldErrors) && Object.keys(fieldErrors).length > 0) {
             _.each(fieldErrors, function (errors, fieldId) {
               showFieldError(fieldId, errors);
@@ -8880,6 +8881,7 @@ var formcorp = (function () {
 
             // Scroll to first error
             if (showError) {
+              console.log('show errors');
               addErrorsToPage(fc.currentPage);
 
               if (fc.config.scrollOnSubmitError) {
