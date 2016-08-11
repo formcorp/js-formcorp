@@ -3155,8 +3155,7 @@ var formcorp = (function () {
            * @param value
            */
           forceUpdateFieldValue = function (fieldId, value) {
-            fc.fields[fieldId] = value;
-            fc.saveQueue[fieldId] = value;
+            setVirtualValue(fieldId, value, true);
           },
 
           /**
@@ -3747,7 +3746,9 @@ var formcorp = (function () {
             }
 
             // Update the application value
+            log($.extend(true, {}, fc.fields));
             forceUpdateFieldValue(fieldId, value);
+            log($.extend(true, {}, fc.fields));
 
             // Update the value in the DOM as required
             if (updateDom) {
@@ -6264,13 +6265,49 @@ var formcorp = (function () {
            * Set the "virtual" value of a field
            * @param fieldId
            * @param value
+           * @param {boolean=} shouldSave
            */
-          setVirtualValue = function (fieldId, value) {
-            if (fieldId.length > 0 && typeof fieldId === 'string') {
-              fc.fields[fieldId] = value;
+          setVirtualValue = function (fieldId, value, shouldSave) {
+            log('set virtual value');
+            log(fieldId);
+            log(value);
 
-              if (fc.config.saveInRealTime) {
-                fc.saveQueue[fieldId] = value;
+            if (typeof shouldSave !== 'boolean') {
+              shouldSave = true;
+            }
+
+            if (fieldId.length > 0 && typeof fieldId === 'string') {
+              var parts = fieldId.split(fc.constants.prefixSeparator);
+              var save = fc.fields;
+              var partId;
+              var last;
+
+              for (var i = 0, l = parts.length; i < l; i++) {
+                last = i === l - 1;
+                partId = parts[i];
+
+                if (!last) {
+                  if (typeof save[partId] !== 'object') {
+                    log('override');
+                    // Not last, need to construct the element
+                    if (formcorp.logic.isNumber(partId)) {
+                      // If numeric, should be an object
+                      save[partId] = {};
+                    } else {
+                      // Otherwise an array
+                      save[partId] = [];
+                    }
+
+                    save = save[partId];
+                  }
+                } else {
+                  log('set');
+                  save[partId] = value;
+                }
+              }
+
+              if (fc.config.saveInRealTime && shouldSave) {
+                fc.saveQueue[parts[0]] = fc.fields[parts[0]];
               }
             }
           },
@@ -8307,7 +8344,7 @@ var formcorp = (function () {
             }
           }
 
-          log(fc.fields);
+          log($.extend(true, {}, fc.fields));
 
           // If the value hasn't actually changed, return
           if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
@@ -8319,7 +8356,7 @@ var formcorp = (function () {
 
           // Store when not a repeatable value
           if (!fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
-            fc.fields[dataId] = value;
+            setVirtualValue(dataId, value);
 
             // If a grouplet, save the original state of the grouplet
             if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
@@ -8366,7 +8403,7 @@ var formcorp = (function () {
                 if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(fc.logic.getComponent(groupletID), 'repeatableStyle', 0))) >= 0) {
                   // If the core field value hasn't been set (as an array), set it first
                   if (fc.fields[groupletID] === undefined || !_.isArray(fc.fields[groupletID])) {
-                    fc.fields[groupletID] = [];
+                    setVirtualValue(groupletID, []);
                   }
 
                   // The array/row index to update
@@ -8437,7 +8474,7 @@ var formcorp = (function () {
           // Don't perform operations on repeatable fields
           if (!fieldIsRepeatable(dataId)) {
             log('Field is not repeatable, attempt to perform validation');
-            fc.fields[dataId] = value;
+            setVirtualValue(dataId, value);
 
             // Check real time validation
             errors = fieldErrors(dataId);
@@ -8571,7 +8608,7 @@ var formcorp = (function () {
             }
 
             // Need to update the stored value to ensure proper validation
-            fc.fields[id] = val;
+            setVirtualValue(id, val);
 
             return;
           }
@@ -8640,7 +8677,10 @@ var formcorp = (function () {
           // Input types text changed
           fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             log('FC input field clicked, prepare to call setValueUpdate');
+            log($.extend(true, {}, fc.fields));
+            log('Call setValueUpdate');
             setValueUpdate($(this));
+            log($.extend(true, {}, fc.fields));
             log('FC input finished click handling');
           });
 
@@ -8711,7 +8751,7 @@ var formcorp = (function () {
                           entityName = result.entityName;
                         }
 
-                        fc.fields[id] = entityName;
+                        setVirtualValue(id, entityName);
                         container = $('.fc-field[fc-data-group="' + id + '"]');
                         setFieldValue(container, id);
                       }
@@ -9061,6 +9101,7 @@ var formcorp = (function () {
           // Only perform validation on the current page (performance boost)
           if (!fc.logic.isPageValid(fc.currentPage)) {
             console.log('page is not valid');
+            console.log(fc.currentPage);
             logEvent(fc.eventTypes.onNextPageError);
 
             // Scroll to first error
@@ -10429,7 +10470,8 @@ var formcorp = (function () {
             if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
               for (key in data.data) {
                 if (data.data.hasOwnProperty(key)) {
-                  fc.fields[key] = data.data[key];
+                  setVirtualValue(key, data.data[key]);
+
                   // If an ABN field, assume valid if previously set
                   if (fc.logic.getComponent(key) && fc.logic.getComponent(key).type && fc.logic.getComponent(key).type === 'abnVerification' && fc.fields[key].length > 0) {
                     fc.validAbns.push(fc.fields[key]);
