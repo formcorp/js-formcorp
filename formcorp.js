@@ -11109,6 +11109,7 @@ var formcorp = (function () {
           },
 
           fieldErrors: fieldErrors,
+          setVirtualValue: setVirtualValue,
 
           /**
            * Set the language data values
