@@ -8277,6 +8277,80 @@ var formcorp = (function () {
         };
 
         /**
+         * Perform real-time validation
+         * @param {string} dataId
+         */
+        var realTimeValidation = function (dataId) {
+            // Check real time validation
+            var isValid = fc.logic.isFieldValid(dataId);
+            if (isValid) {
+              showFieldSuccess(dataId);
+              removeFieldError(dataId);
+
+              return [];
+            }
+
+            var errors = fc.logic.getErrors(dataId);
+            if (fc.config.realTimeValidation === true) {
+              if (_.isArray(errors) && errors.length > 0) {
+                // Filter the errors
+                var errorMessages = _.map(errors, function (o) {
+                  return o.msg;
+                });
+
+                // Log the error event
+                logEvent(fc.eventTypes.onFieldError, {
+                  fieldId: dataId,
+                  errors: errors
+                });
+
+                removeFieldSuccess(dataId);
+                showFieldError(dataId, errors);
+              } else {
+                showFieldSuccess(dataId);
+                removeFieldError(dataId);
+              }
+            }
+
+            return errors;
+        };
+
+        /**
+         * When a field is updated, log the analytics
+         * @param {string} fieldId
+         */
+        var fieldUpdateAnalytics = function (dataId, errors) {
+          // Need to get the next value field
+          var nextField = nextVisibleField(dataId);
+
+          // Register the value changed event
+          var params = {
+            fieldId: dataId,
+            success: !errors || errors.length === 0
+          };
+
+          if (nextField) {
+            params.nextField = nextField;
+          }
+
+          // If success, update the completion time
+          if (params.success) {
+            params.completionTime = (Date.now() - fc.lastCompletedTimestamp) / 1000;
+
+            // If a hesitation time has been recorded, subtract it from the completion time
+            if (fc.lastHesitationTime > 0) {
+              params.completionTime -= fc.lastHesitationTime;
+            }
+
+            // Update timestamps and mark the field as completed
+            fc.lastCompletedField = dataId;
+            fc.lastCompletedTimestamp = Date.now();
+          }
+
+          logEvent(fc.eventTypes.onValueChange, params);
+        };
+
+        /**
          * Function that is fired when a data value changes.
          * @param dataId
          * @param value
@@ -8289,7 +8363,6 @@ var formcorp = (function () {
 
           log('valueChanged(' + dataId + ',' + value + ',' + force + ')');
           var fieldSchema = fc.logic.getComponent(dataId),
-            errors,
             params,
             dataParams,
             parentId,
@@ -8346,11 +8419,36 @@ var formcorp = (function () {
 
           log($.extend(true, {}, fc.fields));
 
+          // Set the virtual value
           setVirtualValue(dataId, value);
 
           // Delete a whole bunch of code
-
           flushVisibility();
+
+          // Perform real-time validation
+          var errors = realTimeValidation(dataId);
+          fieldUpdateAnalytics(dataId, errors);
+
+          // Set the active page id to the page that the field belongs to, delete later pages
+          flushActivePageForField(dataId, true);
+
+          // Check to see if the next page should be automatically loaded
+          pageId = getFieldPageId(dataId);
+          page = fc.logic.getComponent(pageId);
+          allowAutoLoad = !page || !page.page || !page.page.preventAutoLoad || page.page.preventAutoLoad !== '1';
+
+          if (fc.config.autoLoadPages) {
+            if (pageId === fc.currentPage && allowAutoLoad) {
+              // Pages have the option of opting out of autoloading
+              loadedNextPage = checkAutoLoad();
+            }
+          }
+
+          // Scroll to the next field if required
+          if (getConfig(fc.fieldSchema[dataId], 'allowAutoScroll', true) && fc.config.autoScrollToNextField && !loadedNextPage && nextField && nextField.length > 0) {
+            autoScrollToField(dataId, nextField);
+          }
+
           fc.domContainer.trigger(fc.jsEvents.onValueChanged, [dataId, value, force]);
         };
 
