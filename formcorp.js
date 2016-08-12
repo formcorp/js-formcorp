@@ -8281,13 +8281,8 @@ var formcorp = (function () {
          * @param {string} dataId
          */
         var realTimeValidation = function (dataId) {
-          console.log('perform realtime validation');
-          console.log(dataId);
-
           // Check real time validation
           var isValid = fc.logic.isFieldValid(dataId);
-          console.log("IS VALID\n==============");
-          console.log(isValid);
           if (isValid) {
             showFieldSuccess(dataId);
             removeFieldError(dataId);
@@ -8296,8 +8291,6 @@ var formcorp = (function () {
           }
 
           var errors = fc.logic.getErrors(dataId);
-          console.log("ERRORS\n============");
-          console.log(errors);
           if (fc.config.realTimeValidation === true) {
             if (_.isArray(errors) && errors.length > 0) {
               // Filter the errors
