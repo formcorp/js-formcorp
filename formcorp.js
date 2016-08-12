@@ -7702,8 +7702,11 @@ var formcorp = (function () {
             prefix = '';
           }
 
+          var fieldId = prefix + getId(field);
+          var value = getValue(fieldId);
+
           // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
-          if (!bypass && (typeof fc.fields[prefix + getId(field)] !== 'object' || fc.fields[prefix + getId(field)].result === undefined || fc.fields[prefix + getId(field)].result.userId === 'undefined')) {
+          if (!bypass && (typeof value !== 'object' || typeof value.result === 'undefined' || typeof value.result.userId === 'undefined')) {
             return initGreenIdFieldInDOM(field, prefix);
           }
 
@@ -7730,7 +7733,7 @@ var formcorp = (function () {
             packageHtml,
             sourcesRequiredHtml,
             packages,
-            fieldValue = fc.fields[prefix + getId(field)],
+            fieldValue = value,
             licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
             licenseType;
 
