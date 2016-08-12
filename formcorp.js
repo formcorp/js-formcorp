@@ -8281,38 +8281,45 @@ var formcorp = (function () {
          * @param {string} dataId
          */
         var realTimeValidation = function (dataId) {
-            // Check real time validation
-            var isValid = fc.logic.isFieldValid(dataId);
-            if (isValid) {
+          console.log('perform realtime validation');
+          console.log(dataId);
+
+          // Check real time validation
+          var isValid = fc.logic.isFieldValid(dataId);
+          console.log("IS VALID\n==============");
+          console.log(isValid);
+          if (isValid) {
+            showFieldSuccess(dataId);
+            removeFieldError(dataId);
+
+            return [];
+          }
+
+          var errors = fc.logic.getErrors(dataId);
+          console.log("ERRORS\n============");
+          console.log(errors);
+          if (fc.config.realTimeValidation === true) {
+            if (_.isArray(errors) && errors.length > 0) {
+              // Filter the errors
+              var errorMessages = _.map(errors, function (o) {
+                return o.msg;
+              });
+
+              // Log the error event
+              logEvent(fc.eventTypes.onFieldError, {
+                fieldId: dataId,
+                errors: errors
+              });
+
+              removeFieldSuccess(dataId);
+              showFieldError(dataId, errors);
+            } else {
               showFieldSuccess(dataId);
               removeFieldError(dataId);
-
-              return [];
             }
+          }
 
-            var errors = fc.logic.getErrors(dataId);
-            if (fc.config.realTimeValidation === true) {
-              if (_.isArray(errors) && errors.length > 0) {
-                // Filter the errors
-                var errorMessages = _.map(errors, function (o) {
-                  return o.msg;
-                });
-
-                // Log the error event
-                logEvent(fc.eventTypes.onFieldError, {
-                  fieldId: dataId,
-                  errors: errors
-                });
-
-                removeFieldSuccess(dataId);
-                showFieldError(dataId, errors);
-              } else {
-                showFieldSuccess(dataId);
-                removeFieldError(dataId);
-              }
-            }
-
-            return errors;
+          return errors;
         };
 
         /**
