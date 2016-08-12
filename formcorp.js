@@ -1019,7 +1019,7 @@ var formcorp = (function () {
 
               dataId = $(field).attr('formcorp-data-id');
 
-              if (typeof fc.logic.getComponent(dataId) !== 'undefined' && fc.logic.getComponent(dataId).type === 'matrix') {
+              if (_.isObject(fc.logic.getComponent(dataId)) && fc.logic.getComponent(dataId).type === 'matrix') {
                 return parseMatrixField(field, true);
               }
 
@@ -1035,7 +1035,12 @@ var formcorp = (function () {
 
             // Return the value for rendered buttons
             if (field.is('button')) {
-              dataId = field.attr('formcorp-data-id');
+              dataId = field.attr('formcorp-data-id').replace('_rootSelection', '');
+              var schema = fc.fieldSchema[dataId];
+              if (typeof schema === 'object' && schema.type === 'greenIdVerification') {
+                return getValue(dataId);
+              }
+
               if (dataId) {
                 if (!getConfig(fc.logic.getComponent(dataId), 'allowMultiple', false)) {
                   dataValue = $('.fc-button.checked[formcorp-data-id="' + dataId + '"]').attr('data-field-value');
@@ -1742,6 +1747,8 @@ var formcorp = (function () {
               return;
             } else if (field.type === "greenIdVerification") {
               // Validate a Green ID field
+              value = getValue(fieldId);
+
               if (fc.greenID === undefined) {
                 // Green ID has yet to be initialised
                 errors.push('Green ID has not been initialised.');
@@ -6301,6 +6308,8 @@ var formcorp = (function () {
             }
 
             if (fieldId.length > 0 && typeof fieldId === 'string') {
+              fieldId = fieldId.replace('_rootSelection', '');
+              
               var parts = fieldId.split(fc.constants.prefixSeparator);
               var setRegex = new RegExp('\\' + fc.constants.prefixSeparator, 'g');
               var setId = fieldId.replace(setRegex, '.');
