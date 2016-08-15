@@ -6638,11 +6638,16 @@ var formcorp = (function () {
             amountOfTimes = getNumericTagValue(amountOfTimes);
           }
 
+          var existingValue = getValue(fieldId);
+          if (typeof existingValue === 'object' && $.isArray(existingValue) && existingValue.length > amountOfTimes) {
+            existingValue.splice(amountOfTimes, existingValue.length - amountOfTimes);
+            setVirtualValue(fieldId, existingValue);
+          }
+
           // If no config defined, do nothing
           if (field.config === undefined) {
             return returnHTML;
           }
-
 
           // If a grouplet, render
           if (field.config.grouplet !== undefined && typeof field.config.grouplet === 'object' && field.config.grouplet.field !== undefined) {
