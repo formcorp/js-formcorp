@@ -1217,3 +1217,37 @@ body div.fc-container div.fc-security-error {
 div.fc-container .fc-field-greenIdVerification.fc-error .fc-error-text {
   position: static !important;
 }
+
+div.fc-container[data-mode="review"] .fc-success-box,
+div.fc-container[data-mode="review"] .fc-success-text,
+div.fc-container[data-mode="review"] .fc-error-box,
+div.fc-container[data-mode="review"] .fc-error-text {
+  display: none !important;
+}
+
+div.fc-container[data-mode="review"] .fc-page .fc-section .fc-field.fc-field-success input.fc-fieldinput,
+div.fc-container[data-mode="review"] .fc-page .fc-section .fc-field.fc-field-success select {
+  border-color: #96989b !important;
+  cursor: default !important;
+}
+
+div.fc-container[data-mode="review"] .fc-field label,
+div.fc-container[data-mode="review"] .fc-field label:hover,
+div.fc-container[data-mode="review"] .fc-field label span,
+div.fc-container[data-mode="review"] .fc-field label em {
+  cursor: default !important;
+}
+
+div.fc-container[data-mode="review"] .fc-repeatable .fc-link,
+div.fc-container[data-mode="review"] .fc-pagination {
+  display: none !important;
+}
+
+div.fc-container[data-mode="review"] input {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
