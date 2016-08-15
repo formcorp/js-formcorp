@@ -9639,7 +9639,7 @@ var formcorp = (function () {
 
           // Replace the curly braces in the template tokens
           if (templateTokens.length === 0) {
-            return;
+            return '';
           }
 
           for (iterator = 0; iterator < templateTokens.length; iterator += 1) {
@@ -9683,6 +9683,10 @@ var formcorp = (function () {
             return false
           }
 
+          // Un-register the click handler
+          fc.domContainer.off('click.' + dataId);
+
+          // Remove the auto suggest box
           fieldContainer.find('.fc-auto-suggest').remove();
         };
 
@@ -9787,6 +9791,14 @@ var formcorp = (function () {
                 if (existingAutoSuggest.length > 0) {
                   existingAutoSuggest.remove();
                 }
+
+                // Register a click listener
+                fc.domContainer.on('click.' + fieldId, function(event) {
+                  if ($(event.target).is('.fc-auto-suggest[data-id="' + fieldId + '"]')) {
+                    return false;
+                  }
+                  removeAutoCompleteWidget(fieldId);
+                });
 
                 fieldContainer.find('.fc-fieldgroup').append(html);
               }
