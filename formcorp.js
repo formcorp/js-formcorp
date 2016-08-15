@@ -1305,18 +1305,45 @@ var formcorp = (function () {
            * @param errors
            */
           showFieldError = function (dataId, errors) {
-            var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]'),
-              x,
-              msg = '';
+            var id;
+            var error;
+
+            for (var x = 0, l = errors.length; x < l; x++) {
+              error = errors[x];
+
+              if (dataId.indexOf(fc.constants.prefixSeparator) < 0) {
+                // If not a string concatenated id tag, check to see if it should dydnamically be generated
+                id = [];
+                if (_.isString(error._belongsTo)) {
+                  id.push(error._belongsTo);
+                }
+                if (_.isInteger(error._iteration)) {
+                  id.push(error._iteration);
+                }
+
+                id.push(dataId);
+                dataId = id.join(fc.constants.prefixSeparator);
+              }
+            }
+
+            // Fetch the element in the DOM
+            var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]');
+            if (dataGroup.length === 0) {
+              // The element does not exist on the page
+              return;
+            }
+
+            var msg = '';
 
             // Trigger an event
             fc.domContainer.trigger(fc.jsEvents.onFieldError, [dataId, errors]);
-
-            dataGroup.addClass('fc-error');
+            if (dataGroup.length > 0) {
+              dataGroup.addClass('fc-error');
+            }
 
             // If inline validation enabled, output error message(s)
             if (fc.config.inlineValidation === true) {
-              for (x = 0; x < errors.length; x += 1) {
+              for (var x = 0; x < errors.length; x += 1) {
                 msg += errors[x].msg + '<br>';
               }
               dataGroup.find('.fc-error-text').html(msg);
@@ -8960,6 +8987,7 @@ var formcorp = (function () {
           }
 
           var fieldErrors = fc.logic.getPageErrors(pageId);
+          console.log("Add errors to page\n================");
           console.log(fc.logic.errors);
 
           if (_.isObject(fieldErrors) && Object.keys(fieldErrors).length > 0) {
@@ -8976,9 +9004,7 @@ var formcorp = (function () {
          * @returns {boolean}
          */
         loadNextPage = function (showError, forceSubmit) {
-          console.log('load next page');
           if (fc.preventNextPageLoad) {
-            console.log('prevent next page load');
             return;
           }
 
@@ -8987,7 +9013,7 @@ var formcorp = (function () {
           }
 
           // Default force submit to false
-          if (typeof forceSubmit === 'undefined') {
+          if (!_.isBoolean(forceSubmit)) {
             forceSubmit = false;
           }
 
@@ -9002,6 +9028,7 @@ var formcorp = (function () {
             // Scroll to first error
             if (showError) {
               console.log('show errors');
+              console.log(fc.logic.errors);
               addErrorsToPage(fc.currentPage);
 
               if (fc.config.scrollOnSubmitError) {
