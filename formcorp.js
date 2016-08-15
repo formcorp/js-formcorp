@@ -7801,6 +7801,9 @@ var formcorp = (function () {
           // Sources required
           html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">' + fc.lang.greenID.html.completePrefix + '</p>';
 
+          // Already initialised
+          html += '<div class="fc-green-id-already-initialised-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.alreadyInitialised + '</div></div>';
+
           // Skip text
           html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.skipped + '</div></div>';
 
@@ -11242,6 +11245,7 @@ var formcorp = (function () {
                   },
                   html: {
                     completePrefix: 'To complete digital verification for this individual, you must verify <span></span> from the options below.',
+                    alreadyInitialised: '<em>This individual has previously undergone electronic verification elsewhere on the form.</em>',
                     skipped: 'You have skipped verification for this user.',
                     completed: 'You have successfully been verified.'
                   }

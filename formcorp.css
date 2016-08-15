@@ -855,8 +855,21 @@ div.fc-pagination {
     display: none;
 }
 
+.fc-green-id-already-initialised-container {
+  display: none;
+}
+
 .fc-skipped-verification .fc-green-id-skipped-container {
     display: block;
+}
+
+.fc-already-initialised-verification .fc-green-id-already-initialised-container {
+  display: block;
+}
+
+.fc-field-greenIdVerification.fc-already-initialised-verification .fc-green-id-sources-required,
+.fc-field-greenIdVerification.fc-already-initialised-verification .fc-greenid-verification-packages {
+  display: none;
 }
 
 .fc-green-failed-initialisation .fc-greenid-reinit,
