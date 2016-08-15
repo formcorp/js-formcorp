@@ -1867,9 +1867,11 @@ var formcorp = (function () {
               // If not required, do nothing
               if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
                 // Check matrix field validation
-                if (field.type !== 'matrix') {
-                  return;
+                if (['grouplet', 'repeatableIterator'].indexOf(field.type) < 0) {
+                  showFieldSuccess(dataId);
                 }
+
+                return;
               }
 
               // Determine the prefix
