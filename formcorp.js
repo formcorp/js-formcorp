@@ -10958,6 +10958,11 @@ var formcorp = (function () {
           setLanguageAlias: setLanguageAlias,
 
           /**
+          * Expose modal functions
+          */
+          showModal: showModal,
+
+          /**
            * Retrieve a URL parameter by name
            * @param name
            * @returns {string}
