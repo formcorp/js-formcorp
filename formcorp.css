@@ -224,6 +224,24 @@ div.fc-pagination {
     transition: transform 0.3s ease-out;
 }
 
+.fc-modal .modal-header {
+  position: relative;
+}
+
+.fc-modal .modal-header .fc-btn-close {
+  position: absolute;
+  display: inline-block;
+  right: 10px;
+  top: 12px;
+  background: #fff;
+  border-radius: 0;
+  padding: 1px 5px;
+  font-weight: bold;
+  color: #48ab6c;
+  font-size: 10px;
+  border: medium none;
+}
+
 .fc-modal h2 {
     margin-top: 0;
     margin-bottom: 0;

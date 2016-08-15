@@ -9976,6 +9976,7 @@ var formcorp = (function () {
             '<div class="modal-dialog">' +
             '<div class="modal-header">' +
             '<h2>' + fc.lang.addModalHeader + '</h2>' +
+            '<a href="#" class="btn btn-danger fc-btn-close">x</a> ' +
             '</div>' +
             '<div class="modal-body">' +
             '</div>' +
