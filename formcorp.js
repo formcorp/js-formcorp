@@ -1141,10 +1141,22 @@ var formcorp = (function () {
                 try {
                   if (type === fc.constants.functionCallbackType && _.isArray(validator.params) && validator.params.length > 0 && validator.params[0].length > 0) {
                     // Custom callback function
-                    if (typeof callback[validator.params[0]] !== 'function') {
+                    // Some functions might be nested within object (i.e. formcorp.validators.validTFN)
+                    // Because of this, need to traverse through the object to find the necessary function
+                    var components = validator.params[0].split('.');
+                    if (components.length > 0) {
+                      var component;
+                      for (var a = 0; a < components.length; a += 1) {
+                        component = components[a];
+                        if (typeof callback[component] !== 'undefined') {
+                          callback = callback[component];
+                        }
+                      }
+                    }
+
+                    if (typeof callback !== 'function') {
                       log('Custom function \'' + validator.params[0] + '\' callback not defined.');
                     } else {
-                      callback = callback[validator.params[0]];
                       result = callback(value);
                     }
                   } else {
@@ -11415,140 +11427,6 @@ var formcorp = (function () {
         };
 
       }(jQuery));
-
-      /**
-       * Verifies whether an ABN is valid
-       * @param value
-       * @returns boolean
-       */
-      var validAbn = function (value) {
-        if (value.replace(/[^0-9]/g, '').length === 0) {
-          // If no value set, return true
-          return true;
-        }
-
-        var hash = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19],
-          total = 0,
-          iterator,
-          abn = value.replace(/[\s]+/g, ''),
-          abnArr = abn.split("");
-
-        if (/[^0-9]/.test(abn)) {
-          return false
-        }
-
-        if (abn.length !== 11) {
-          return false;
-        }
-
-        // Subtract 1 from the first digit
-        abnArr[0] = parseInt(abnArr[0]) - 1;
-
-        // Calculate the total
-        for (iterator = 0; iterator < 11; iterator += 1) {
-          total += parseInt(abnArr[iterator]) * hash[iterator];
-        }
-
-        // Return true if divisible by 89
-        return total % 89 === 0;
-      };
-
-      /**
-       * Verifies whether an ACN is valid
-       * @param value
-       * @returns boolean
-       */
-      var validAcn = function (value) {
-        if (value.replace(/[^0-9]/g, '').length === 0) {
-          // If no value set, return true
-          return true;
-        }
-
-        var hash = [8, 7, 6, 5, 4, 3, 2, 1],
-          total = 0,
-          iterator,
-          acn = value.replace(/[\s]+/g, '', value),
-          acnArr = acn.split(""),
-          divisor,
-          complement;
-
-        if (/[^0-9]/.test(acn)) {
-          return false
-        }
-
-        if (acn.length !== 9) {
-          return false;
-        }
-
-        // Calculate the total
-        for (iterator = 0; iterator < 8; iterator += 1) {
-          total += parseInt(acnArr[iterator]) * hash[iterator];
-        }
-
-        // Calculate the complement
-        divisor = total % 10;
-        complement = (10 - divisor) % 10;
-
-        // Verify against the check digit
-        return complement === parseInt(acnArr[8]);
-      };
-
-      /**
-       * Checks whether a value is a valid ABN or ACN
-       * @param value
-       */
-      var validAcnOrAbn = function (value) {
-        return validAbn(value) || validAcn(value);
-      };
-
-      /**
-       * Checks whether a value is a valid TFN.
-       *
-       * @param value
-       * @returns {boolean}
-       */
-      var validTFN = function (value) {
-        if (value.replace(/[^0-9]/g, '').length === 0) {
-          // If no value set, return true
-          return true;
-        }
-
-        // Test to ensure a 9 digit value
-        if (!/^\d{9}$/g.test(value)) {
-          return false;
-        }
-
-        // Test the checksum
-        var hash = [1, 4, 3, 7, 5, 8, 6, 9, 10],
-          total = 0,
-          iterator,
-          exemptionCodes = [
-            '333333333',
-            '444444441',
-            '444444442',
-            '555555555',
-            '666666666',
-            '777777777',
-            '888888888',
-            '987654321',
-            '000000000',
-            '111111111'
-          ];
-
-        // Test if an exemption code supplied
-        if (exemptionCodes.indexOf(value) >= 0) {
-          return true;
-        }
-
-        // Calculate the total
-        for (iterator = 0; iterator < 9; iterator += 1) {
-          total += value[iterator] * hash[iterator];
-        }
-
-        // Return true if divisible by 11
-        return total % 11 === 0;
-      };
-
 
     self.forms[id] = fc;
 
