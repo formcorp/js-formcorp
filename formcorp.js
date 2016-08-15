@@ -3129,8 +3129,8 @@ var formcorp = (function () {
                 savedValues = json;
               } catch (ignore) {
               }
-            } else if (typeof fc.fields[fieldId] === "object") {
-              savedValues = fc.fields[fieldId];
+            } else {
+              savedValues = getValue(fieldId);
             }
 
             // Determine the css class to use
