@@ -4660,7 +4660,7 @@ var formcorp = (function () {
            * @return {boolean}
            */
           sessionRequiresVerification = function (schema) {
-            return typeof schema.verify === 'object' && schema.verify.perform === true;
+            return _.isObject(schema) && _.isObject(scheme.verify) && schema.verify.perform === true;
           },
 
           /**
@@ -10921,7 +10921,7 @@ var formcorp = (function () {
               // Form states
               stateLoadingEntityRecord: 'loadingEntityRecord',
 
-              optionValueSeparator: '|'
+              optionValueSeparator: '|',
 
               // libraries
               underscoreLibrary: 'lib/underscore/underscore-min.js',
