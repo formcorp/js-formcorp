@@ -2994,7 +2994,7 @@ var formcorp = (function () {
                 optionValue = arr[x];
                 optionDisplay = arr[x];
 
-                if (optionValue.indexOf(fc.constants.optionValueSeparator)) {
+                if (optionValue.indexOf(fc.constants.optionValueSeparator) >= 0) {
                   // If a separate option value was supplied, need to use it instead (1|Good)
                   parts = optionValue.split(fc.constants.optionValueSeparator);
                   optionValue = parts[0];
