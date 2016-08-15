@@ -6446,6 +6446,7 @@ var formcorp = (function () {
           parseMatrixField,
           buildMatrixTable,
           renderMatrixField,
+          renderDigitalSignatureField,
           renderDateField,
           renderCustomerRecord,
           registerApiLookupListener,
@@ -6970,6 +6971,9 @@ var formcorp = (function () {
               case 'matrix':
                 fieldDOMHTML= renderMatrixField(field, prefix);
                 break;
+                case 'digsigCollect':
+                  fieldDOMHTML= renderDigitalSignatureField(field, prefix);
+                  break;
               case 'groupletReference':
                 fieldDOMHTML = '<div formcorp-data-id="' + prefix + getId(field) + '" data-reference="' + getConfig(field, 'groupletReference') + '"></div>';
                 break;
@@ -7460,6 +7464,98 @@ var formcorp = (function () {
               });
             }
           }
+          return html;
+        };
+
+        /**
+         * Render a digital signature field
+         * @param field
+         * @param prefix
+         * @returns {*}
+         */
+        renderDigitalSignatureField = function (field, prefix) {
+          var data, html;
+
+          if (prefix === undefined) {
+            prefix = "";
+          }
+
+          data = {
+            "values" : fc.fields
+          };
+
+          html = '<a class="fc-button">Sign Document</a>';
+
+          fc.domContainer.on('click', '.fc-field-digsigCollect .fc-button', function() {
+            var formData = {},
+              obj = $(this),
+              data,
+              page,
+              value,
+              dataId,
+              oldPage,
+              newPage,
+              fields = getPageVisibleFieldsFromDom(fc.currentPage);
+
+            if (fields !== false) {
+              fields.each(function () {
+                var fieldObj = $(this);
+                dataId = fieldObj.attr('formcorp-data-id');
+
+                // If belongs to a grouplet, need to process uniquely - get the data id of the root grouplet and retrieve from saved field states
+                if (fieldObj.hasClass('fc-data-repeatable-grouplet')) {
+                  if (formData[dataId] === undefined) {
+                    formData[dataId] = fc.fields[dataId];
+                  }
+                } else {
+                  // Regular fields can be added to the flat dictionary
+                  value = getFieldValue(fieldObj);
+                  if (fc.fields[dataId] !== value) {
+                    setVirtualValue(dataId, value);
+                  }
+
+                  formData[dataId] = value;
+                }
+              });
+            }
+
+            // Build the data object to send with the request
+            data = {
+              form_id: fc.formId,
+              page_id: fc.currentPage,
+              form_values: formData
+            };
+
+            api('page/submit', data, 'put', function(data) {
+              if (typeof data === 'object' && data.success === true) {
+                api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
+                  if (typeof data === 'object' && data.success === true) {
+                    html = '<iframe class="fc-field-digsigIframe" src="' + data.data.url + '" width="100%" height="350"></iframe>';
+
+                    $('.fc-field-digsigCollect').append(html);
+                    $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+
+                    // Poll the OmniSign API every second to determine if it is signed.
+                    var digsigCheck = setInterval(function () {
+                      api('digsig/gateway/data', { 'field_id' : field._id.$id, 'uuid' : data.data.data }, 'POST', function(data) {
+                        if (data.data.data.signed_at > 0) {
+                          $('.fc-field-digsigIframe').remove();
+                          clearInterval(digsigCheck);
+                          html = '<span>You have successfully submitted your Digital Signature</span>';
+                          $('.fc-field-digsigCollect').append(html);
+                        }
+                      });
+                    }, 1000);
+                  } else {
+                    html = '<span>There was an error connecting to OmniSign</span>';
+                    $('.fc-field-digsigCollect').append(html);
+                    $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+                  }
+                });
+              }
+            });
+          });
+
           return html;
         };
 
