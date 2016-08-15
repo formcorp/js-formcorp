@@ -6450,7 +6450,10 @@ var formcorp = (function () {
           renderCustomerRecord,
           registerApiLookupListener,
           renderAutoCompleteWidget,
-          removeAutoCompleteWidget;
+          removeAutoCompleteWidget,
+          moveSelectionAutoCompleteWidget,
+          enterSelectionAutoCompleteWidget,
+          selectRowAutoCompleteWidget;
 
         /**
          * Load the libraries required for signature fields
@@ -9685,11 +9688,175 @@ var formcorp = (function () {
             return false
           }
 
-          // Un-register the click handler
+          // Un-register the click listener/handler
           fc.domContainer.off('click.' + dataId);
+
+          // Un-register the keydown listener/handler
+          fc.domContainer.off('keydown.' + dataId);
 
           // Remove the auto suggest box
           fieldContainer.find('.fc-auto-suggest').remove();
+        };
+
+      /**
+        * Handles the up/down keyboard events when the auto suggest is open
+        *
+        * @param dataId
+        * @param keyCode
+        */
+        moveSelectionAutoCompleteWidget = function (dataId, keyCode) {
+          var autoCompleteWidget = $('.fc-auto-suggest[data-id="' + dataId + '"]'),
+            direction = (keyCode == 38) ? 'up' : 'down',
+            autoCompleteRows = autoCompleteWidget.find('.fc-suggest-row'),
+            currentlySelected = autoCompleteRows.filter('.selected');
+
+          // If there is none currently selected
+          if (currentlySelected.length == 0) {
+            autoCompleteRows.first().addClass('selected');
+          } else {
+            currentlySelected.removeClass('selected');
+            var next;
+            if (direction == 'down') {
+              next = currentlySelected.next('.fc-suggest-row');
+              if (!next.length) next = autoCompleteRows.first();
+            } else {
+              next = currentlySelected.prev('.fc-suggest-row');
+              if (!next.length) next = autoCompleteRows.last();
+            }
+            next.addClass('selected');
+          }
+        };
+
+        /**
+        * Handles the enter keyboard event when the auto suggest is open
+        *
+        * @param dataId
+        * @param keyCode
+        */
+        enterSelectionAutoCompleteWidget = function (dataId, keyCode) {
+          var autoCompleteWidget = $('.fc-auto-suggest[data-id="' + dataId + '"]'),
+          autoCompleteRows = autoCompleteWidget.find('.fc-suggest-row'),
+          currentlySelected = autoCompleteRows.filter('.selected');
+          selectRowAutoCompleteWidget(currentlySelected);
+        };
+
+        /**
+        * Handles the selection of a row in the auto complete widget
+        *
+        * @param object
+        * @returns {boolean}
+        */
+        selectRowAutoCompleteWidget = function (object) {
+          var json = JSON.parse(decodeURI(object.attr('data-suggest'))),
+          dataId = getDataId(object.attr('data-id')),
+          schema = fc.fieldSchema[dataId],
+          map = getConfig(schema, 'mapResponse', '{}'),
+          mapObj,
+          tags,
+          tag,
+          tagId,
+          val,
+          tokens,
+          iterator,
+          token,
+          replacement,
+          re,
+          domObj,
+          parts,
+          groupletTags,
+          groupletSchema,
+          key,
+          isRepeatable = false,
+          groupletFieldId,
+          tagName,
+          successfulTransaction;
+
+          if (typeof json !== 'object') {
+            return false;
+          }
+
+          // Attempt to decode to JSON object
+          try {
+            mapObj = JSON.parse(map);
+          } catch (ignore) {
+            return false;
+          }
+
+          // Retrieve field tags and perform replacement
+          tags = getAllFieldTags(true);
+
+          // If the field belongs to a grouplet, need to also match simple grouplet tags to the complex ids
+          if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
+
+            parts = dataId.split(fc.constants.prefixSeparator);
+            if (fc.fieldSchema[parts[0]] !== undefined && fc.fieldSchema[parts[0]].type !== undefined && fc.fieldSchema[parts[0]].type === 'grouplet') {
+              // Fetch the grouplet schema
+              groupletSchema = getFieldsSchema(getConfig(fc.fieldSchema[parts[0]], 'grouplet', {'field': []}).field);
+
+              // For non-repeatable grouplets, only want to use the root ID (non-repeatable grouplets of the form ROOTID_GROUPLETFIELDID)
+              // Repeatable grouplets are of the format ROOTID_INDEX_GROUPLETFIELDID, you therefore need to track the first two
+              isRepeatable = getConfig(fc.fieldSchema[parts[0]], 'repeatable', false);
+              parts.splice(isRepeatable ? 2 : 1);
+
+              for (key in groupletSchema) {
+                if (groupletSchema.hasOwnProperty(key)) {
+                  tagName = getConfig(groupletSchema[key], 'tag', '');
+                  if (tagName.length > 0) {
+                    // Create an array for the groupletfield id
+                    groupletFieldId = parts.slice();
+                    groupletFieldId.push(key);
+
+                    tags[tagName] = getDataId(groupletFieldId.join(fc.constants.prefixSeparator));
+                  }
+                }
+              }
+            }
+          }
+
+          // Iterate through each mapped tag and attempt to update values within the DOM
+          for (tag in mapObj) {
+            if (mapObj.hasOwnProperty(tag)) {
+              if (tags[tag] !== undefined) {
+                tagId = tags[tag];
+                domObj = $('.fc-field[fc-data-group="' + tagId + '"]');
+
+                if (domObj.length > 0) {
+                  // Perform the token replacement on the mapped value
+                  val = mapObj[tag];
+                  tokens = val.match(/\{([a-zA-Z0-9\-\_]+)\}/g);
+
+                  // Replace each token
+                  if (tokens.length > 0) {
+                    for (iterator = 0; iterator < tokens.length; iterator += 1) {
+                      token = tokens[iterator].replace(/[\{\}]/g, '');
+                      re = new RegExp('\{' + token + '\}', 'g');
+                      replacement = json[token] !== undefined ? json[token] : '';
+                      val = val.replace(re, replacement);
+                    }
+                  }
+
+                  // Set the field value in the DOM
+                  setValue(tagId, val);
+                }
+              }
+            }
+          }
+
+          // In some instances, when a value is clicked a request needs to be sent off to a 3rd party URL
+          // to indicate a successful transaction. This is for instance, a case with an address lookup, where
+          // the merchant needs to be instructed of a successful transaction for billing purposes.
+          successfulTransaction = getConfig(schema, 'successfulTransaction', '');
+          if (successfulTransaction.length > 0) {
+            // Send the request off @todo: more than just GET
+            $.ajax({
+              'type': 'GET',
+              'url': successfulTransaction
+            });
+          }
+
+          removeAutoCompleteWidget(dataId);
+
+          return false;
         };
 
         /**
@@ -9794,12 +9961,23 @@ var formcorp = (function () {
                   existingAutoSuggest.remove();
                 }
 
-                // Register a click listener
+                // Register a click listener/handler
+                fc.domContainer.off('click.' + fieldId);
                 fc.domContainer.on('click.' + fieldId, function(event) {
                   if ($(event.target).is('.fc-auto-suggest[data-id="' + fieldId + '"]')) {
                     return false;
                   }
                   removeAutoCompleteWidget(fieldId);
+                });
+
+                // Register an keydown listener/handler
+                fc.domContainer.off('keydown.' + fieldId);
+                fc.domContainer.on('keydown.' + fieldId, function(event) {
+                  if (event.keyCode == 38 || event.keyCode == 40) {
+                    moveSelectionAutoCompleteWidget(fieldId, event.keyCode);
+                  } else if (event.keyCode == 13) {
+                    enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
+                  }
                 });
 
                 fieldContainer.find('.fc-fieldgroup').append(html);
@@ -9827,116 +10005,7 @@ var formcorp = (function () {
 
           // Map the fields on click
           fc.domContainer.on('click', '.fc-suggest-row', function () {
-            var json = JSON.parse(decodeURI($(this).attr('data-suggest'))),
-              dataId = getDataId($(this).attr('data-id')),
-              schema = fc.logic.getComponent(dataId),
-              map = getConfig(schema, 'mapResponse', '{}'),
-              mapObj,
-              tags,
-              tag,
-              tagId,
-              val,
-              tokens,
-              iterator,
-              token,
-              replacement,
-              re,
-              domObj,
-              parts,
-              groupletTags,
-              groupletSchema,
-              key,
-              isRepeatable = false,
-              groupletFieldId,
-              tagName,
-              successfulTransaction;
-
-            if (typeof json !== 'object') {
-              return false;
-            }
-
-            // Attempt to decode to JSON object
-            try {
-              mapObj = JSON.parse(map);
-            } catch (ignore) {
-              return false;
-            }
-
-            // Retrieve field tags and perform replacement
-            tags = getAllFieldTags(true);
-
-            // If the field belongs to a grouplet, need to also match simple grouplet tags to the complex ids
-            if (dataId.indexOf(fc.constants.prefixSeparator) >= 0) {
-
-              parts = dataId.split(fc.constants.prefixSeparator);
-              if (fc.fieldSchema[parts[0]] !== undefined && fc.fieldSchema[parts[0]].type !== undefined && fc.fieldSchema[parts[0]].type === 'grouplet') {
-                // Fetch the grouplet schema
-                groupletSchema = getFieldsSchema(getConfig(fc.fieldSchema[parts[0]], 'grouplet', {'field': []}).field);
-
-                // For non-repeatable grouplets, only want to use the root ID (non-repeatable grouplets of the form ROOTID_GROUPLETFIELDID)
-                // Repeatable grouplets are of the format ROOTID_INDEX_GROUPLETFIELDID, you therefore need to track the first two
-                isRepeatable = getConfig(fc.fieldSchema[parts[0]], 'repeatable', false);
-                parts.splice(isRepeatable ? 2 : 1);
-
-                for (key in groupletSchema) {
-                  if (groupletSchema.hasOwnProperty(key)) {
-                    tagName = getConfig(groupletSchema[key], 'tag', '');
-                    if (tagName.length > 0) {
-                      // Create an array for the groupletfield id
-                      groupletFieldId = parts.slice();
-                      groupletFieldId.push(key);
-
-                      tags[tagName] = getDataId(groupletFieldId.join(fc.constants.prefixSeparator));
-                    }
-                  }
-                }
-              }
-            }
-
-            // Iterate through each mapped tag and attempt to update values within the DOM
-            for (tag in mapObj) {
-              if (mapObj.hasOwnProperty(tag)) {
-                if (tags[tag] !== undefined) {
-                  tagId = tags[tag];
-                  domObj = $('.fc-field[fc-data-group="' + tagId + '"]');
-
-                  if (domObj.length > 0) {
-                    // Perform the token replacement on the mapped value
-                    val = mapObj[tag];
-                    tokens = val.match(/\{([a-zA-Z0-9\-\_]+)\}/g);
-
-                    // Replace each token
-                    if (tokens.length > 0) {
-                      for (iterator = 0; iterator < tokens.length; iterator += 1) {
-                        token = tokens[iterator].replace(/[\{\}]/g, '');
-                        re = new RegExp('\{' + token + '\}', 'g');
-                        replacement = json[token] !== undefined ? json[token] : '';
-                        val = val.replace(re, replacement);
-                      }
-                    }
-
-                    // Set the field value in the DOM
-                    setValue(tagId, val);
-                  }
-                }
-              }
-            }
-
-            // In some instances, when a value is clicked a request needs to be sent off to a 3rd party URL
-            // to indicate a successful transaction. This is for instance, a case with an address lookup, where
-            // the merchant needs to be instructed of a successful transaction for billing purposes.
-            successfulTransaction = getConfig(schema, 'successfulTransaction', '');
-            if (successfulTransaction.length > 0) {
-              // Send the request off @todo: more than just GET
-              $.ajax({
-                'type': 'GET',
-                'url': successfulTransaction
-              });
-            }
-
-            removeAutoCompleteWidget(dataId);
-
-            return false;
+            selectRowAutoCompleteWidget($(this));
           });
 
           fc.registeredApiLookup = true;
