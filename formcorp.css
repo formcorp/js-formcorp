@@ -1195,3 +1195,7 @@ body div.fc-container div.fc-security-error {
   border: 1px solid transparent;
   border-radius: 0.25rem;
 }
+
+div.fc-container .fc-field-greenIdVerification.fc-error .fc-error-text {
+  position: static !important;
+}
