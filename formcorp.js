@@ -6448,6 +6448,9 @@ var formcorp = (function () {
           renderMatrixField,
           renderDigitalSignatureField,
           renderDateField,
+          renderDownloadField,
+          registerDownloadListeners,
+          downloadFieldFile,
           renderCustomerRecord,
           registerApiLookupListener,
           renderAutoCompleteWidget,
@@ -6990,6 +6993,9 @@ var formcorp = (function () {
                 break;
               case 'date':
                 fieldDOMHTML = renderDateField(field, prefix);
+                break;
+              case 'download':
+                fieldDOMHTML = renderDownloadField(field, prefix);
                 break;
               default:
                 log('Unknown field type: ' + field.type);
@@ -7635,6 +7641,84 @@ var formcorp = (function () {
           }
 
           html = '<input class="fc-fieldinput ' + additionalClasses.join(' ')  + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '"><i class="fa fa-calendar"></i>';
+
+          return html;
+        };
+
+        /**
+         * Download a file
+         * @param {string} fieldId
+         */
+        downloadFieldFile = function (fieldId) {
+          var field = fc.fieldSchema[fieldId];
+
+          if (typeof field !== 'object' || field.type !== 'download') {
+            return false;
+          }
+
+          var fileSource = getConfig(field, 'fileSource', false);
+          if (!fileSource) {
+            return false;
+          }
+
+          var key = getConfig(field, 'attachmentKey', false);
+          if (!key) {
+            return false;
+          }
+
+          api('download/attachment?key=' + key, {}, 'post', function (result) {
+            if (typeof result === 'object' && result.success) {
+              var downloadKey = result.key;
+              var downloadUrl = apiUrl() + 'download/download-attachment?key=' + downloadKey;
+
+              $("body").append("<iframe src='" + downloadUrl + "' style='display: none;' ></iframe>");
+            }
+          });
+
+        };
+
+        /**
+         * Register the download event listeners
+         */
+        registerDownloadListeners = function () {
+          if (fc.registeredDownloadButtonListeners) {
+            return;
+          }
+
+          fc.domContainer.on('click', '.fc-field-download .fc-button', function () {
+            var obj = $(this);
+            var fieldId = obj.attr('data-for');
+            downloadFieldFile(fieldId);
+
+            return false;
+          });
+
+          fc.registeredDownloadButtonListeners = true;
+        };
+
+        /**
+         * Render the download field
+         * @param {object} field
+         * @param {!string} prefix
+         * @return {string}
+         */
+        renderDownloadField = function (field, prefix) {
+          var fieldId = prefix + getId(field);
+          var deliveryMethod = getConfig(field, 'deliveryMethod');
+          var fileSource = getConfig(field, 'fileSource');
+          var html = '';
+
+          switch (deliveryMethod) {
+            case 'BUTTON':
+              var buttonText = getConfig(field, 'buttonText', fc.lang.downloadButtonText);
+              html += '<button class="fc-button" data-for="' + fieldId + '">' + buttonText + '</button>';
+              if (fc.registeredDownloadButtonListeners !== true) {
+                registerDownloadListeners();
+                break;
+              }
+
+              break;
+          }
 
           return html;
         };
@@ -11495,7 +11579,8 @@ var formcorp = (function () {
                 loading: 'Loading...',
                 dateCorrectFormat: 'Date must be in a valid format',
                 optionPrefix: "opt_",
-                urlSessionPrefix: 's:'
+                urlSessionPrefix: 's:',
+                downloadButtonText: 'Download'
               };
             }
 
