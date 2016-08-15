@@ -10791,8 +10791,10 @@ var formcorp = (function () {
         preVerificationComplete = function () {
           api('form/data', {}, 'post', function (result) {
             if (typeof result === 'object' && result.success) {
+              fc.domContainer.html('<div class="render"></div>');
+
               // Update schema
-              setSchemaData(result.data);
+              setSchemaData(result);
               fc.schemaData.data = result.data;
               fc.schemaData.files = result.files;
               fc.schemaData.verify = {
