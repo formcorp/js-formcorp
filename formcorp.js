@@ -459,13 +459,18 @@ var formcorp = (function () {
 
           /**
            * Check to see if all libs have loaded
+           * @param {object} data Form schema
            * @return boolean
            */
-          checkAllLibsLoaded = function () {
+          checkAllLibsLoaded = function (data) {
             if ('object' === typeof fc.schemaData && fc.loadedLibs.length >= fc.libs2Load.length) {
               // If set to auto discover library files, initialise the render when all libs have loaded
               if (fc.config.autoDiscoverLibs) {
-                initRender(fc.schemaData);
+                if (sessionRequiresVerification(data)) {
+                  verifySession();
+                } else {
+                  initRender(fc.schemaData);
+                }
               }
 
               return true;
@@ -4650,6 +4655,15 @@ var formcorp = (function () {
           },
 
           /**
+           * Checks to see whether the session requires verification
+           * @param {object} schema
+           * @return {boolean}
+           */
+          sessionRequiresVerification = function (schema) {
+            return typeof schema.verify === 'object' && schema.verify.perform === true;
+          },
+
+          /**
            * Fetch replacement tokens
            * @return object
            */
@@ -6406,6 +6420,8 @@ var formcorp = (function () {
           loadSettings,
           initRender,
           autoLoadLibs,
+          setSchemaData,
+          verifySession,
           loadSchema,
           hasNextPage,
           loadNextPage,
@@ -10681,8 +10697,86 @@ var formcorp = (function () {
 
           // If no libs need to be loaded, render the form
           if (!libsLoaded) {
-            checkAllLibsLoaded();
+            checkAllLibsLoaded(data);
           }
+        };
+
+        /**
+         * Set data returned by the server through the form/schema call
+         * @param {object} data
+         */
+        setSchemaData = function (data) {
+          // If data returned by the API server, set locally
+          if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
+            for (var key in data.data) {
+              if (data.data.hasOwnProperty(key)) {
+                if (typeof key === 'string' && key.length > 0 && !$.isNumeric(key)) {
+                  setVirtualValue(key, data.data[key]);
+                }
+                // If an ABN field, assume valid if previously set
+                if (fc.fieldSchema[key] && fc.fieldSchema[key].type && fc.fieldSchema[key].type === 'abnVerification' && fc.fields[key].length > 0) {
+                  fc.validAbns.push(fc.fields[key]);
+                }
+
+                // If a grouplet, also store the entire state
+                if (key.indexOf(fc.constants.prefixSeparator) > -1) {
+                  saveOriginalGroupletValue(key, data.data[key]);
+                }
+              }
+            }
+          }
+        };
+
+        /**
+         * Verify the user session prior to output
+         */
+        verifySession = function () {
+          var verify = fc.schemaData.verify;
+
+          var html = '';
+          html += '<div class="fc-page fc-page-verify-session">';
+          html += '<div class="fc-section">';
+
+          // Section header
+          html += '<div class="fc-section-header">';
+          html += '<div class="fc-section-label">';
+          html += '<h4>Verify session</h4>';
+          html += '</div>'; //!fc-section-label
+          html += '</div>'; //!fc-section-header
+
+          // Section body
+          html += '<div class="fc-section-body">';
+          html += '<p>In order to re-enter the form, you must first verify your credentials. Please complete verification below.</p>';
+          html += '<div class="fc-field fc-field-smsVerification">';
+
+          switch (verify.against) {
+            case 'mobile':
+              var options = {
+                _id: {
+                  $id: 'preVerification'
+                },
+                config: {
+                  autoDeliverOnFirstRender: true,
+                  renderAsModal: false,
+                  verificationButtonText: fc.lang.verify
+                }
+              };
+              html += renderSmsVerification(options);
+              break;
+          }
+
+          html += '</div>'; //!fc-field-smsVerification
+          html += '<div class="fc-clear"></div>';
+          html += '</div>'; //!fc-section-body
+
+          html += '</div>'; //!fc-section
+          html += '</div>'; //!fc-page
+
+          fc.domContainer.html(html);
+
+          // On loaded
+          fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
+          onSchemaLoaded();
         };
 
         /**
@@ -10702,24 +10796,8 @@ var formcorp = (function () {
               setFieldSchemas(data.stage);
             }
 
-            // If data returned by the API server, set locally
-            if (typeof data.data === 'object' && Object.keys(data.data).length > 0) {
-              for (key in data.data) {
-                if (data.data.hasOwnProperty(key)) {
-                  setVirtualValue(key, data.data[key]);
-
-                  // If an ABN field, assume valid if previously set
-                  if (fc.logic.getComponent(key) && fc.logic.getComponent(key).type && fc.logic.getComponent(key).type === 'abnVerification' && fc.fields[key].length > 0) {
-                    fc.validAbns.push(fc.fields[key]);
-                  }
-
-                  // If a grouplet, also store the entire state
-                  if (key.indexOf(fc.constants.prefixSeparator) > -1) {
-                    saveOriginalGroupletValue(key, data.data[key]);
-                  }
-                }
-              }
-            }
+            // Set the data returned by the server
+            setSchemaData(data);
 
             if (typeof data.lang === 'object') {
               loadLanguagePack(data.lang);
@@ -10727,7 +10805,11 @@ var formcorp = (function () {
 
             // If library files aren't marked to be auto discovered, initialise the render
             if (!fc.config.autoDiscoverLibs) {
-              initRender(data);
+              if (sessionRequiresVerification(data)) {
+                verifySession();
+
+                return;
+              }
             } else {
               autoLoadLibs(data);
             }
