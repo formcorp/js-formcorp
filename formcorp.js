@@ -409,7 +409,7 @@ var formcorp = (function () {
             head = document.getElementsByTagName('head')[0];
             link = document.createElement('link');
 
-            if (cssId !== undefined) {
+            if (typeof cssId === 'string' && cssId.length > 0) {
               link.id = cssId;
             }
 
@@ -526,9 +526,11 @@ var formcorp = (function () {
               var fileType = url.split('.').slice(-1).pop().toLowerCase();
               switch (fileType) {
                 case 'css':
-                  loadCssFile(cdnUrl() + url, function () {
-                    registerLibLoaded(url);
-                  });
+                  loadCssFile(cdnUrl() + url);
+
+                  // Waiting for a CSS callback not of too much importance as it
+                  // won't break any functionality. Just register as being loaded
+                  //registerLibLoaded(url);
                   break;
                 default:
                   loadJsFile(cdnUrl() + url, function () {
@@ -7609,10 +7611,11 @@ var formcorp = (function () {
               if (typeof data === 'object' && data.success === true) {
                 api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
                   if (typeof data === 'object' && data.success === true) {
-                    html = '<iframe class="fc-field-digsigIframe" src="' + data.data.url + '" width="100%" height="350"></iframe>';
-
-                    $('.fc-field-digsigCollect').append(html);
-                    $('.fc-field-digsigCollect .fc-fieldcontainer .fc-fieldgroup').remove();
+                    $.featherlight({
+                      iframe: data.data.url,
+                      iframeWidth: 800,
+                      iframeHeight: 400
+                    });
 
                     // Poll the OmniSign API every second to determine if it is signed.
                     var digsigCheck = setInterval(function () {
