@@ -399,7 +399,7 @@ var formcorp = (function () {
            * @param media
            * @param cssId
            */
-          loadCssFile = function (file, media, cssId) {
+          loadCssFile = function (file, media, cssId, callback) {
             var head, link;
 
             if (media === undefined) {
@@ -417,6 +417,10 @@ var formcorp = (function () {
             link.href = htmlEncode(file);
             link.media = media;
             head.appendChild(link);
+
+            if (typeof callback === 'function') {
+              file.addEventListener("load", callback);
+            }
           },
 
           /**
@@ -519,9 +523,18 @@ var formcorp = (function () {
            */
           loadUrlLib = function (url) {
             if (!libHasLoaded(url)) {
-              loadJsFile(cdnUrl() + url, function () {
-                registerLibLoaded(url);
-              });
+              var fileType = url.split('.').slice(-1).pop().toLowerCase();
+              switch (fileType) {
+                case 'css':
+                  loadCssFile(cdnUrl() + url, function () {
+                    registerLibLoaded(url);
+                  });
+                  break;
+                default:
+                  loadJsFile(cdnUrl() + url, function () {
+                    registerLibLoaded(url);
+                  });
+              }
             }
           },
 
@@ -10617,9 +10630,7 @@ var formcorp = (function () {
           fc.schema = data;
           if (data.stage !== undefined) {
             fc.schema.stage = formcorp.helpers.orderObject(data.stage);
-            console.log('init logic');
             fc.logic.init();
-            console.log('logic initd');
 
             var pageTrail = fc.logic.getPageTrail();
             if (pageTrail.length > 0) {
@@ -10633,8 +10644,6 @@ var formcorp = (function () {
                 render(_.last(pageTrail));
               }
             }
-
-            fc.log('Finished initial render');
           }
 
           if (fc.mode === formcorp.MODE_REVIEW) {
@@ -10667,6 +10676,8 @@ var formcorp = (function () {
               }
             }
           }
+
+          console.log(fields);
 
           var fieldsIterator, libIterator, lib;
 
@@ -10997,7 +11008,11 @@ var formcorp = (function () {
             // Fields that require library fieldPages
             this.requiredFieldLibraries = {
               'date': [this.libs.MATERIAL_DATEPICKER],
-              'greenIdVerification': [this.constants.libs.formcorp.greenId]
+              'greenIdVerification': [this.constants.libs.formcorp.greenId],
+              'digsigCollect': [
+                'lib/featherlight/featherlight.min.css',
+                'lib/featherlight/featherlight.min.js'
+              ]
             };
 
             // Set default value for library files to load
@@ -11216,7 +11231,6 @@ var formcorp = (function () {
               // When the 'core', critical library files have been loaded, initialise the form
               fc.onLibsLoaded(function () {
                 // Attempt to load the settings from the server
-                console.log('libs loaded');
                 loadSettings(function () {
                   // Set the session id
                   fc.initSession();
