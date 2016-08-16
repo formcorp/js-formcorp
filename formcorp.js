@@ -3067,7 +3067,7 @@ var formcorp = (function () {
               isChecked;
             /*jslint nomen: false*/
 
-            savedValue = fc.fields[fieldId];
+            var savedValue = getValue(fieldId);
 
             // Determine the css class to use
             cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
@@ -3176,7 +3176,8 @@ var formcorp = (function () {
                       tmpHtml = '<div class="' + cssClass + '">';
                       tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(finalKey) + '" data-required="' + required + '"';
 
-                      if (savedValues.indexOf(finalKey) > -1) {
+                      console.log(savedValues);
+                      if (_.isArray(savedValues) && savedValues.indexOf(finalKey) > -1) {
                         checked = true;
                         tmpHtml += ' checked="checked"';
                       } else {
@@ -4695,7 +4696,7 @@ var formcorp = (function () {
            * @return {boolean}
            */
           sessionRequiresVerification = function (schema) {
-            return _.isObject(schema) && _.isObject(scheme.verify) && schema.verify.perform === true;
+            return _.isObject(schema) && _.isObject(schema.verify) && schema.verify.perform === true;
           },
 
           /**
@@ -6421,6 +6422,13 @@ var formcorp = (function () {
               shouldSave = true;
             }
 
+            if (!_.isString(fieldId)) {
+              console.log('field ID not string');
+              console.log(fieldId);
+              console.log(value);
+              return;
+            }
+
             if (fieldId.length > 0 && typeof fieldId === 'string') {
               fieldId = fieldId.replace('_rootSelection', '');
 
@@ -6867,7 +6875,7 @@ var formcorp = (function () {
             // Add to field class variable if doesnt exist
             dataId = fieldId;
             if (fc.logic.getComponent(dataId) === undefined) {
-              fc.logic.getComponent(dataId) = field;
+              fc.setValue(dataId, field);
             }
 
             // Description text - show before the label (for certain fields)
@@ -7832,7 +7840,7 @@ var formcorp = (function () {
                     val = result.data.values[key];
                     setValue(key, val);
 
-                    fc.logic.getComponent(key) = {
+                    fc.setValue(key, {
                       _id: {
                         '$id': key
                       },
@@ -7840,7 +7848,7 @@ var formcorp = (function () {
                         tag: tags[key],
                         type: 'entityRecord'
                       }
-                    };
+                    });
                   }
                 }
 
@@ -8272,7 +8280,7 @@ var formcorp = (function () {
 
           // Render page sections
           if (page.section.length > 0) {
-            pageDiv += renderPageSections(orderObject(page.section));
+            pageDiv += renderPageSections(formcorp.helpers.orderObjectChildren(page.section));
           }
 
           nextPageObj = nextPage(false, true);
@@ -10331,70 +10339,6 @@ var formcorp = (function () {
         };
 
         /**
-         * Order schema numerically by data columns.
-         * @param schema
-         * @param orderColumn
-         * @returns {*}
-         */
-        orderSchema = function (schema, orderColumn) {
-          if (orderColumn === undefined) {
-            orderColumn = 'order';
-          }
-
-          if (typeof schema === 'object') {
-            var key;
-            // Recursively order children
-            for (key in schema) {
-              if (schema.hasOwnProperty(key)) {
-                // Chilcren have order, try to order the object
-                if (!!schema[key] && typeof schema[key] === 'object' && schema[key][0] !== undefined && !!schema[key][0] && schema[key][0].order !== undefined) {
-                  schema[key] = orderObject(schema[key]);
-                } else {
-                  schema[key] = orderSchema(schema[key], orderColumn);
-                }
-              }
-            }
-          }
-
-          return schema;
-        };
-
-        /**
-         * Orders an object numerically in ascending order by a given data column.
-         * @param object
-         * @returns {Array}
-         */
-        orderObject = function (object) {
-          // Construct a 2-dimensional array (so pages with same order don't override each other)
-          var orderedObject = [],
-            key,
-            order,
-            objects = [],
-            x;
-
-          for (key in object) {
-            if (object.hasOwnProperty(key)) {
-              order = object[key].order !== undefined ? object[key].order : 0;
-              if (orderedObject[order] === undefined) {
-                orderedObject[order] = [];
-              }
-              orderedObject[order].push(object[key]);
-            }
-          }
-
-          // Flatten the two-dimensional array in to a single array
-          for (key in orderedObject) {
-            if (orderedObject.hasOwnProperty(key)) {
-              for (x = 0; x < orderedObject[key].length; x += 1) {
-                objects.push(orderedObject[key][x]);
-              }
-            }
-          }
-
-          return objects;
-        };
-
-        /**
          * Prune fields not on a current page
          * @param page
          * @param fields
@@ -10670,9 +10614,12 @@ var formcorp = (function () {
           var firstPageId;
 
           // Render the opening page for the form
+          fc.schema = data;
           if (data.stage !== undefined) {
-            fc.schema = orderSchema(data);
+            fc.schema.stage = formcorp.helpers.orderObject(data.stage);
+            console.log('init logic');
             fc.logic.init();
+            console.log('logic initd');
 
             var pageTrail = fc.logic.getPageTrail();
             if (pageTrail.length > 0) {
