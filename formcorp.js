@@ -8887,11 +8887,17 @@ var formcorp = (function () {
 
         /**
          * Auto loads the next page
+         * @param {boolean}
          */
-        checkAutoLoad = function () {
-          if (!fc.config.autoLoadPages) {
+        checkAutoLoad = function (force) {
+          if (typeof force !== 'boolean') {
+            force = false;
+          }
+
+          if (!fc.config.autoLoadPages && !force) {
             return;
           }
+          console.log('checking auto load');
 
           // If a next page exists and the current page is valid, load the next page
           if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
@@ -9839,6 +9845,12 @@ var formcorp = (function () {
                 }
 
                 fc.preventNextPageLoad = false;
+                var currentPage = getPageById(fc.currentPage);
+                var formNextPage = nextPage(false, true);
+                if (!isSubmitPage(currentPage) && !isSubmitPage(formNextPage.page) && hasNextPage()) {
+                  // If not a submit page, and has a next page, attempt to autoload
+                  checkAutoLoad(true);
+                }
 
                 return;
               }
