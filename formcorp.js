@@ -7596,6 +7596,10 @@ var formcorp = (function () {
          * @param data
          */
         loadMatrixFieldValues = function (fieldId, data) {
+          if (typeof data !== 'string' || data.length < 0 || data.substr(0,1) !== '{') {
+            return;
+          }
+          
           data = JSON.parse(data);
           var matrix = $('input[formcorp-data-id=' + fieldId + ']');
           matrix.each(function() {
