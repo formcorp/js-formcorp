@@ -10677,6 +10677,8 @@ var formcorp = (function () {
                     moveSelectionAutoCompleteWidget(fieldId, event.keyCode);
                   } else if (event.keyCode == 13) {
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
+                  } else if(event.keyCode == 27) {
+                    removeAutoCompleteWidget(fieldId);
                   }
                 });
 
