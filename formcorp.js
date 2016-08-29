@@ -10705,7 +10705,8 @@ var formcorp = (function () {
           });
 
           // Map the fields on click
-          fc.domContainer.on('click', '.fc-suggest-row', function () {
+          fc.domContainer.on('click', '.fc-suggest-row', function (e) {
+            e.preventDefault();
             selectRowAutoCompleteWidget($(this));
           });
 
@@ -11888,11 +11889,11 @@ var formcorp = (function () {
           renderGreenIdField: renderGreenIdField,
           initGreenIdFieldInDOM: initGreenIdFieldInDOM,
 
-    			/**
-    			 * Expose field tag functionality
-    			 */
-    			getAllFieldTags: getAllFieldTags,
-    			getFieldTagValues: getFieldTagValues,
+          /**
+           * Expose field tag functionality
+           */
+          getAllFieldTags: getAllFieldTags,
+          getFieldTagValues: getFieldTagValues,
           getTokens: getTokens,
           setLanguageAlias: setLanguageAlias,
 
