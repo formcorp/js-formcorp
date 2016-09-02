@@ -2775,7 +2775,7 @@ var formcorp = (function () {
            */
           setDomValue = function (obj, value) {
             var fieldGroup = $(obj).find('.fc-fieldgroup'),
-              valInputs = fieldGroup.find('input[type=text],textarea,input[type=range],input[type=hidden]'),
+              valInputs = fieldGroup.find('input[type=text],input[type=tel],input[type=number],textarea,input[type=range],input[type=hidden]'),
               selector;
 
             if (valInputs.length > 0) {
@@ -4023,7 +4023,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           verifyEmailAddress = function () {
-            verifyCode($('.fc-email-verification-submit input[type=text]').val());
+            verifyCode($('.fc-email-verification-submit input[type=text], .fc-email-verification-submit input[type=tel], .fc-email-verification-submit input[type=number]').val());
           },
 
           /**
@@ -4276,7 +4276,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           verifyMobileNumber = function () {
-            verifyCode($('.fc-sms-verification-submit input[type=text]').val());
+            verifyCode($('.fc-sms-verification-submit input[type=text], .fc-sms-verification-submit input[type=tel], .fc-sms-verification-submit input[type=number]').val());
           },
 
           /**
@@ -9332,7 +9332,7 @@ var formcorp = (function () {
         registerValueChangedListeners = function () {
           // On enter pressed, opt to shift focus
           if (fc.config.autoShiftFocusOnEnter) {
-            fc.domContainer.on('keypress', 'input[type=text].fc-fieldinput', function (e) {
+            fc.domContainer.on('keypress', 'input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput, input[type=number].fc-fieldinput', function (e) {
               if (e.which === fc.constants.enterKey) {
                 var dataId = $(this).attr('formcorp-data-id'),
                   nextField = nextVisibleField(dataId, false),
@@ -9348,7 +9348,7 @@ var formcorp = (function () {
 
                 // If the next field is a text box, shift focus to it
                 if (nextField && nextField.length > 0) {
-                  nextFieldEl = $('.fc-fieldinput[type=text][formcorp-data-id="' + nextField + '"]');
+                  nextFieldEl = $('.fc-fieldinput[type=text][formcorp-data-id="' + nextField + '"], .fc-fieldinput[type=tel][formcorp-data-id="' + nextField + '"], .fc-fieldinput[type=number][formcorp-data-id="' + nextField + '"]');
                   if (nextFieldEl.length > 0) {
                     nextFieldEl.focus();
                     changedFocus = true;
@@ -9375,12 +9375,12 @@ var formcorp = (function () {
           }
 
           // Input types text changed
-          fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+          fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput, input[type=number].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             setValueUpdate($(this));
           });
 
           // Register the focus event
-          fc.domContainer.on('focus', 'input[type=text].fc-fieldinput,textarea.fc-fieldinput', function () {
+          fc.domContainer.on('focus', 'input[type=text].fc-fieldinput,input[type=tel].fc-fieldinput,input[type=number].fc-fieldinput,textarea.fc-fieldinput', function () {
             var obj = $(this),
               val = obj.val(),
               id = obj.attr('formcorp-data-id');
@@ -9394,7 +9394,7 @@ var formcorp = (function () {
           });
 
           // On change/paste/blur, update the form field
-          fc.domContainer.on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput', function () {
+          fc.domContainer.on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput, .fc-field-text input[type=tel].fc-fieldinput, .fc-field-text input[type=number].fc-fieldinput', function () {
             var obj = $(this),
               val = obj.val(),
               id = obj.attr('formcorp-data-id');
@@ -10568,7 +10568,7 @@ var formcorp = (function () {
           }
 
           // Trigger an API look up
-          fc.domContainer.on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput', function (event) {
+          fc.domContainer.on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput, .fc-field-apiLookup input[type=tel].fc-fieldinput, .fc-field-apiLookup input[type=number].fc-fieldinput', function (event) {
             var fieldId = $(this).attr('formcorp-data-id'),
               fieldContainer = $('.fc-field[fc-data-group="' + fieldId + '"]'),
               schema = fc.fieldSchema[fieldId],
