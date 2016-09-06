@@ -7346,9 +7346,6 @@ var formcorp = (function () {
             fieldHtml += '<div class="fc-error-box"><span></span></div>';
             fieldHtml += '</div>'; // fc-field-element-container
 
-            // Output error text container
-            fieldHtml += '<div class="fc-error-text"></div>';
-
             // Help text
             if (!fc.config.helpAsModal) {
               showHelpAsText = true;
@@ -7357,6 +7354,9 @@ var formcorp = (function () {
             if (showHelpAsText && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
               fieldHtml += '<div class="fc-help">' + getConfig(field, 'help') + '</div>';
             }
+
+            // Output error text container
+            fieldHtml += '<div class="fc-error-text"></div>';
 
             // Close repeatable tag (if open)
             if (getConfig(field, 'repeatable', false) === true) {
