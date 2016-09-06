@@ -7815,6 +7815,12 @@ var formcorp = (function () {
           return html;
         };
 
+        /**
+         * Render a file upload field
+         * @param field
+         * @param prefix
+         * @returns {string}
+         */
         renderFileUpload = function(field, prefix) {
           var data, html;
 
@@ -7822,9 +7828,10 @@ var formcorp = (function () {
             prefix = "";
           }
 
-          var required = typeof field.config.required === 'boolean' ? field.config.required : false,
+          var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
+          var required = typeof field.config.required === 'boolean' ? field.config.required : false;
 
-          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" type="file" id="file-' + getId(field) + '"/>';
+          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' />';
 
           return html;
         };
