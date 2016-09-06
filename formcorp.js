@@ -1751,8 +1751,13 @@ var formcorp = (function () {
                 }
               }
               skipCheck = true;
-
-            } else if (field.type === "grouplet") {
+            } else if (field.type ==='fileUpload') {
+              if (value.length === 0) {
+                errors.push(fc.lang.emptyFieldError);
+              } else {
+                skipCheck = true;
+              }
+            }  else if (field.type === "grouplet") {
               // Grouplet field as a whole doesn't need to be validated
               return;
             } else if (field.type === "greenIdVerification") {
