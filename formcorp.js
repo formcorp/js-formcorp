@@ -9356,16 +9356,24 @@ var formcorp = (function () {
           log('setFileUploadUpdate()');
           log(obj);
           var id = obj.attr('formcorp-data-id');
+          var filename = obj.val().replace(/^.*[\\\/]/, '')
+          var extension = filename.split('.').pop();
           var files = document.getElementById('file-' + id).files;
-          var reader = new FileReader();
           if (files.length > 0) {
             getBase64(files[0], function(v) {
-              //console.log(v);
-              valueChanged(id, v);
+              valueChanged(id, JSON.stringify({
+                filename: filename,
+                extension: extension,
+                base64: v
+              }));
               $('<input>').attr({
                 type: 'hidden',
                 id: 'hidden-' + id,
-                value: v,
+                value: JSON.stringify({
+                  filename: filename,
+                  extension: extension,
+                  base64: v
+                }),
               }).appendTo('#formcorp-form');
             });
           }
