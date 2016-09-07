@@ -1813,6 +1813,11 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           validForm = function (rootElement, showErrors) {
+            if (fc.config.administrativeEdit) {
+              // If in administrative mode, form is always valid
+              return true;
+            }
+
             var errors = {},
               required;
 
@@ -12193,7 +12198,8 @@ var formcorp = (function () {
               datePickerIconOffset: 25,
               autoDiscoverLibs: true,
               verificationModal: false,
-              forceNextPageAutoload: false
+              forceNextPageAutoload: false,
+              administrativeEdit: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
