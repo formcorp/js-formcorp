@@ -9361,6 +9361,24 @@ var formcorp = (function () {
         };
 
         /**
+         * Get the base64 encoding for the file upload
+         *
+         * @param file
+         * @param i
+         * @param callback
+         */
+        function getBase64(file, i, callback) {
+          var reader = new FileReader();
+          reader.onload = function() {
+            callback(reader.result, i);
+          };
+          reader.onerror = function (error) {
+            log('Error: ', error);
+          };
+          reader.readAsDataURL(file);
+        };
+
+        /**
          * When a file is uploaded update the value
          * @param obj
          */
@@ -9368,44 +9386,39 @@ var formcorp = (function () {
           log('setFileUploadUpdate()');
           log(obj);
           var id = obj.attr('formcorp-data-id');
-          var filename = obj.val().replace(/^.*[\\\/]/, '')
-          var extension = filename.split('.').pop();
           var files = document.getElementById('file-' + id).files;
           if (files.length > 0) {
-            getBase64(files[0], function(v) {
-              valueChanged(id, JSON.stringify({
-                filename: filename,
-                extension: extension,
-                base64: v
-              }));
-              $('<input>').attr({
-                type: 'hidden',
-                id: 'hidden-' + id,
-                value: JSON.stringify({
-                  filename: filename,
-                  extension: extension,
-                  base64: v
-                }),
-              }).appendTo('#formcorp-form');
-            });
+            var valuesArray = [];
+            var base64Array = [];
+            for (var i = 0; i < files.length; ++i) {
+              valuesArray[i] = {};
+              valuesArray[i].filename = files[i].name.replace(/^.*[\\\/]/, '');
+              valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
+              getBase64(files[i], i, function(v, i) {
+                base64Array[i] = v;
+                valuesArray[i].base64 = v;
+                // Once base64Array.length = files.length then it means all uploaded files base64 data
+                // has been loaded and we can update the value for this field.
+                if (base64Array.length == files.length) {
+                  var updateValue = true;
+                  for (var j = 0; j < valuesArray.length; j++) {
+                    if (valuesArray[j].base64 == undefined || valuesArray[j].base64.length == 0) {
+                      updateValue = false;
+                    }
+                  }
+                  if (updateValue) {
+                    var value = JSON.stringify(valuesArray);
+                    valueChanged(id, value);
+                    $('<input>').attr({
+                      type: 'hidden',
+                      id: 'hidden-' + id,
+                      value: value
+                    }).appendTo('#formcorp-form');
+                  }
+                }
+              });
+            }
           }
-        };
-
-        /**
-         * Get the base64 encoding for the file upload
-         *
-         * @param file
-         * @param callback
-         */
-        function getBase64(file, callback) {
-          var reader = new FileReader();
-          reader.onload = function() {
-            callback(reader.result);
-          };
-          reader.onerror = function (error) {
-            log('Error: ', error);
-          };
-          reader.readAsDataURL(file);
         };
 
         /**
