@@ -999,6 +999,9 @@ var formcorp = (function () {
                 if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
                   return parseMatrixField(field, true);
                 }
+                if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'fileUpload') {
+                  return $('#hidden-' + dataId).val();
+                }
               }
 
               if (fc.fieldSchema[dataId] !== undefined) {
@@ -1748,8 +1751,13 @@ var formcorp = (function () {
                 }
               }
               skipCheck = true;
-
-            } else if (field.type === "grouplet") {
+            } else if (field.type ==='fileUpload') {
+              if (value.length === 0) {
+                errors.push(fc.lang.emptyFieldError);
+              } else {
+                skipCheck = true;
+              }
+            }  else if (field.type === "grouplet") {
               // Grouplet field as a whole doesn't need to be validated
               return;
             } else if (field.type === "greenIdVerification") {
@@ -6755,7 +6763,8 @@ var formcorp = (function () {
           flushRepeatableGroupletVisibility,
           flushSectionVisibility,
           flushFieldVisibility,
-          setValueUpdate,
+          setValueUpdate, 
+          setFileUploadUpdate,
           registerValueChangedListeners,
           valueChanged,
           validateModal,
@@ -6774,6 +6783,7 @@ var formcorp = (function () {
           parseMatrixField,
           buildMatrixTable,
           renderMatrixField,
+          renderFileUpload,
           renderDigitalSignatureField,
           renderDateField,
           renderDownloadField,
@@ -7301,10 +7311,13 @@ var formcorp = (function () {
                 fieldDOMHTML = renderNumericSliderField(field, prefix);
                 break;
               case 'matrix':
-                fieldDOMHTML= renderMatrixField(field, prefix);
+                fieldDOMHTML = renderMatrixField(field, prefix);
+                break;
+              case 'fileUpload':
+                fieldDOMHTML = renderFileUpload(field, prefix);
                 break;
               case 'digsigCollect':
-                fieldDOMHTML= renderDigitalSignatureField(field, prefix);
+                fieldDOMHTML = renderDigitalSignatureField(field, prefix);
                 break;
               case 'groupletReference':
                 fieldDOMHTML = '<div formcorp-data-id="' + prefix + getId(field) + '" data-reference="' + getConfig(field, 'groupletReference') + '"></div>';
@@ -7799,6 +7812,27 @@ var formcorp = (function () {
               });
             }
           }
+          return html;
+        };
+
+        /**
+         * Render a file upload field
+         * @param field
+         * @param prefix
+         * @returns {string}
+         */
+        renderFileUpload = function(field, prefix) {
+          var data, html;
+
+          if (prefix === undefined) {
+            prefix = "";
+          }
+
+          var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
+          var required = typeof field.config.required === 'boolean' ? field.config.required : false;
+
+          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' />';
+
           return html;
         };
 
@@ -9327,6 +9361,54 @@ var formcorp = (function () {
         };
 
         /**
+         * When a file is uploaded update the value
+         * @param obj
+         */
+        setFileUploadUpdate = function(obj) {
+          log('setFileUploadUpdate()');
+          log(obj);
+          var id = obj.attr('formcorp-data-id');
+          var filename = obj.val().replace(/^.*[\\\/]/, '')
+          var extension = filename.split('.').pop();
+          var files = document.getElementById('file-' + id).files;
+          if (files.length > 0) {
+            getBase64(files[0], function(v) {
+              valueChanged(id, JSON.stringify({
+                filename: filename,
+                extension: extension,
+                base64: v
+              }));
+              $('<input>').attr({
+                type: 'hidden',
+                id: 'hidden-' + id,
+                value: JSON.stringify({
+                  filename: filename,
+                  extension: extension,
+                  base64: v
+                }),
+              }).appendTo('#formcorp-form');
+            });
+          }
+        };
+
+        /**
+         * Get the base64 encoding for the file upload
+         *
+         * @param file
+         * @param callback
+         */
+        function getBase64(file, callback) {
+          var reader = new FileReader();
+          reader.onload = function() {
+            callback(reader.result);
+          };
+          reader.onerror = function (error) {
+            log('Error: ', error);
+          };
+          reader.readAsDataURL(file);
+        };
+
+        /**
          * Register event listeners that fire when a form input field's value changes
          */
         registerValueChangedListeners = function () {
@@ -9377,6 +9459,10 @@ var formcorp = (function () {
           // Input types text changed
           fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput, input[type=number].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             setValueUpdate($(this));
+          });
+
+          fc.domContainer.on('change', 'input[type=file].fc-fieldinput', function() {
+            setFileUploadUpdate($(this));
           });
 
           // Register the focus event
