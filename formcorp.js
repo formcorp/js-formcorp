@@ -10675,7 +10675,7 @@ var formcorp = (function () {
                 fc.domContainer.on('keydown.' + fieldId, function(event) {
                   if (event.keyCode == 38 || event.keyCode == 40) {
                     moveSelectionAutoCompleteWidget(fieldId, event.keyCode);
-                  } else if (event.keyCode == 13) {
+                  } else if (event.keyCode == 13 || event.keyCode == 9) {
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
                   } else if(event.keyCode == 27) {
                     removeAutoCompleteWidget(fieldId);
