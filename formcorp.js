@@ -6763,7 +6763,7 @@ var formcorp = (function () {
           flushRepeatableGroupletVisibility,
           flushSectionVisibility,
           flushFieldVisibility,
-          setValueUpdate, 
+          setValueUpdate,
           setFileUploadUpdate,
           registerValueChangedListeners,
           valueChanged,
@@ -7667,6 +7667,10 @@ var formcorp = (function () {
          * @param data
          */
         loadMatrixFieldValues = function (fieldId, data) {
+          if (typeof data !== 'string' || data.length < 0 || data.substr(0,1) !== '{') {
+            return;
+          }
+
           data = JSON.parse(data);
           var matrix = $('input[formcorp-data-id=' + fieldId + ']');
           matrix.each(function() {
@@ -9061,9 +9065,14 @@ var formcorp = (function () {
 
         /**
          * Auto loads the next page
+         * @param force boolean
          */
-        checkAutoLoad = function () {
-          if (!fc.config.autoLoadPages) {
+        checkAutoLoad = function (force) {
+          if (typeof force !== 'boolean') {
+            force = false;
+          }
+
+          if (!fc.config.autoLoadPages && !force) {
             return;
           }
 
@@ -10065,6 +10074,14 @@ var formcorp = (function () {
                 }
 
                 fc.preventNextPageLoad = false;
+                if (fc.config.forceNextPageAutoload) {
+                  var currentPage = getPageById(fc.currentPage);
+                  var formNextPage = nextPage(false, true);
+                  if (!isSubmitPage(currentPage) && !isSubmitPage(formNextPage.page) && hasNextPage()) {
+                    // If not a submit page, and has a next page, attempt to autoload
+                    checkAutoLoad(true);
+                  }
+                }
 
                 return;
               }
@@ -12175,7 +12192,8 @@ var formcorp = (function () {
               renderOnlyVertical: true,
               datePickerIconOffset: 25,
               autoDiscoverLibs: true,
-              verificationModal: false
+              verificationModal: false,
+              forceNextPageAutoload: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
