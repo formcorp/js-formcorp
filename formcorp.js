@@ -3319,7 +3319,7 @@ var formcorp = (function () {
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
                         tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + value + '" data-required="' + required + '"' + checked + '>';
-                        tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
+                        tmpHtml += '<label title="' + htmlEncode(option[key]) + '" for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                         tmpHtml += '</div>';
                       }
 
@@ -3412,7 +3412,7 @@ var formcorp = (function () {
                       }
 
                       tmpHtml += '>';
-                      tmpHtml += '<label for="' + id + '">';
+                      tmpHtml += '<label title="' + htmlEncode(option[key]) + '" for="' + id + '">';
                       tmpHtml += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(option[key]) + '</em>';
                       tmpHtml += '<span class="fc-end-checkbox-item"></span>';
                       tmpHtml += '</label>';
