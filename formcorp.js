@@ -6693,12 +6693,16 @@ var formcorp = (function () {
               var saveId = fieldId;
 
               if (parts.length > 1) {
+                var parentId = parts[0];
+                var parentField = fc.fieldSchema[parentId];
+
                 // If a grouplet, or repeatable, or iterator, need to potentially construct and save as a nested value
                 for (var i = 0; i < parts.length - 1; i++) {
                   var id = parts[i];
                   if (typeof save[id] === 'undefined' || (i < (parts.length - 1) && typeof save[id] !== 'object')) {
                     // If undefined, or not the last element (and not an object), ensure it's set properly
-                    if (typeof id !== 'undefined' && $.isNumeric(id)) {
+                    // Should also initialise as an object if the field is not repeatable
+                    if (typeof id !== 'undefined' && (!getConfig(parentField, 'repeatable', false) || $.isNumeric(id))) {
                       save[id] = {};
                     } else {
                       save[id] = [];
