@@ -4554,7 +4554,7 @@ var formcorp = (function () {
            * @param value
            */
           renderReviewTableArray = function (field, value) {
-            var html = "", iterator, parts, key;
+            var html = "", iterator, parts, key, fieldId;
 
             // Array - repeatable grouplet
             for (iterator = 0; iterator < value.length; iterator += 1) {
@@ -4566,9 +4566,13 @@ var formcorp = (function () {
                     if (value[iterator][key].length > 0) {
                       if (key.indexOf(fc.constants.prefixSeparator) > -1) {
                         parts = key.split(fc.constants.prefixSeparator);
-                        html += "<tr><td>" + getShortLabel(fc.fieldSchema[parts[parts.length - 1]]);
-                        html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
+                        fieldId = parts[parts.length - 1];
+                      } else {
+                        fieldId = key;
                       }
+
+                      html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
+                      html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
                     }
                   }
                 }
