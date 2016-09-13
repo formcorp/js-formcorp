@@ -1751,8 +1751,8 @@ var formcorp = (function () {
                 }
               }
               skipCheck = true;
-            } else if (field.type ==='fileUpload') {
-              if (value.length === 0) {
+            } else if (field.type === 'fileUpload') {
+              if (typeof value === 'undefined' || value.length === 0) {
                 errors.push(fc.lang.emptyFieldError);
               } else {
                 skipCheck = true;
@@ -1813,6 +1813,11 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           validForm = function (rootElement, showErrors) {
+            if (fc.config.administrativeEdit) {
+              // If in administrative mode, form is always valid
+              return true;
+            }
+
             var errors = {},
               required;
 
@@ -3314,7 +3319,7 @@ var formcorp = (function () {
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
                         tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + value + '" data-required="' + required + '"' + checked + '>';
-                        tmpHtml += '<label for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
+                        tmpHtml += '<label title="' + htmlEncode(option[key]) + '" for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                         tmpHtml += '</div>';
                       }
 
@@ -3407,7 +3412,7 @@ var formcorp = (function () {
                       }
 
                       tmpHtml += '>';
-                      tmpHtml += '<label for="' + id + '">';
+                      tmpHtml += '<label title="' + htmlEncode(option[key]) + '" for="' + id + '">';
                       tmpHtml += '<span><b><i></i><i></i></b></span><em>' + htmlEncode(option[key]) + '</em>';
                       tmpHtml += '<span class="fc-end-checkbox-item"></span>';
                       tmpHtml += '</label>';
@@ -4549,7 +4554,7 @@ var formcorp = (function () {
            * @param value
            */
           renderReviewTableArray = function (field, value) {
-            var html = "", iterator, parts, key;
+            var html = "", iterator, parts, key, fieldId;
 
             // Array - repeatable grouplet
             for (iterator = 0; iterator < value.length; iterator += 1) {
@@ -4561,9 +4566,13 @@ var formcorp = (function () {
                     if (value[iterator][key].length > 0) {
                       if (key.indexOf(fc.constants.prefixSeparator) > -1) {
                         parts = key.split(fc.constants.prefixSeparator);
-                        html += "<tr><td>" + getShortLabel(fc.fieldSchema[parts[parts.length - 1]]);
-                        html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
+                        fieldId = parts[parts.length - 1];
+                      } else {
+                        fieldId = key;
                       }
+
+                      html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
+                      html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
                     }
                   }
                 }
@@ -6688,12 +6697,16 @@ var formcorp = (function () {
               var saveId = fieldId;
 
               if (parts.length > 1) {
+                var parentId = parts[0];
+                var parentField = fc.fieldSchema[parentId];
+
                 // If a grouplet, or repeatable, or iterator, need to potentially construct and save as a nested value
                 for (var i = 0; i < parts.length - 1; i++) {
                   var id = parts[i];
                   if (typeof save[id] === 'undefined' || (i < (parts.length - 1) && typeof save[id] !== 'object')) {
                     // If undefined, or not the last element (and not an object), ensure it's set properly
-                    if (typeof id !== 'undefined' && $.isNumeric(id)) {
+                    // Should also initialise as an object if the field is not repeatable
+                    if (typeof id !== 'undefined' && (!getConfig(parentField, 'repeatable', false) || $.isNumeric(id))) {
                       save[id] = {};
                     } else {
                       save[id] = [];
@@ -6763,7 +6776,7 @@ var formcorp = (function () {
           flushRepeatableGroupletVisibility,
           flushSectionVisibility,
           flushFieldVisibility,
-          setValueUpdate, 
+          setValueUpdate,
           setFileUploadUpdate,
           registerValueChangedListeners,
           valueChanged,
@@ -7667,6 +7680,10 @@ var formcorp = (function () {
          * @param data
          */
         loadMatrixFieldValues = function (fieldId, data) {
+          if (typeof data !== 'string' || data.length < 0 || data.substr(0,1) !== '{') {
+            return;
+          }
+
           data = JSON.parse(data);
           var matrix = $('input[formcorp-data-id=' + fieldId + ']');
           matrix.each(function() {
@@ -9061,9 +9078,14 @@ var formcorp = (function () {
 
         /**
          * Auto loads the next page
+         * @param force boolean
          */
-        checkAutoLoad = function () {
-          if (!fc.config.autoLoadPages) {
+        checkAutoLoad = function (force) {
+          if (typeof force !== 'boolean') {
+            force = false;
+          }
+
+          if (!fc.config.autoLoadPages && !force) {
             return;
           }
 
@@ -10078,6 +10100,14 @@ var formcorp = (function () {
                 }
 
                 fc.preventNextPageLoad = false;
+                if (fc.config.forceNextPageAutoload) {
+                  var currentPage = getPageById(fc.currentPage);
+                  var formNextPage = nextPage(false, true);
+                  if (!isSubmitPage(currentPage) && !isSubmitPage(formNextPage.page) && hasNextPage()) {
+                    // If not a submit page, and has a next page, attempt to autoload
+                    checkAutoLoad(true);
+                  }
+                }
 
                 return;
               }
@@ -12188,7 +12218,9 @@ var formcorp = (function () {
               renderOnlyVertical: true,
               datePickerIconOffset: 25,
               autoDiscoverLibs: true,
-              verificationModal: false
+              verificationModal: false,
+              forceNextPageAutoload: false,
+              administrativeEdit: false
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
