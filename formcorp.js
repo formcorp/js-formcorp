@@ -1751,8 +1751,8 @@ var formcorp = (function () {
                 }
               }
               skipCheck = true;
-            } else if (field.type ==='fileUpload') {
-              if (value.length === 0) {
+            } else if (field.type === 'fileUpload') {
+              if (typeof value === 'undefined' || value.length === 0) {
                 errors.push(fc.lang.emptyFieldError);
               } else {
                 skipCheck = true;
