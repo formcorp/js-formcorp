@@ -1754,9 +1754,25 @@ var formcorp = (function () {
             } else if (field.type === 'fileUpload') {
               if (typeof value === 'undefined' || value.length === 0) {
                 errors.push(fc.lang.emptyFieldError);
-              } else {
-                skipCheck = true;
+              } else if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
+                var valueJson = JSON.parse(value);
+                if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
+                  for (var i = 0; i < valueJson.length; i++) {
+                    if ((valueJson[i].size / 1000) > field.config.maxFileSize) {
+                      errors.push(valueJson[i].filename + ' is too large (' + parseFloat(valueJson[i].size / 1000).toFixed(0) + 'KB). Max File Size: ' + field.config.maxFileSize + 'KB');
+                    }
+                  }
+                }
+                if (field.config.fileTypes !== undefined) {
+                  var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
+                  for (i = 0; i < valueJson.length; i++) {
+                    if (fileTypesAllowed.indexOf(valueJson[i].extension.toLowerCase()) == -1) {
+                      errors.push(valueJson[i].filename + ' is not required file type. Available File Types: ' + field.config.fileTypes);
+                    }
+                  }
+                }
               }
+              skipCheck = true;
             }  else if (field.type === "grouplet") {
               // Grouplet field as a whole doesn't need to be validated
               return;
@@ -9416,6 +9432,7 @@ var formcorp = (function () {
               valuesArray[i] = {};
               valuesArray[i].filename = files[i].name.replace(/^.*[\\\/]/, '');
               valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
+              valuesArray[i].size = files[i].size;
               getBase64(files[i], i, function(v, i) {
                 base64Array[i] = v;
                 valuesArray[i].base64 = v;
