@@ -4554,7 +4554,7 @@ var formcorp = (function () {
            * @param value
            */
           renderReviewTableArray = function (field, value) {
-            var html = "", iterator, parts, key, fieldId;
+            var html = "", iterator, parts, key, fieldId, schema;
 
             // Array - repeatable grouplet
             for (iterator = 0; iterator < value.length; iterator += 1) {
@@ -4570,6 +4570,21 @@ var formcorp = (function () {
                       } else {
                         fieldId = key;
                       }
+
+                      var schema = fc.fieldSchema[fieldId];
+                      if (typeof schema === 'undefined') {
+                        // Unable to find the schema directly, iterate through the object and map
+                        for (var groupletKey in field.config.grouplet.field) {
+                          if (field.config.grouplet.field.hasOwnProperty(groupletKey)) {
+                            var fieldObj = field.config.grouplet.field[groupletKey];
+                            var fieldObjId = getId(fieldObj);
+                            if (typeof fc.fieldSchema[fieldObjId] === 'undefined') {
+                              fc.fieldSchema[fieldObjId] = fieldObj;
+                            }
+                          }
+                        }
+                      }
+                      schema = fc.fieldSchema[fieldId];
 
                       html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
                       html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
