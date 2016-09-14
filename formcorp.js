@@ -9435,24 +9435,45 @@ var formcorp = (function () {
               valuesArray[i].size = files[i].size;
               getBase64(files[i], i, function(v, i) {
                 base64Array[i] = v;
-                valuesArray[i].base64 = v;
+                valuesArray[i].contents = v;
                 // Once base64Array.length = files.length then it means all uploaded files base64 data
                 // has been loaded and we can update the value for this field.
                 if (base64Array.length == files.length) {
                   var updateValue = true;
                   for (var j = 0; j < valuesArray.length; j++) {
-                    if (valuesArray[j].base64 == undefined || valuesArray[j].base64.length == 0) {
+                    if (valuesArray[j].contents == undefined || valuesArray[j].contents.length == 0) {
                       updateValue = false;
                     }
                   }
                   if (updateValue) {
-                    var value = JSON.stringify(valuesArray);
-                    valueChanged(id, value);
-                    $('<input>').attr({
-                      type: 'hidden',
-                      id: 'hidden-' + id,
-                      value: value
-                    }).appendTo('#formcorp-form');
+                    var uploadIds = [];
+                    for (j = 0; j < valuesArray.length; j++) {
+                      var fileData = {
+                        form_id: fc.formId,
+                        page_id: fc.currentPage,
+                        file: valuesArray[j],
+                        j: j
+                      };
+                      api('page/store-upload', fileData, 'post', function(data) {
+                        if (typeof data === "object" && data.success === true&& data.upload_id.$id !== undefined) {
+                          uploadIds.push({
+                            upload_id: data.upload_id.$id
+                          });
+                        } else {
+                          uploadIds.push({});
+                        }
+                        if (uploadIds.length == valuesArray.length) {
+                          //reached end of array, submit value
+                          var value = JSON.stringify(uploadIds);
+                          valueChanged(id, value);
+                          $('<input>').attr({
+                            type: 'hidden',
+                            id: 'hidden-' + id,
+                            value: value
+                          }).appendTo('#formcorp-form');
+                        }
+                      });
+                    }
                   }
                 }
               });
