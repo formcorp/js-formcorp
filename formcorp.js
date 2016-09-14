@@ -12484,14 +12484,6 @@ var formcorp = (function () {
               json,
               el;
 
-            // If the field is hidden, should ALWAYS return false (otherwise returns false positives)
-            if (typeof dataId === 'string' && dataId.length > 0) {
-              dataId = getDataId(dataId);
-              if (!fieldIsVisible(dataId)) {
-                return false;
-              }
-            }
-
             // Attempt to typecast string to json
             try {
               json = $.parseJSON(field);
