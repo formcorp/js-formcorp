@@ -9510,7 +9510,11 @@ var formcorp = (function () {
           } else {
             valueChanged(id, '');
             $('#hidden-'+id).remove();
-            var errors = getFieldErrors(id, '');
+            var field = fc.fieldSchema[id];
+            var errors = [];
+            if (field.config !== undefined && field.config.required == true) {
+              errors = getFieldErrors(id, ''); 
+            }
             if (errors.length > 0) {
               showFieldError(id, errors);
             } else {
