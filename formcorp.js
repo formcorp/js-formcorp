@@ -9483,7 +9483,12 @@ var formcorp = (function () {
                             field_id: data.submission_values.field_id
                           });
                         } else {
-                          uploadData.push({});
+                          // Still need these values for validation errors
+                          uploadData.push({
+                            extension: data.submission_values.extension,
+                            size: data.submission_values.size,
+                            filename: data.submission_values.filename,
+                          });
                         }
                         if (uploadData.length == valuesArray.length) {
                           //reached end of array, submit value
