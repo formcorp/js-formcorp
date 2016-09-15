@@ -1263,6 +1263,8 @@ var formcorp = (function () {
               }
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
+            } else if (field.type === 'fileUpload') {
+              return validateFileUpload(field, value);
             } else {
               // Test required data
               dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
@@ -1538,6 +1540,8 @@ var formcorp = (function () {
            */
           removeFieldError = function (dataId) {
             fc.domContainer.find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
+            var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]');
+            dataGroup.find('.fc-error-text').html('');
           },
 
           /**
@@ -1754,25 +1758,7 @@ var formcorp = (function () {
             } else if (field.type === 'fileUpload') {
               if (typeof value === 'undefined' || value.length === 0) {
                 errors.push(fc.lang.emptyFieldError);
-              } else if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
-                var valueJson = JSON.parse(value);
-                if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
-                  for (var i = 0; i < valueJson.length; i++) {
-                    if ((valueJson[i].size / 1000) > field.config.maxFileSize) {
-                      errors.push(valueJson[i].filename + ' is too large (' + parseFloat(valueJson[i].size / 1000).toFixed(0) + 'KB). Max File Size: ' + field.config.maxFileSize + 'KB');
-                    }
-                  }
-                }
-                if (field.config.fileTypes !== undefined) {
-                  var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
-                  for (i = 0; i < valueJson.length; i++) {
-                    if (fileTypesAllowed.indexOf(valueJson[i].extension.toLowerCase()) == -1) {
-                      errors.push(valueJson[i].filename + ' is not required file type. Available File Types: ' + field.config.fileTypes);
-                    }
-                  }
-                }
               }
-              skipCheck = true;
             }  else if (field.type === "grouplet") {
               // Grouplet field as a whole doesn't need to be validated
               return;
@@ -6812,6 +6798,7 @@ var formcorp = (function () {
           parseMatrixField,
           buildMatrixTable,
           renderMatrixField,
+          validateFileUpload,
           renderFileUpload,
           renderDigitalSignatureField,
           renderDateField,
@@ -7846,6 +7833,39 @@ var formcorp = (function () {
             }
           }
           return html;
+        };
+
+        /**
+         * Validate a file upload field
+         *
+         * @param field
+         * @param value
+         * @returns {Array}
+         */
+        validateFileUpload = function (field, value) {
+          var errors = [];
+
+          if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
+            var valueJson = JSON.parse(value);
+            if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
+              for (var i = 0; i < valueJson.length; i++) {
+                if ((valueJson[i].size / 1000) > field.config.maxFileSize) {
+                  errors.push(valueJson[i].filename + ' is too large (' + parseFloat(valueJson[i].size / 1000).toFixed(0) + 'KB). Max File Size: ' + field.config.maxFileSize + 'KB');
+                }
+              }
+            }
+            if (field.config.fileTypes !== undefined) {
+              var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
+              for (i = 0; i < valueJson.length; i++) {
+                if (fileTypesAllowed.indexOf(valueJson[i].extension.toLowerCase()) == -1) {
+                  errors.push(valueJson[i].filename + ' is not required file type. Available File Types: ' + field.config.fileTypes);
+                }
+              }
+            }
+          }
+
+
+          return errors;
         };
 
         /**
@@ -9421,8 +9441,6 @@ var formcorp = (function () {
          * @param obj
          */
         setFileUploadUpdate = function(obj) {
-          log('setFileUploadUpdate()');
-          log(obj);
           var id = obj.attr('formcorp-data-id');
           var files = document.getElementById('file-' + id).files;
           if (files.length > 0) {
@@ -9446,7 +9464,7 @@ var formcorp = (function () {
                     }
                   }
                   if (updateValue) {
-                    var uploadIds = [];
+                    var uploadData = [];
                     for (j = 0; j < valuesArray.length; j++) {
                       var fileData = {
                         form_id: fc.formId,
@@ -9455,28 +9473,49 @@ var formcorp = (function () {
                         j: j
                       };
                       api('page/store-upload', fileData, 'post', function(data) {
-                        if (typeof data === "object" && data.success === true&& data.upload_id.$id !== undefined) {
-                          uploadIds.push({
-                            upload_id: data.upload_id.$id
+                        if (typeof data === "object" && data.success === true && data.submission_values.upload_id.$id !== undefined) {
+                          uploadData.push({
+                            upload_id: data.submission_values.upload_id.$id,
+                            extension: data.submission_values.extension,
+                            size: data.submission_values.size,
+                            filename: data.submission_values.filename
                           });
                         } else {
-                          uploadIds.push({});
+                          uploadData.push({});
                         }
-                        if (uploadIds.length == valuesArray.length) {
+                        if (uploadData.length == valuesArray.length) {
                           //reached end of array, submit value
-                          var value = JSON.stringify(uploadIds);
+                          var value = JSON.stringify(uploadData);
                           valueChanged(id, value);
+                          $('#hidden-'+id).remove();
                           $('<input>').attr({
                             type: 'hidden',
                             id: 'hidden-' + id,
                             value: value
                           }).appendTo('#formcorp-form');
+                          var errors = getFieldErrors(id, value);
+                          if (errors.length > 0) {
+                            showFieldError(id, errors);
+                          } else {
+                            removeFieldError(id);
+                            showFieldSuccess(id);
+                          }
                         }
                       });
                     }
                   }
                 }
               });
+            }
+          } else {
+            valueChanged(id, '');
+            $('#hidden-'+id).remove();
+            var errors = getFieldErrors(id, '');
+            if (errors.length > 0) {
+              showFieldError(id, errors);
+            } else {
+              removeFieldError(id);
+              showFieldSuccess(id);
             }
           }
         };
