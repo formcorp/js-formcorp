@@ -9451,6 +9451,7 @@ var formcorp = (function () {
               valuesArray[i].filename = files[i].name.replace(/^.*[\\\/]/, '');
               valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
               valuesArray[i].size = files[i].size;
+              valuesArray[i].field_id = id;
               getBase64(files[i], i, function(v, i) {
                 base64Array[i] = v;
                 valuesArray[i].contents = v;
@@ -9478,7 +9479,8 @@ var formcorp = (function () {
                             upload_id: data.submission_values.upload_id.$id,
                             extension: data.submission_values.extension,
                             size: data.submission_values.size,
-                            filename: data.submission_values.filename
+                            filename: data.submission_values.filename,
+                            field_id: data.submission_values.field_id
                           });
                         } else {
                           uploadData.push({});
