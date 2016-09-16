@@ -1000,7 +1000,7 @@ var formcorp = (function () {
                   return parseMatrixField(field, true);
                 }
                 if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'fileUpload') {
-                  return $('#hidden-' + dataId).val();
+                  return $('#' + dataId).val();
                 }
               }
 
@@ -7884,7 +7884,11 @@ var formcorp = (function () {
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
 
-          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' />';
+          html = '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:block;" />';
+
+          html += '<input class="fc-fieldinput" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+
+          html += '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
           return html;
         };
@@ -9441,7 +9445,7 @@ var formcorp = (function () {
          * @param obj
          */
         setFileUploadUpdate = function(obj) {
-          var id = obj.attr('formcorp-data-id');
+          var id = obj.attr('formcorp-file-id');
           var files = document.getElementById('file-' + id).files;
           if (files.length > 0) {
             var valuesArray = [];
@@ -9492,14 +9496,17 @@ var formcorp = (function () {
                         }
                         if (uploadData.length == valuesArray.length) {
                           //reached end of array, submit value
-                          var value = JSON.stringify(uploadData);
+                          var field = $('#' + id);
+                          var oldValue = field.val();
+                          if (oldValue.length > 0) {
+                            var parsed = JSON.parse(oldValue);
+                            $.merge(parsed, uploadData);
+                            var value = JSON.stringify(parsed);
+                          } else {
+                            var value = JSON.stringify(uploadData);
+                          }
+                          field.val(value);
                           valueChanged(id, value);
-                          $('#hidden-'+id).remove();
-                          $('<input>').attr({
-                            type: 'hidden',
-                            id: 'hidden-' + id,
-                            value: value
-                          }).appendTo('#formcorp-form');
                           var errors = getFieldErrors(id, value);
                           if (errors.length > 0) {
                             showFieldError(id, errors);
@@ -9513,20 +9520,6 @@ var formcorp = (function () {
                   }
                 }
               });
-            }
-          } else {
-            valueChanged(id, '');
-            $('#hidden-'+id).remove();
-            var field = fc.fieldSchema[id];
-            var errors = [];
-            if (field.config !== undefined && field.config.required == true) {
-              errors = getFieldErrors(id, ''); 
-            }
-            if (errors.length > 0) {
-              showFieldError(id, errors);
-            } else {
-              removeFieldError(id);
-              showFieldSuccess(id);
             }
           }
         };
