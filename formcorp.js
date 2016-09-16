@@ -1758,6 +1758,16 @@ var formcorp = (function () {
               if (typeof value === 'undefined' || value.length === 0) {
                 errors.push(fc.lang.emptyFieldError);
               }
+              if (typeof value === 'string') {
+                try {
+                  var json = JSON.parse(value);
+                  if (json.length == 0) {
+                    errors.push(fc.lang.emptyFieldError);
+                  }
+                } catch (e) {
+                  errors.push(fc.lang.emptyFieldError);
+                }
+              }
             }  else if (field.type === "grouplet") {
               // Grouplet field as a whole doesn't need to be validated
               return;
@@ -6799,12 +6809,14 @@ var formcorp = (function () {
           renderMatrixField,
           isValidFile,
           validateFileUpload,
+          deleteFileUpload,
           renderFileUpload,
           buildFileList,
           renderDigitalSignatureField,
           renderDateField,
           renderDownloadField,
           registerDownloadListeners,
+          registerDeleteFileListeners,
           downloadFieldFile,
           renderCustomerRecord,
           registerApiLookupListener,
@@ -7907,15 +7919,45 @@ var formcorp = (function () {
           
           html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
-          html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:block;" />';
+          html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
 
           html += '<input class="fc-fieldinput" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
           html += '<div class="fc-file-list"></div>';
 
+          if (fc.registeredDeleteFileListeners !== true) {
+            registerDeleteFileListeners();
+          }
+
           return html;
         };
-      
+
+        deleteFileUpload = function(fieldId, key)
+        {
+          var field = fc.domContainer.find('[formcorp-data-id="' + fieldId + '"]'),
+              value = field.val(),
+              fileList = JSON.parse(value);
+
+          fileList.splice(key,1);
+          value = JSON.stringify(fileList);
+          field.val(value);
+          valueChanged(fieldId, value);
+          buildFileList(fieldId, value);
+
+          var errors = getFieldErrors(fieldId, value);
+          if (errors.length > 0) {
+            showFieldError(fieldId, errors);
+          } else {
+            removeFieldError(fieldId);
+            showFieldSuccess(fieldId);
+          }
+        };
+
+        /**
+         * Build the list of files the user has uplodaed
+         * @param fieldId
+         * @param value
+         */
         buildFileList = function(fieldId, value) {
           var field = fc.fieldSchema[fieldId],
               dataGroup = fc.domContainer.find('[fc-data-group="' + fieldId + '"]'),
@@ -7928,8 +7970,7 @@ var formcorp = (function () {
               html += '<br/>';
             }
             var fileErrors = isValidFile(field, fileList[i]);
-            console.log(fileErrors);
-            html += '<span>X</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+            html += '<span class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="cursor:pointer;">X</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
             if (fileErrors.length > 0) {
               html += ' <span style="color:rgb(240,0,0);">';
               for (var j = 0; j < fileErrors.length; j++) {
@@ -7940,7 +7981,26 @@ var formcorp = (function () {
           }
 
           fileListBox.html(html);
+        };
 
+        /**
+         * Register the delete file listeners
+         */
+        registerDeleteFileListeners = function () {
+          if (fc.registeredDeleteFileListeners) {
+            return;
+          }
+
+          fc.domContainer.on('click', '.fc-field-fileUpload .fc-delete-file-upload', function () {
+            var obj = $(this);
+            var fieldId = obj.attr('data-for');
+            var key = obj.attr('data-file-list-key');
+            deleteFileUpload(fieldId, key);
+
+            return false;
+          });
+
+          fc.registeredDeleteFileListeners = true;
         };
 
         /**
