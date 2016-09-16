@@ -7863,7 +7863,7 @@ var formcorp = (function () {
                 errors.push('File is too large . Max File Size: ' + field.config.maxFileSize + 'KB');
               }
             }
-            if (field.config.fileTypes !== undefined) {
+            if (field.config.fileTypes !== undefined && field.config.fileTypes.length > 0) {
               var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
               if (fileTypesAllowed.indexOf(value.extension.toLowerCase()) == -1) {
                 errors.push('Incorrect file type. Available File Types: ' + field.config.fileTypes);
@@ -7970,7 +7970,7 @@ var formcorp = (function () {
               html += '<br/>';
             }
             var fileErrors = isValidFile(field, fileList[i]);
-            html += '<span class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="cursor:pointer;">X</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+            html += '<div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="margin-right: 5px; float:left; cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
             if (fileErrors.length > 0) {
               html += ' <span style="color:rgb(240,0,0);">';
               for (var j = 0; j < fileErrors.length; j++) {
