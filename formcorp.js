@@ -1187,7 +1187,7 @@ var formcorp = (function () {
               selector,
               mappedValue,
               domValue;
-
+            
             if (fieldSelector.length === 0) {
               return [];
             }
@@ -1207,7 +1207,6 @@ var formcorp = (function () {
 
             // Fetch the value on the DOM
             domValue = getFieldValue(fieldSelector.find('.fc-fieldinput'));
-
             // Give higher priority to the value in the dom
             if (domValue !== undefined) {
               value = domValue;
@@ -6798,8 +6797,10 @@ var formcorp = (function () {
           parseMatrixField,
           buildMatrixTable,
           renderMatrixField,
+          isValidFile,
           validateFileUpload,
           renderFileUpload,
+          buildFileList,
           renderDigitalSignatureField,
           renderDateField,
           renderDownloadField,
@@ -7836,6 +7837,32 @@ var formcorp = (function () {
         };
 
         /**
+         * Return errors on an individual file upload
+         * @param field
+         * @param value
+         * @returns {Array}
+         */
+        isValidFile = function (field, value) {
+          var errors = [];
+
+          if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
+            if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
+              if ((value.size / 1000) > field.config.maxFileSize) {
+                errors.push('File is too large . Max File Size: ' + field.config.maxFileSize + 'KB');
+              }
+            }
+            if (field.config.fileTypes !== undefined) {
+              var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
+              if (fileTypesAllowed.indexOf(value.extension.toLowerCase()) == -1) {
+                errors.push('Incorrect file type. Available File Types: ' + field.config.fileTypes);
+              }
+            }
+          }
+          
+          return errors;
+        };
+
+        /**
          * Validate a file upload field
          *
          * @param field
@@ -7843,27 +7870,21 @@ var formcorp = (function () {
          * @returns {Array}
          */
         validateFileUpload = function (field, value) {
-          var errors = [];
+          var errors = [],
+              valueJson = JSON.parse(value);
 
-          if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
-            var valueJson = JSON.parse(value);
-            if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
-              for (var i = 0; i < valueJson.length; i++) {
-                if ((valueJson[i].size / 1000) > field.config.maxFileSize) {
-                  errors.push(valueJson[i].filename + ' is too large (' + parseFloat(valueJson[i].size / 1000).toFixed(0) + 'KB). Max File Size: ' + field.config.maxFileSize + 'KB');
-                }
-              }
-            }
-            if (field.config.fileTypes !== undefined) {
-              var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
-              for (i = 0; i < valueJson.length; i++) {
-                if (fileTypesAllowed.indexOf(valueJson[i].extension.toLowerCase()) == -1) {
-                  errors.push(valueJson[i].filename + ' is not required file type. Available File Types: ' + field.config.fileTypes);
-                }
-              }
+          for (var i = 0; i < valueJson.length; i++) {
+            var fieldErrors = isValidFile(field, valueJson[i]);
+            if (fieldErrors.length > 0) {
+              $.merge(errors, fieldErrors);
             }
           }
 
+          if (errors.length > 0) {
+            errors = [
+                'You have invalid files. Please remove them.'
+            ];
+          }
 
           return errors;
         };
@@ -7883,14 +7904,43 @@ var formcorp = (function () {
 
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
+          
+          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
-          html = '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:block;" />';
+          html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:block;" />';
 
           html += '<input class="fc-fieldinput" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
-          html += '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
+          html += '<div class="fc-file-list"></div>';
 
           return html;
+        };
+      
+        buildFileList = function(fieldId, value) {
+          var field = fc.fieldSchema[fieldId],
+              dataGroup = fc.domContainer.find('[fc-data-group="' + fieldId + '"]'),
+              fileListBox = dataGroup.find('.fc-file-list'),
+              fileList = JSON.parse(value),
+              html = '';
+          
+          for (var i = 0; i < fileList.length; i++) {
+            if (i != 0) {
+              html += '<br/>';
+            }
+            var fileErrors = isValidFile(field, fileList[i]);
+            console.log(fileErrors);
+            html += '<span>X</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+            if (fileErrors.length > 0) {
+              html += ' <span style="color:rgb(240,0,0);">';
+              for (var j = 0; j < fileErrors.length; j++) {
+                html += fileErrors[j] + '. ';
+              }
+              html += '</span>';
+            }
+          }
+
+          fileListBox.html(html);
+
         };
 
         /**
@@ -9507,6 +9557,7 @@ var formcorp = (function () {
                           }
                           field.val(value);
                           valueChanged(id, value);
+                          buildFileList(id, value);
                           var errors = getFieldErrors(id, value);
                           if (errors.length > 0) {
                             showFieldError(id, errors);
