@@ -469,6 +469,14 @@ var formcorp = (function () {
            * @return boolean
            */
           checkAllLibsLoaded = function (data) {
+            if (typeof data === 'undefined') {
+              data = fc.schema;
+            }
+
+            if (typeof data === 'undefined') {
+              data = fc.schemaData;
+            }
+
             if (fc.loadedLibs.length >= fc.libs2Load.length) {
               // If set to auto discover library files, initialise the render when all libs have loaded
               if (fc.config.autoDiscoverLibs) {
@@ -11499,8 +11507,8 @@ var formcorp = (function () {
           html += '<p>In order to re-enter the form, you must first verify your credentials. Please complete verification below.</p>';
           html += '<div class="fc-field fc-field-smsVerification">';
 
-          switch (verify.against) {
-            case 'mobile':
+          switch (verify.method) {
+            case 'sms':
               var options = {
                 _id: {
                   $id: 'preVerification'
