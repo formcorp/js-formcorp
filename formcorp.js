@@ -1008,7 +1008,7 @@ var formcorp = (function () {
                   return parseMatrixField(field, true);
                 }
                 if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'fileUpload') {
-                  return $('#hidden-' + dataId).val();
+                  return $('#' + dataId).val();
                 }
               }
 
@@ -1195,7 +1195,7 @@ var formcorp = (function () {
               selector,
               mappedValue,
               domValue;
-
+            
             if (fieldSelector.length === 0) {
               return [];
             }
@@ -1215,7 +1215,6 @@ var formcorp = (function () {
 
             // Fetch the value on the DOM
             domValue = getFieldValue(fieldSelector.find('.fc-fieldinput'));
-
             // Give higher priority to the value in the dom
             if (domValue !== undefined) {
               value = domValue;
@@ -1271,6 +1270,8 @@ var formcorp = (function () {
               }
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
+            } else if (field.type === 'fileUpload') {
+              return validateFileUpload(field, value);
             } else {
               // Test required data
               dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
@@ -1546,6 +1547,8 @@ var formcorp = (function () {
            */
           removeFieldError = function (dataId) {
             fc.domContainer.find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
+            var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]');
+            dataGroup.find('.fc-error-text').html('');
           },
 
           /**
@@ -1762,25 +1765,17 @@ var formcorp = (function () {
             } else if (field.type === 'fileUpload') {
               if (typeof value === 'undefined' || value.length === 0) {
                 errors.push(fc.lang.emptyFieldError);
-              } else if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
-                var valueJson = JSON.parse(value);
-                if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
-                  for (var i = 0; i < valueJson.length; i++) {
-                    if ((valueJson[i].size / 1000) > field.config.maxFileSize) {
-                      errors.push(valueJson[i].filename + ' is too large (' + parseFloat(valueJson[i].size / 1000).toFixed(0) + 'KB). Max File Size: ' + field.config.maxFileSize + 'KB');
-                    }
+              }
+              if (typeof value === 'string') {
+                try {
+                  var json = JSON.parse(value);
+                  if (json.length == 0) {
+                    errors.push(fc.lang.emptyFieldError);
                   }
-                }
-                if (field.config.fileTypes !== undefined) {
-                  var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
-                  for (i = 0; i < valueJson.length; i++) {
-                    if (fileTypesAllowed.indexOf(valueJson[i].extension.toLowerCase()) == -1) {
-                      errors.push(valueJson[i].filename + ' is not required file type. Available File Types: ' + field.config.fileTypes);
-                    }
-                  }
+                } catch (e) {
+                  errors.push(fc.lang.emptyFieldError);
                 }
               }
-              skipCheck = true;
             }  else if (field.type === "grouplet") {
               // Grouplet field as a whole doesn't need to be validated
               return;
@@ -6835,11 +6830,16 @@ var formcorp = (function () {
           parseMatrixField,
           buildMatrixTable,
           renderMatrixField,
+          isValidFile,
+          validateFileUpload,
+          deleteFileUpload,
           renderFileUpload,
+          buildFileList,
           renderDigitalSignatureField,
           renderDateField,
           renderDownloadField,
           registerDownloadListeners,
+          registerDeleteFileListeners,
           downloadFieldFile,
           renderCustomerRecord,
           registerApiLookupListener,
@@ -7872,6 +7872,59 @@ var formcorp = (function () {
         };
 
         /**
+         * Return errors on an individual file upload
+         * @param field
+         * @param value
+         * @returns {Array}
+         */
+        isValidFile = function (field, value) {
+          var errors = [];
+
+          if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
+            if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
+              if ((value.size / 1000) > field.config.maxFileSize) {
+                errors.push('File is too large . Max File Size: ' + field.config.maxFileSize + 'KB');
+              }
+            }
+            if (field.config.fileTypes !== undefined && field.config.fileTypes.length > 0) {
+              var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
+              if (fileTypesAllowed.indexOf(value.extension.toLowerCase()) == -1) {
+                errors.push('Incorrect file type. Available File Types: ' + field.config.fileTypes);
+              }
+            }
+          }
+          
+          return errors;
+        };
+
+        /**
+         * Validate a file upload field
+         *
+         * @param field
+         * @param value
+         * @returns {Array}
+         */
+        validateFileUpload = function (field, value) {
+          var errors = [],
+              valueJson = JSON.parse(value);
+
+          for (var i = 0; i < valueJson.length; i++) {
+            var fieldErrors = isValidFile(field, valueJson[i]);
+            if (fieldErrors.length > 0) {
+              $.merge(errors, fieldErrors);
+            }
+          }
+
+          if (errors.length > 0) {
+            errors = [
+                'You have invalid files. Please remove them.'
+            ];
+          }
+
+          return errors;
+        };
+
+        /**
          * Render a file upload field
          * @param field
          * @param prefix
@@ -7886,10 +7939,91 @@ var formcorp = (function () {
 
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
+          
+          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
-          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' />';
+          html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
+
+          html += '<input class="fc-fieldinput" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+
+          html += '<div class="fc-file-list"></div>';
+
+          if (fc.registeredDeleteFileListeners !== true) {
+            registerDeleteFileListeners();
+          }
 
           return html;
+        };
+
+        deleteFileUpload = function(fieldId, key)
+        {
+          var field = fc.domContainer.find('[formcorp-data-id="' + fieldId + '"]'),
+              value = field.val(),
+              fileList = JSON.parse(value);
+
+          fileList.splice(key,1);
+          value = JSON.stringify(fileList);
+          field.val(value);
+          valueChanged(fieldId, value);
+          buildFileList(fieldId, value);
+
+          var errors = getFieldErrors(fieldId, value);
+          if (errors.length > 0) {
+            showFieldError(fieldId, errors);
+          } else {
+            removeFieldError(fieldId);
+            showFieldSuccess(fieldId);
+          }
+        };
+
+        /**
+         * Build the list of files the user has uplodaed
+         * @param fieldId
+         * @param value
+         */
+        buildFileList = function(fieldId, value) {
+          var field = fc.fieldSchema[fieldId],
+              dataGroup = fc.domContainer.find('[fc-data-group="' + fieldId + '"]'),
+              fileListBox = dataGroup.find('.fc-file-list'),
+              fileList = JSON.parse(value),
+              html = '';
+          
+          for (var i = 0; i < fileList.length; i++) {
+            if (i != 0) {
+              html += '<br/>';
+            }
+            var fileErrors = isValidFile(field, fileList[i]);
+            html += '<div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="margin-right: 5px; float:left; cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+            if (fileErrors.length > 0) {
+              html += ' <span style="color:rgb(240,0,0);">';
+              for (var j = 0; j < fileErrors.length; j++) {
+                html += fileErrors[j] + '. ';
+              }
+              html += '</span>';
+            }
+          }
+
+          fileListBox.html(html);
+        };
+
+        /**
+         * Register the delete file listeners
+         */
+        registerDeleteFileListeners = function () {
+          if (fc.registeredDeleteFileListeners) {
+            return;
+          }
+
+          fc.domContainer.on('click', '.fc-field-fileUpload .fc-delete-file-upload', function () {
+            var obj = $(this);
+            var fieldId = obj.attr('data-for');
+            var key = obj.attr('data-file-list-key');
+            deleteFileUpload(fieldId, key);
+
+            return false;
+          });
+
+          fc.registeredDeleteFileListeners = true;
         };
 
         /**
@@ -9444,9 +9578,7 @@ var formcorp = (function () {
          * @param obj
          */
         setFileUploadUpdate = function(obj) {
-          log('setFileUploadUpdate()');
-          log(obj);
-          var id = obj.attr('formcorp-data-id');
+          var id = obj.attr('formcorp-file-id');
           var files = document.getElementById('file-' + id).files;
           if (files.length > 0) {
             var valuesArray = [];
@@ -9456,26 +9588,69 @@ var formcorp = (function () {
               valuesArray[i].filename = files[i].name.replace(/^.*[\\\/]/, '');
               valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
               valuesArray[i].size = files[i].size;
+              valuesArray[i].field_id = id;
               getBase64(files[i], i, function(v, i) {
                 base64Array[i] = v;
-                valuesArray[i].base64 = v;
+                valuesArray[i].contents = v;
                 // Once base64Array.length = files.length then it means all uploaded files base64 data
                 // has been loaded and we can update the value for this field.
                 if (base64Array.length == files.length) {
                   var updateValue = true;
                   for (var j = 0; j < valuesArray.length; j++) {
-                    if (valuesArray[j].base64 == undefined || valuesArray[j].base64.length == 0) {
+                    if (valuesArray[j].contents == undefined || valuesArray[j].contents.length == 0) {
                       updateValue = false;
                     }
                   }
                   if (updateValue) {
-                    var value = JSON.stringify(valuesArray);
-                    valueChanged(id, value);
-                    $('<input>').attr({
-                      type: 'hidden',
-                      id: 'hidden-' + id,
-                      value: value
-                    }).appendTo('#formcorp-form');
+                    var uploadData = [];
+                    for (j = 0; j < valuesArray.length; j++) {
+                      var fileData = {
+                        form_id: fc.formId,
+                        page_id: fc.currentPage,
+                        file: valuesArray[j],
+                        j: j
+                      };
+                      api('page/store-upload', fileData, 'post', function(data) {
+                        if (typeof data === "object" && data.success === true && data.submission_values.upload_id.$id !== undefined) {
+                          uploadData.push({
+                            upload_id: data.submission_values.upload_id.$id,
+                            extension: data.submission_values.extension,
+                            size: data.submission_values.size,
+                            filename: data.submission_values.filename,
+                            field_id: data.submission_values.field_id
+                          });
+                        } else {
+                          // Still need these values for validation errors
+                          uploadData.push({
+                            extension: data.submission_values.extension,
+                            size: data.submission_values.size,
+                            filename: data.submission_values.filename,
+                          });
+                        }
+                        if (uploadData.length == valuesArray.length) {
+                          //reached end of array, submit value
+                          var field = $('#' + id);
+                          var oldValue = field.val();
+                          if (oldValue.length > 0) {
+                            var parsed = JSON.parse(oldValue);
+                            $.merge(parsed, uploadData);
+                            var value = JSON.stringify(parsed);
+                          } else {
+                            var value = JSON.stringify(uploadData);
+                          }
+                          field.val(value);
+                          valueChanged(id, value);
+                          buildFileList(id, value);
+                          var errors = getFieldErrors(id, value);
+                          if (errors.length > 0) {
+                            showFieldError(id, errors);
+                          } else {
+                            removeFieldError(id);
+                            showFieldSuccess(id);
+                          }
+                        }
+                      });
+                    }
                   }
                 }
               });
