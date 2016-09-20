@@ -1195,7 +1195,7 @@ var formcorp = (function () {
               selector,
               mappedValue,
               domValue;
-            
+
             if (fieldSelector.length === 0) {
               return [];
             }
@@ -7893,7 +7893,7 @@ var formcorp = (function () {
               }
             }
           }
-          
+
           return errors;
         };
 
@@ -7939,7 +7939,7 @@ var formcorp = (function () {
 
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
-          
+
           html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
@@ -7987,7 +7987,7 @@ var formcorp = (function () {
               fileListBox = dataGroup.find('.fc-file-list'),
               fileList = JSON.parse(value),
               html = '';
-          
+
           for (var i = 0; i < fileList.length; i++) {
             if (i != 0) {
               html += '<br/>';
@@ -10231,32 +10231,33 @@ var formcorp = (function () {
               fc.domContainer.trigger(fc.jsEvents.onLoadingPageEnd);
 
               // If 'critical' errors were returned (validation errors on required fields), need to alert the user
-              if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
-                var x, field, sectionId, section, valid = false;
-                for (x = 0; x < data.criticalErrors.length; x += 1) {
-                  field = $('.fc-field[fc-data-group="' + data.criticalErrors[x] + '"]');
+              if (!fc.config.administrativeEdit) {
+                if (data.criticalErrors !== undefined && typeof data.criticalErrors === "object" && data.criticalErrors.length > 0) {
+                  var x, field, sectionId, section, valid = false;
+                  for (x = 0; x < data.criticalErrors.length; x += 1) {
+                    field = $('.fc-field[fc-data-group="' + data.criticalErrors[x] + '"]');
 
-                  // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
-                  if (field.length > 0 && !field.hasClass('fc-hide')) {
-                    sectionId = field.attr("fc-belongs-to");
-                    section = fc.domContainer.find('.fc-section[formcorp-data-id=' + sectionId + ']');
+                    // If the field exists and isn't hidden, user should not be able to proceed to next page (unless section invisible)
+                    if (field.length > 0 && !field.hasClass('fc-hide')) {
+                      sectionId = field.attr("fc-belongs-to");
+                      section = fc.domContainer.find('.fc-section[formcorp-data-id=' + sectionId + ']');
 
-                    // If the section exists and is visible, do not proceed to the next stage
-                    if (section.length > 0) {
-                      if (!section.hasClass('fc-hide')) {
+                      // If the section exists and is visible, do not proceed to the next stage
+                      if (section.length > 0) {
+                        if (!section.hasClass('fc-hide')) {
+                          fc.preventNextPageLoad = false;
+                          return;
+                        }
+                        valid = true;
+                      }
+
+                      if (valid === false) {
+                        log("[FC](1) Server side validation errors occurred, client should have caught this");
                         fc.preventNextPageLoad = false;
                         return;
                       }
-                      valid = true;
-                    }
-
-                    if (valid === false) {
-                      log("[FC](1) Server side validation errors occurred, client should have caught this");
-                      fc.preventNextPageLoad = false;
-                      return;
                     }
                   }
-
                 }
               }
 
