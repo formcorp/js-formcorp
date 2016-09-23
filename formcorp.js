@@ -4152,7 +4152,7 @@ var formcorp = (function () {
                 obj = $(this),
                 parent = obj.parent().parent(),
                 fieldId = parent.attr('fc-belongs-to'),
-                el = parent.find('input[type="text"]'),
+                el = parent.find('input[type="text"], input[type="tel"], input[type="number"]'),
                 val = el.val();
 
               if (val.length === 0) {
@@ -4357,7 +4357,7 @@ var formcorp = (function () {
                 obj = $(this),
                 parent = obj.parent().parent(),
                 fieldId = parent.attr('fc-belongs-to'),
-                el = parent.find('input[type="text"]'),
+                el = parent.find('input[type="text"], input[type="tel"], input[type="number"]'),
                 val = el.val();
 
               if (val.length === 0) {
