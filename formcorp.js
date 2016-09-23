@@ -389,7 +389,6 @@ var formcorp = (function () {
            */
           log = function (msg) {
             if (fc.config.debug) {
-              console.log(msg);
             }
           },
 
@@ -4551,7 +4550,11 @@ var formcorp = (function () {
 
             // If string, output
             if (typeof value === "string") {
-              html += htmlEncode(value);
+              if(field.config.class) {
+                html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
+              } else {
+                html += htmlEncode(value);
+              }
             } else if (typeof value === "object") {
               html += "<ul class='fc-list'>";
               for (iterator = 0; iterator < value.length; iterator += 1) {
@@ -4606,7 +4609,9 @@ var formcorp = (function () {
                       schema = fc.fieldSchema[fieldId];
 
                       html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
-                      html += "</td><td>" + htmlEncode(value[iterator][key]) + "</td></tr>";
+
+
+                      html += "</td><td class=\"" + field.config.class + "\">" + htmlEncode(value[iterator][key]) + "</td></tr>";
                     }
                   }
                 }
