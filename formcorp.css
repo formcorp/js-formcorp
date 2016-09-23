@@ -659,6 +659,10 @@ div.fc-pagination {
     position:relative !important;
 }
 
+.fc-field-fileUpload .fc-error-text {
+    position:relative !important;
+}
+
 /**
  * 4 column
  */
