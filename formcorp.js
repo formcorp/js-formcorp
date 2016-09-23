@@ -4581,7 +4581,7 @@ var formcorp = (function () {
             // Array - repeatable grouplet
             for (iterator = 0; iterator < value.length; iterator += 1) {
               if (typeof value[iterator] === "object") {
-                html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + " #" + (iterator + 1) + "</th></tr>";
+                html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + "</th></tr>";
 
                 for (key in value[iterator]) {
                   if (value[iterator].hasOwnProperty(key)) {
@@ -4610,8 +4610,7 @@ var formcorp = (function () {
 
                       html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
 
-
-                      html += "</td><td class=\"" + field.config.class + "\">" + htmlEncode(value[iterator][key]) + "</td></tr>";
+                      html += "</td><td><span class=\"" + fc.fieldSchema[fieldId].config.class + "\">" + htmlEncode(value[iterator][key]) + "</span></td></tr>";
                     }
                   }
                 }
@@ -11025,7 +11024,10 @@ var formcorp = (function () {
                 fc.domContainer.on('keydown.' + fieldId, function(event) {
                   if (event.keyCode == 38 || event.keyCode == 40) {
                     moveSelectionAutoCompleteWidget(fieldId, event.keyCode);
-                  } else if (event.keyCode == 13 || event.keyCode == 9) {
+                  } else if (event.keyCode == 13) {
+                    // event.preventDefault();
+                    enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
+                  } else if(event.keyCode == 9) {
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
                   } else if(event.keyCode == 27) {
                     removeAutoCompleteWidget(fieldId);
