@@ -230,6 +230,12 @@ String.prototype.escapeRegExp = function () {
 var formcorp = (function () {
   // private
   var self = this;
+  var flushingVisibility = false;
+  var flushingGroupletVisibility = false;
+  var flushingSectionVisibility = false;
+  var flushingFieldVisibility = false;
+  var updatingMobileFieldsVisibility = false;
+
   self.forms = {};
 
   var getForms = function () {
@@ -8822,6 +8828,12 @@ var formcorp = (function () {
          * Flushses the visibility component of each section when the form state changes.
          */
         flushSectionVisibility = function () {
+          console.log(3);
+          if(flushingSectionVisibility)
+            return
+
+          flushingSectionVisibility = true;
+
           fc.domContainer.find('.fc-section').each(function () {
             var dataId = $(this).attr('formcorp-data-id'),
               section,
@@ -8853,6 +8865,9 @@ var formcorp = (function () {
               $('div.fc-section[formcorp-data-id=' + dataId + ']').addClass('fc-hide');
             }
           });
+
+          flushingSectionVisibility = false;
+
         };
 
         /**
@@ -8861,48 +8876,57 @@ var formcorp = (function () {
          * @param field
          */
         flushRepeatableGroupletVisibility = function (dataId, field) {
-          var visible,
-            groupletID,
-            index,
-            fieldID,
-            parts,
-            visibility,
-            re;
+          return;
+          if(flushingGroupletVisibility) {
+            return;
+          }
+          console.log(1);
+          setTimeout(function() {
+            flushingGroupletVisibility = true;
 
-          // If the field belongs to a grouplet within the DOM, need to flush visibility
-          if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-            parts = dataId.split(fc.constants.prefixSeparator);
+            var visible,
+              groupletID,
+              index,
+              fieldID,
+              parts,
+              visibility,
+              re;
 
-            // Only continue if a minimum of 3 parts were found (needs to be in the format groupletID_index_fieldID)
-            if (parts.length >= 2) {
-              groupletID = parts[0];
+            // If the field belongs to a grouplet within the DOM, need to flush visibility
+            if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+              parts = dataId.split(fc.constants.prefixSeparator);
 
-              // Only continue if the root element is a grouplet
-              field = fc.fieldSchema[groupletID];
-              if (field !== undefined && field.type === 'grouplet' && getConfig(field, 'repeatable', false)) {
-                // If the modal style is that so it is shown in the DOM, then process and add to the array
-                if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(field, 'repeatableStyle', 0))) >= 0) {
-                  index = parts[1];
-                  fieldID = parts[2];
+              // Only continue if a minimum of 3 parts were found (needs to be in the format groupletID_index_fieldID)
+              if (parts.length >= 2) {
+                groupletID = parts[0];
 
-                  // If the field definition is supplied, fetch the visibility
-                  if (fc.fieldSchema[fieldID] !== undefined) {
-                    visibility = getConfig(fc.fieldSchema[fieldID], 'visibility', '');
-                    if (visibility.length > 0) {
-                      // By default, the visibility string will look something along the lines as that below:
-                      // (fc.comparisonIn(fc.fields["55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"], ["Yes"], "55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"))
-                      // The groupletID_fieldID needs to be replaced in this instance (because its in the DOM as an array) with groupletID_arrayIndex_fieldID)
-                      re = new RegExp(groupletID + fc.constants.prefixSeparator, 'g');
-                      visibility = visibility.replace(re, '####');
-                      visibility = visibility.replace(/#{4,}/g, [groupletID, index, ''].join(fc.constants.prefixSeparator));
+                // Only continue if the root element is a grouplet
+                field = fc.fieldSchema[groupletID];
+                if (field !== undefined && field.type === 'grouplet' && getConfig(field, 'repeatable', false)) {
+                  // If the modal style is that so it is shown in the DOM, then process and add to the array
+                  if (fc.constants.repeatableInDOM.indexOf(parseInt(getConfig(field, 'repeatableStyle', 0))) >= 0) {
+                    index = parts[1];
+                    fieldID = parts[2];
 
-                      // Evaludate the visibility logic to determine if the field should be visible
-                      visible = eval(visibility);
-                      if (typeof visible === 'boolean') {
-                        if (visible) {
-                          $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
-                        } else {
-                          $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
+                    // If the field definition is supplied, fetch the visibility
+                    if (fc.fieldSchema[fieldID] !== undefined) {
+                      visibility = getConfig(fc.fieldSchema[fieldID], 'visibility', '');
+                      if (visibility.length > 0) {
+                        // By default, the visibility string will look something along the lines as that below:
+                        // (fc.comparisonIn(fc.fields["55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"], ["Yes"], "55878137cd2a4752048b4583_55878137cd2a4752048b4583_55878014cd2a4751048b458d"))
+                        // The groupletID_fieldID needs to be replaced in this instance (because its in the DOM as an array) with groupletID_arrayIndex_fieldID)
+                        re = new RegExp(groupletID + fc.constants.prefixSeparator, 'g');
+                        visibility = visibility.replace(re, '####');
+                        visibility = visibility.replace(/#{4,}/g, [groupletID, index, ''].join(fc.constants.prefixSeparator));
+
+                        // Evaludate the visibility logic to determine if the field should be visible
+                        visible = eval(visibility);
+                        if (typeof visible === 'boolean') {
+                          if (visible) {
+                            $('div[fc-data-group="' + dataId + '"]').removeClass('fc-hide');
+                          } else {
+                            $('div[fc-data-group="' + dataId + '"]').addClass('fc-hide');
+                          }
                         }
                       }
                     }
@@ -8910,7 +8934,9 @@ var formcorp = (function () {
                 }
               }
             }
-          }
+            flushingGroupletVisibility = false;
+          }.bind(this), 1);
+          return;
         };
 
         /**
@@ -8919,6 +8945,12 @@ var formcorp = (function () {
          * certain fields may need to be altered.
          */
         flushFieldVisibility = function () {
+          console.log(2);
+          if(flushingFieldVisibility)
+            return
+
+          flushingFieldVisibility = true;
+
           fc.domContainer.find('.fc-field').each(function () {
             var dataId = $(this).attr('fc-data-group'),
               field,
@@ -9008,24 +9040,43 @@ var formcorp = (function () {
               }
             }
 
-            // Flush repeatable grouplet visibility (logic to determine if code should actually run exists within the function)
-            flushRepeatableGroupletVisibility(dataId, field);
+            // // Flush repeatable grouplet visibility (logic to determine if code should actually run exists within the function)
+            // console.log(dataId)
+            if(dataId.indexOf(fc.constants.prefixSeparator) > -1) {
+                console.log(dataId);
+                flushRepeatableGroupletVisibility(dataId, field);
+            }
           });
+
+          flushingFieldVisibility = false;
+
         };
 
         /**
          * Flushes the visibility of various components throughout the form.
          */
         flushVisibility = function () {
-          flushSectionVisibility();
-          flushFieldVisibility();
-          updateMobileFieldsVisibility();
+          if(!flushingVisibility) {
+            flushingVisibility = true;
+            setTimeout(function() {
+              flushSectionVisibility();
+              flushFieldVisibility();
+              updateMobileFieldsVisibility();
+              flushingVisibility = false;
+            }, 100);
+          }
+          return;
         };
 
         /**
          * Update mobile fields
          */
         updateMobileFieldsVisibility = function () {
+          if(updatingMobileFieldsVisibility)
+            return
+
+          updatingMobileFieldsVisibility = true;
+
           fc.domContainer.find('.fc-field.fc-mobile-field').each(function () {
             if (fc.mobileView === true && $(this).hasClass('fc-hide')) {
               $(this).removeClass('fc-hide');
@@ -9044,6 +9095,8 @@ var formcorp = (function () {
           });
 
           fc.inMobileView = fc.mobileView;
+
+          updatingMobileFieldsVisibility = false;
         };
 
         /**
