@@ -11025,7 +11025,7 @@ var formcorp = (function () {
                   if (event.keyCode == 38 || event.keyCode == 40) {
                     moveSelectionAutoCompleteWidget(fieldId, event.keyCode);
                   } else if (event.keyCode == 13) {
-                    // event.preventDefault();
+                    event.preventDefault();
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
                   } else if(event.keyCode == 9) {
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
