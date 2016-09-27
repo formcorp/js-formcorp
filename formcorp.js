@@ -4464,6 +4464,7 @@ var formcorp = (function () {
               if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
                 html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
               } else {
+                html += '<div class="fc-sms-loader fc-loader"></div>';
                 html += '<div class="fc-verify-sms-input-code"><input type="text" class="fc-verify-sms-input fc-fieldinput" value=""></div>';
                 html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
               }
@@ -11711,13 +11712,22 @@ var formcorp = (function () {
           // Section header
           html += '<div class="fc-section-header">';
           html += '<div class="fc-section-label">';
-          html += '<h4>Verify session</h4>';
+          html += '<h4>Welcome back!</h4>';
           html += '</div>'; //!fc-section-label
           html += '</div>'; //!fc-section-header
 
           // Section body
           html += '<div class="fc-section-body">';
-          html += '<p>In order to re-enter the form, you must first verify your credentials. Please complete verification below.</p>';
+          html += '<div class="fc-resume-choice">';
+          html += '<p>The progress of filling your application has been saved since your last visit.</p><p>You can resume your application or start a new one by clicking on the buttons below:</p>';
+          html += '<input type="submit" class="fc-btn fc-resume-application-button" onclick="resumeApplication()" value="Resume application">';
+          html += '<script>function hardreload() {$.removeCookie("fcSessionId");location.reload(true);}</script>';
+          html += '<script>function resumeApplication() {$(".fc-resume-choice").slideUp();$(".fc-resume-application").slideDown();$(".fc-send-sms input").trigger("click");}</script>';
+          html += '</div>';
+          html += '<div class="fc-resume-application" style="display:none">';
+          html += '<p>In order to resume your application, you must first verify your credentials. We have sent a confirmation number to your ';
+          html += (verify.method === 'sms')?'mobile phone':'e-mail address';
+          html += '. Please enter the code below or click the button to re-send the verification code.</p>';
           html += '<div class="fc-field fc-field-smsVerification">';
 
           switch (verify.method) {
@@ -11727,7 +11737,7 @@ var formcorp = (function () {
                   $id: 'preVerification'
                 },
                 config: {
-                  autoDeliverOnFirstRender: true,
+                  autoDeliverOnFirstRender: false,
                   renderAsModal: false,
                   verificationButtonText: fc.lang.verify
                 }
@@ -11737,7 +11747,10 @@ var formcorp = (function () {
           }
 
           html += '</div>'; //!fc-field-smsVerification
+          html += '</div>';
+          html += '<input type="submit" class="fc-btn fc-restart-application" onclick="hardreload()" value="Restart application">';
           html += '<div class="fc-clear"></div>';
+
           html += '</div>'; //!fc-section-body
 
           html += '</div>'; //!fc-section
@@ -12514,7 +12527,7 @@ var formcorp = (function () {
                 confirm: "Confirm",
                 invalidCardFormat: "The credit card you entered could not be recognised",
                 sendEmail: "Send email",
-                fieldValidated: "<p>Successfully verified</p>",
+                fieldValidated: "<p><i class=\"fa fa-check\"></i>Successfully verified</p>",
                 fieldMustBeVerified: "You must first complete verification",
                 sendSms: "Re-Send SMS",
                 payNow: "Pay now",
