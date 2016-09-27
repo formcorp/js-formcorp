@@ -4465,7 +4465,7 @@ var formcorp = (function () {
                 html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
               } else {
                 html += '<div class="fc-sms-loader fc-loader"></div>';
-                html += '<div class="fc-verify-sms-input-code"><input type="text" class="fc-verify-sms-input fc-fieldinput" value=""></div>';
+                html += '<div class="fc-verify-sms-input-code"><input type="tel" class="fc-verify-sms-input fc-fieldinput" value=""></div>';
                 html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
               }
 
