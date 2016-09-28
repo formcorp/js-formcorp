@@ -6845,6 +6845,7 @@ var formcorp = (function () {
           renderDownloadField,
           registerDownloadListeners,
           registerDeleteFileListeners,
+          registerRemoveFileErrorListeners,
           downloadFieldFile,
           renderCustomerRecord,
           registerApiLookupListener,
@@ -7957,6 +7958,10 @@ var formcorp = (function () {
             registerDeleteFileListeners();
           }
 
+          if (fc.registeredRemoveFileErrorListeners !== true) {
+            registerRemoveFileErrorListeners();
+          }
+
           return html;
         };
 
@@ -7991,25 +7996,65 @@ var formcorp = (function () {
               dataGroup = fc.domContainer.find('[fc-data-group="' + fieldId + '"]'),
               fileListBox = dataGroup.find('.fc-file-list'),
               fileList = JSON.parse(value),
+              actualValue = [],
               html = '';
 
+          $(document).on("click", ".but", function(){
+          });
+
           for (var i = 0; i < fileList.length; i++) {
-            if (i != 0) {
-              html += '<br/>';
-            }
             var fileErrors = isValidFile(field, fileList[i]);
-            html += '<div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="margin-right: 5px; float:left; cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
-            if (fileErrors.length > 0) {
-              html += ' <span style="color:rgb(240,0,0);">';
-              for (var j = 0; j < fileErrors.length; j++) {
-                html += fileErrors[j] + '. ';
+            if (fileErrors.length == 0) {
+              if (i != 0) {
+                html += '<br/>';
               }
-              html += '</span>';
+              html += '<div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="margin-right: 5px; float:left; cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              actualValue.push(fileList[i]);
+            } else {
+              var errorText = '';
+              if (i != 0) {
+                errorText += '<span class="fc-file-upload-error"><br/>';
+              }
+              errorText += '<span class="fc-file-upload-error"><span style="color:rgb(240,0,0);">REJECTED:</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              errorText += ' <span style="color:rgb(240,0,0);">';
+              for (var j = 0; j < fileErrors.length; j++) {
+                errorText += fileErrors[j] + '. ';
+              }
+              errorText += '</span></span>';
+              if (i != 0) {
+                errorText += '</span>';
+              }
+              html += errorText;
             }
           }
 
+          var inputField = $('#' + fieldId);
+          inputField.val(JSON.stringify(actualValue));
+          valueChanged(fieldId, JSON.stringify(actualValue));
+
           fileListBox.html(html);
         };
+
+
+
+      /**
+       * Register the remove file error listeners
+       */
+      registerRemoveFileErrorListeners = function () {
+        if (fc.registeredRemoveFileErrorListeners) {
+          return;
+        }
+
+        fc.domContainer.on('click', '.fc-field-fileUpload', function () {
+          //setTimeout(function () {
+            $('.fc-file-upload-error').remove();
+          //}, 2000);
+        });
+
+        fc.registeredRemoveFileErrorListeners = true;
+      };
+
+
 
         /**
          * Register the delete file listeners
