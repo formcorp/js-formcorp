@@ -12611,7 +12611,7 @@ var formcorp = (function () {
           },
 
           // Expose the API URL
-          apiUrl: apiUrl,
+          remoteApiUrl: apiUrl,
 
           /**
            * Initialise the existing session, or instantiate a new one.
