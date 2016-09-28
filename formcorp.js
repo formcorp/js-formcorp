@@ -12610,6 +12610,9 @@ var formcorp = (function () {
             return defaultValue;
           },
 
+          // Expose the API URL
+          apiUrl: apiUrl,
+
           /**
            * Initialise the existing session, or instantiate a new one.
            */
