@@ -2910,6 +2910,11 @@ var formcorp = (function () {
                 }
               } else if (schema.type === 'matrix') {
                 loadMatrixFieldValues(fieldId, value);
+              } else if (schema.type === 'fileUpload') {
+                setDomValue(obj, value);
+                if (value.length > 2) {
+                  buildFileList(fieldId, value);
+                }
               }
               else {
                 // Otherwise set standard value in the DOM
@@ -7889,13 +7894,13 @@ var formcorp = (function () {
           if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
             if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
               if ((value.size / 1000) > field.config.maxFileSize) {
-                errors.push('File is too large . Max File Size: ' + field.config.maxFileSize + 'KB');
+                errors.push(fc.lang.fileFieldSizeError + field.config.maxFileSize + 'KB');
               }
             }
             if (field.config.fileTypes !== undefined && field.config.fileTypes.length > 0) {
               var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
               if (fileTypesAllowed.indexOf(value.extension.toLowerCase()) == -1) {
-                errors.push('Incorrect file type. Available File Types: ' + field.config.fileTypes);
+                errors.push(fc.lang.fileFieldTypeError + field.config.fileTypes);
               }
             }
           }
@@ -7923,7 +7928,7 @@ var formcorp = (function () {
 
           if (errors.length > 0) {
             errors = [
-                'You have invalid files. Please remove them.'
+                fc.lang.invalidFiles
             ];
           }
 
@@ -7950,7 +7955,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
 
-          html += '<input class="fc-fieldinput" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+          html += '<input class="fc-fieldinput fc-fieldinput-attachButton" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
           html += '<div class="fc-file-list"></div>';
 
@@ -7976,14 +7981,6 @@ var formcorp = (function () {
           field.val(value);
           valueChanged(fieldId, value);
           buildFileList(fieldId, value);
-
-          var errors = getFieldErrors(fieldId, value);
-          if (errors.length > 0) {
-            showFieldError(fieldId, errors);
-          } else {
-            removeFieldError(fieldId);
-            showFieldSuccess(fieldId);
-          }
         };
 
         /**
@@ -7997,10 +7994,9 @@ var formcorp = (function () {
               fileListBox = dataGroup.find('.fc-file-list'),
               fileList = JSON.parse(value),
               actualValue = [],
-              html = '';
-
-          $(document).on("click", ".but", function(){
-          });
+              html = '',
+              success = false,
+              errors = false;
 
           for (var i = 0; i < fileList.length; i++) {
             var fileErrors = isValidFile(field, fileList[i]);
@@ -8010,20 +8006,20 @@ var formcorp = (function () {
               }
               html += '<div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="margin-right: 5px; float:left; cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
               actualValue.push(fileList[i]);
+              success = true;
             } else {
+              errors = true;
               var errorText = '';
+              var br = '';
               if (i != 0) {
-                errorText += '<span class="fc-file-upload-error"><br/>';
+                br = '<br/>';
               }
-              errorText += '<span class="fc-file-upload-error"><span style="color:rgb(240,0,0);">REJECTED:</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              errorText += '<span class="fc-file-upload-error">'+br+'<span style="color:rgb(240,0,0);">' + fc.lang.fileFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
               errorText += ' <span style="color:rgb(240,0,0);">';
               for (var j = 0; j < fileErrors.length; j++) {
                 errorText += fileErrors[j] + '. ';
               }
-              errorText += '</span></span>';
-              if (i != 0) {
-                errorText += '</span>';
-              }
+              errorText += '</span><span onclick="$(this).parent().remove();" style="font-size:60%; text-decoration:underline;cursor:pointer;"> Dismiss</span> </span>';
               html += errorText;
             }
           }
@@ -8031,8 +8027,20 @@ var formcorp = (function () {
           var inputField = $('#' + fieldId);
           inputField.val(JSON.stringify(actualValue));
           valueChanged(fieldId, JSON.stringify(actualValue));
-
           fileListBox.html(html);
+
+          if (success === true ||
+              (
+                typeof field.config !== undefined &&
+                field.config.required == false
+              )
+          ) {
+            removeFieldError(fieldId);
+            showFieldSuccess(fieldId);
+          } else {
+            showFieldError(fieldId, [ fc.lang.noValidFiles ]);
+            removeFieldSuccess(fieldId);
+          }
         };
 
 
@@ -8045,10 +8053,10 @@ var formcorp = (function () {
           return;
         }
 
-        fc.domContainer.on('click', '.fc-field-fileUpload', function () {
-          //setTimeout(function () {
+        fc.domContainer.on('click', '.fc-fieldinput-attachButton', function () {
+          setTimeout(function () {
             $('.fc-file-upload-error').remove();
-          //}, 2000);
+          }, 1000);
         });
 
         fc.registeredRemoveFileErrorListeners = true;
@@ -9691,13 +9699,6 @@ var formcorp = (function () {
                           field.val(value);
                           valueChanged(id, value);
                           buildFileList(id, value);
-                          var errors = getFieldErrors(id, value);
-                          if (errors.length > 0) {
-                            showFieldError(id, errors);
-                          } else {
-                            removeFieldError(id);
-                            showFieldSuccess(id);
-                          }
                         }
                       });
                     }
@@ -12573,7 +12574,12 @@ var formcorp = (function () {
                 invalidCardFormat: "The credit card you entered could not be recognised",
                 sendEmail: "Send email",
                 fieldValidated: "<p><i class=\"fa fa-check\"></i>Successfully verified</p>",
+                fileFieldErrorPrefix: "ERROR:",
                 fieldMustBeVerified: "You must first complete verification",
+                fileFieldTypeError: "Unaccepted file type. Available File Types: ",
+                fileFieldSizeError: "File is too large. Max File Size: ",
+                invalidFiles: "You have invalid files.",
+                noValidFiles: "You have no valid files.",
                 sendSms: "Re-Send SMS",
                 payNow: "Pay now",
                 creditCardSuccess: "<p>Your payment has successfully been processed.</p>",
