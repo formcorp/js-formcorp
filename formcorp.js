@@ -7957,7 +7957,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
 
-          html += '<input class="fc-fieldinput fc-fieldinput-attachButton" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+          html += '<input class="fc-fieldinput fc-fieldinput-attachButton" type="button" value="Attach File(s)" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
           html += '<div class="fc-file-list"></div>';
 
@@ -8003,25 +8003,19 @@ var formcorp = (function () {
           for (var i = 0; i < fileList.length; i++) {
             var fileErrors = isValidFile(field, fileList[i]);
             if (fileErrors.length == 0) {
-              if (i != 0) {
-                html += '<br/>';
-              }
-              html += '<div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="margin-right: 5px; float:left; cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              html += '<div class="fc-file-item"><div class="fc-delete-file-upload" data-file-list-key="' + i + '" data-for="' + fieldId + '" style="cursor:pointer;">&#10006;</div> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)</div>';
               actualValue.push(fileList[i]);
               success = true;
             } else {
               errors = true;
               var errorText = '';
               var br = '';
-              if (i != 0) {
-                br = '<br/>';
-              }
-              errorText += '<span class="fc-file-upload-error">'+br+'<span>' + fc.lang.fileFriendlyFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              errorText += '<div class="fc-file-item fc-file-item-error"><span class="fc-file-upload-error">'+br+'<span>' + fc.lang.fileFriendlyFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
               errorText += ' <span>';
               for (var j = 0; j < fileErrors.length; j++) {
                 errorText += fileErrors[j] + '. ';
               }
-              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parent().remove();" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span>';
+              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parent().remove();" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span></div>';
               html += errorText;
             }
           }
