@@ -7898,9 +7898,11 @@ var formcorp = (function () {
               }
             }
             if (field.config.fileTypes !== undefined && field.config.fileTypes.length > 0) {
-              var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',');
+              var fileTypesAllowed = field.config.fileTypes.toLowerCase().split(',').map(function(ext) {
+                return ext.replace(/\W/, '')
+              });
               if (fileTypesAllowed.indexOf(value.extension.toLowerCase()) == -1) {
-                errors.push(fc.lang.fileFieldTypeError + field.config.fileTypes);
+                errors.push('Unallowed file type. Accepted File Types: ' + fileTypesAllowed.join(', '));
               }
             }
           }
@@ -8014,7 +8016,7 @@ var formcorp = (function () {
               if (i != 0) {
                 br = '<br/>';
               }
-              errorText += '<span class="fc-file-upload-error">'+br+'<span style="color:rgb(240,0,0);">' + fc.lang.fileFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              errorText += '<span class="fc-file-upload-error">'+br+'<span>' + fc.lang.fileFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
               errorText += ' <span style="color:rgb(240,0,0);">';
               for (var j = 0; j < fileErrors.length; j++) {
                 errorText += fileErrors[j] + '. ';
