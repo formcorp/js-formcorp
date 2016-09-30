@@ -7902,7 +7902,7 @@ var formcorp = (function () {
                 return ext.replace(/\W/, '')
               });
               if (fileTypesAllowed.indexOf(value.extension.toLowerCase()) == -1) {
-                errors.push('Unallowed file type. Accepted File Types: ' + fileTypesAllowed.join(', '));
+                errors.push('is of unallowed file type. Accepted File Types: ' + fileTypesAllowed.join(', '));
               }
             }
           }
@@ -8016,12 +8016,12 @@ var formcorp = (function () {
               if (i != 0) {
                 br = '<br/>';
               }
-              errorText += '<span class="fc-file-upload-error">'+br+'<span>' + fc.lang.fileFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
-              errorText += ' <span style="color:rgb(240,0,0);">';
+              errorText += '<span class="fc-file-upload-error">'+br+'<span>' + fc.lang.fileFriendlyFieldErrorPrefix + '</span> ' + fileList[i].filename + ' (' + parseFloat(fileList[i].size/1000).toFixed(0) + ' KB)';
+              errorText += ' <span>';
               for (var j = 0; j < fileErrors.length; j++) {
                 errorText += fileErrors[j] + '. ';
               }
-              errorText += '</span><span onclick="$(this).parent().remove();" style="font-size:60%; text-decoration:underline;cursor:pointer;"> Dismiss</span> </span>';
+              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parent().remove();" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span>';
               html += errorText;
             }
           }
@@ -12577,6 +12577,7 @@ var formcorp = (function () {
                 sendEmail: "Send email",
                 fieldValidated: "<p><i class=\"fa fa-check\"></i>Successfully verified</p>",
                 fileFieldErrorPrefix: "ERROR:",
+                fileFriendlyFieldErrorPrefix: "We're sorry, but ",
                 fieldMustBeVerified: "You must first complete verification",
                 fileFieldTypeError: "Unaccepted file type. Available File Types: ",
                 fileFieldSizeError: "File is too large. Max File Size: ",
