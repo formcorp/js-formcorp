@@ -7959,6 +7959,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput fc-fieldinput-attachButton" type="button" value="Attach File(s)" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
+          html += '<div class="fc-progress-list" id="fc-progress-list-' +getId(field) + '"></div>'
           html += '<div class="fc-file-list"></div>';
 
           if (fc.registeredDeleteFileListeners !== true) {
@@ -9614,13 +9615,26 @@ var formcorp = (function () {
          *
          * @param file
          * @param i
+         * @param progressBar
          * @param callback
          */
-        function getBase64(file, i, callback) {
+        function getBase64(file, i, progressBar, callback) {
           var reader = new FileReader();
+          reader.onprogress = function(event) {
+            if (event.lengthComputable) {
+              console.log('file ' + i + ' total: ' + event.total);
+              console.log('file ' + i + ' loaded: ' + event.loaded);
+              var progress = ((parseFloat(event.loaded) / parseFloat(event.total)).toFixed(2) * 100)
+              console.log(progressBar);
+              console.log(progress);
+              if (event.loaded >= event.total) {
+                console.log('remove progress bar');
+              }
+            }
+          }
           reader.onload = function() {
             callback(reader.result, i);
-          };
+          }
           reader.onerror = function (error) {
             log('Error: ', error);
           };
@@ -9643,7 +9657,9 @@ var formcorp = (function () {
               valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
               valuesArray[i].size = files[i].size;
               valuesArray[i].field_id = id;
-              getBase64(files[i], i, function(v, i) {
+              var progressBar = '<progress class="fc-file-upload-progress" value="0" max="100"></progress>';
+              $('#fc-progress-list-' + id).append(progressBar);
+              getBase64(files[i], i, $(progressBar), function(v, i) {
                 base64Array[i] = v;
                 valuesArray[i].contents = v;
                 // Once base64Array.length = files.length then it means all uploaded files base64 data
