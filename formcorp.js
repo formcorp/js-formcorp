@@ -9653,13 +9653,15 @@ var formcorp = (function () {
           if (files.length > 0) {
             var valuesArray = [];
             var base64Array = [];
+            var progressBar = [];
             for (var i = 0; i < files.length; ++i) {
               valuesArray[i] = {};
               valuesArray[i].filename = files[i].name.replace(/^.*[\\\/]/, '');
               valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
               valuesArray[i].size = files[i].size;
               valuesArray[i].field_id = id;
-              var progressBar = $('<progress class="fc-file-upload-progress" value="0" max="100"></progress>');
+              var progressLabel = '<span>' + valuesArray[i].filename + '.' + valuesArray[i].extension + '</span>';
+              progressBar[i] = $(progressLabel + '<progress class="fc-file-upload-progress" value="0" max="100"></progress><br/>');
               $('#fc-progress-list-' + id).append(progressBar);
               getBase64(files[i], i, progressBar, function(v, i) {
                 base64Array[i] = v;
@@ -9715,15 +9717,16 @@ var formcorp = (function () {
                           buildFileList(id, value);
                         }
                       }, undefined, function() {
+                        var k = j;
                         var xhr = $.ajaxSettings.xhr() ;
                         // set the onprogress event handler
-                        xhr.upload.onprogress = function(evt){
-                          //console.log('progress', evt.loaded/evt.total*100)
-                          progressBar.attr('value', evt.loaded/evt.total*100)
+                        xhr.upload.onprogress = function(evt) {
+                          var value = evt.loaded / evt.total * 100;
+                          progressBar[k].attr('value', value);
                         } ;
                         // set the onload event handler
                         xhr.upload.onload = function() {
-                          progressBar.fadeOut(function() {
+                          progressBar[k].fadeOut(function() {
                             $(this).remove();
                           })
                         };
