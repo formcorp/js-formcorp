@@ -741,7 +741,7 @@ var formcorp = (function () {
            * @param callback
            * @param errorCallback
            */
-          api = function (uri, data, type, callback, errorCallback) {
+          api = function (uri, data, type, callback, errorCallback, xhr) {
             if (type === undefined || typeof type !== 'string' || ['GET', 'POST', 'PUT'].indexOf(type.toUpperCase()) === -1) {
               type = 'GET';
             }
@@ -797,7 +797,8 @@ var formcorp = (function () {
                 if (typeof errorCallback === 'function') {
                   errorCallback(data);
                 }
-              }
+              },
+              xhr: xhr
             });
           },
 
@@ -2329,7 +2330,7 @@ var formcorp = (function () {
 
             fc.midScroll = true;
 
-            $('html,body').animate({
+            $('html,body').stop(true, true).animate({
               scrollTop: offset + "px"
             }, fc.config.scrollDuration, function () {
               fc.midScroll = false;
@@ -8016,7 +8017,7 @@ var formcorp = (function () {
               for (var j = 0; j < fileErrors.length; j++) {
                 errorText += fileErrors[j] + '. ';
               }
-              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parent().remove();" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span></div>';
+              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parents(\'.fc-file-item\').remove();" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span></div>';
               html += errorText;
             }
           }
@@ -9620,19 +9621,19 @@ var formcorp = (function () {
          */
         function getBase64(file, i, progressBar, callback) {
           var reader = new FileReader();
-          reader.onprogress = function(event) {
-            if (event.lengthComputable) {
-              console.log('file ' + i + ' total: ' + event.total);
-              console.log('file ' + i + ' loaded: ' + event.loaded);
-              var progress = ((parseFloat(event.loaded) / parseFloat(event.total)).toFixed(2) * 100)
-              console.log(progressBar);
-              console.log(progress);
-              if (event.loaded >= event.total) {
-                console.log('remove progress bar');
-              }
-              progressBar.attr('value', progress);
-            }
-          }
+          // reader.onprogress = function(event) {
+          //   if (event.lengthComputable) {
+          //     console.log('file ' + i + ' total: ' + event.total);
+          //     console.log('file ' + i + ' loaded: ' + event.loaded);
+          //     var progress = ((parseFloat(event.loaded) / parseFloat(event.total)).toFixed(2) * 100)
+          //     console.log(progressBar);
+          //     console.log(progress);
+          //     if (event.loaded >= event.total) {
+          //       console.log('remove progress bar');
+          //     }
+          //     progressBar.attr('value', event.loaded);
+          //   }
+          // }
           reader.onload = function() {
             callback(reader.result, i);
           }
@@ -9658,7 +9659,7 @@ var formcorp = (function () {
               valuesArray[i].extension = valuesArray[i].filename.split('.').pop();
               valuesArray[i].size = files[i].size;
               valuesArray[i].field_id = id;
-              var progressBar = $('<progress class="fc-file-upload-progress" value="0" max="100">' + valuesArray[i].filename + '</progress>');
+              var progressBar = $('<progress class="fc-file-upload-progress" value="0" max="100"></progress>');
               $('#fc-progress-list-' + id).append(progressBar);
               getBase64(files[i], i, progressBar, function(v, i) {
                 base64Array[i] = v;
@@ -9713,6 +9714,20 @@ var formcorp = (function () {
                           valueChanged(id, value);
                           buildFileList(id, value);
                         }
+                      }, undefined, function() {
+                        var xhr = $.ajaxSettings.xhr() ;
+                        // set the onprogress event handler
+                        xhr.upload.onprogress = function(evt){
+                          //console.log('progress', evt.loaded/evt.total*100)
+                          progressBar.attr('value', evt.loaded/evt.total*100)
+                        } ;
+                        // set the onload event handler
+                        xhr.upload.onload = function() {
+                          progressBar.fadeOut(function() {
+                            $(this).remove();
+                          })
+                        };
+                        return xhr;
                       });
                     }
                   }
