@@ -7953,10 +7953,11 @@ var formcorp = (function () {
 
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
+          var fileTypes = typeof field.config.fileTypes === 'string' ? field.config.fileTypes.replace(/ /g, '') : '';
 
           html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
-          html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
+          html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" + accept=" ' + fileTypes + ' " />';
 
           html += '<input class="fc-fieldinput fc-fieldinput-attachButton" type="button" value="Attach File(s)" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
