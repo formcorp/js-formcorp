@@ -7949,7 +7949,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" />';
 
-          html += '<input class="fc-fieldinput" type="button" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+          html += '<input class="fc-fieldinput" formcorp-fileinput-id="' + getId(field) +'" type="button" id="fileinput-'+ getId(field) +'" value="Attach Files..." data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
           html += '<div class="fc-file-list"></div>';
 
@@ -7992,6 +7992,19 @@ var formcorp = (function () {
               fileListBox = dataGroup.find('.fc-file-list'),
               fileList = JSON.parse(value),
               html = '';
+
+
+          var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? true : false) : false;
+
+          if (multiple == false) {
+            if (fileList.length > 0) {
+              $('#fileinput-' + fieldId).prop('disabled', true);
+              $('#fileinput-' + fieldId).css('background-color', 'rgb(100,100,100)');
+            } else {
+              $('#fileinput-' + fieldId).prop('disabled', false);
+              $('#fileinput-' + fieldId).css('background-color', '');
+            }
+          }
 
           for (var i = 0; i < fileList.length; i++) {
             if (i != 0) {
