@@ -9581,15 +9581,35 @@ var formcorp = (function () {
          * @param callback
          */
         function getBase64(file, i, callback) {
-          var reader = new FileReader();
-          reader.onload = function() {
-            callback(reader.result, i);
-          };
-          reader.onerror = function (error) {
-            log('Error: ', error);
-          };
-          reader.readAsDataURL(file);
-        };
+          var fileSize = file.size;
+          var chunkSize = 64 * 1024; //bytes
+          var offset = 0;
+          var self = this;
+          var chunkReaderBlock = null;
+
+          var readEventHandler = function(e) {
+            if (e.target.error === null) {
+              offset += e.target.result.length;
+              callback(e.target.result, i);
+            } else {
+              log('Read error: ' + e.target.error);
+              return;
+            }
+            if (offset >= fileSize) {
+              log('Done reading file');
+              return;
+            }
+          }
+
+          chunkReaderBlock = function(_offset, length, _file) {
+            var r = new FileReader();
+            var blob = _file.slice(_offset, length + _offset);
+            r.onload = readEventHandler;
+            r.readAsDataURL(blob);
+          }
+
+          chunkReaderBlock(offset, chunkSize, file);
+        }
 
         /**
          * When a file is uploaded update the value
