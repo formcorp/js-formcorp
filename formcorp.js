@@ -7959,7 +7959,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" + accept=" ' + fileTypes + ' " />';
 
-          html += '<input class="fc-fieldinput fc-fieldinput-attachButton" type="button" value="Attach File(s)" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+          html += '<input class="fc-fieldinput fc-fieldinput-attachButton" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="Attach File(s)" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
 
           html += '<div class="fc-file-list"></div>';
           html += '<div class="fc-progress-list" id="fc-progress-list-' +getId(field) + '"></div>'
@@ -8003,6 +8003,18 @@ var formcorp = (function () {
               success = false,
               errors = false;
 
+          var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? true : false) : false;
+
+          if (multiple == false) {
+            if (fileList.length > 0) {
+              $('#fileinput-' + fieldId).prop('disabled', true);
+              $('#fileinput-' + fieldId).css('background-color', 'rgb(100,100,100)');
+            } else {
+              $('#fileinput-' + fieldId).prop('disabled', false);
+              $('#fileinput-' + fieldId).css('background-color', '');
+            }
+          }
+
           for (var i = 0; i < fileList.length; i++) {
             var fileErrors = isValidFile(field, fileList[i]);
             if (fileErrors.length == 0) {
@@ -8018,7 +8030,7 @@ var formcorp = (function () {
               for (var j = 0; j < fileErrors.length; j++) {
                 errorText += fileErrors[j] + '. ';
               }
-              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parents(\'.fc-file-item\').remove();" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span></div>';
+              errorText += '</span><span class="fc-dismiss-upload-error-message" onclick="$(this).parents(\'.fc-file-item\').remove(); $(\'#fileinput-' + fieldId +'\').prop(\'disabled\', false); $(\'#fileinput-' + fieldId +'\').css(\'background-color\', \'\');" style="text-decoration:underline;cursor:pointer;"> Dismiss</span> </span></div>';
               html += errorText;
             }
           }
@@ -9620,29 +9632,36 @@ var formcorp = (function () {
          * @param progressBar
          * @param callback
          */
-        function getBase64(file, i, progressBar, callback) {
-          var reader = new FileReader();
-          // reader.onprogress = function(event) {
-          //   if (event.lengthComputable) {
-          //     console.log('file ' + i + ' total: ' + event.total);
-          //     console.log('file ' + i + ' loaded: ' + event.loaded);
-          //     var progress = ((parseFloat(event.loaded) / parseFloat(event.total)).toFixed(2) * 100)
-          //     console.log(progressBar);
-          //     console.log(progress);
-          //     if (event.loaded >= event.total) {
-          //       console.log('remove progress bar');
-          //     }
-          //     progressBar.attr('value', event.loaded);
-          //   }
-          // }
-          reader.onload = function() {
-            callback(reader.result, i);
+        function getBase64(file, i, callback) {
+          var fileSize = file.size;
+          var chunkSize = 64 * 1024; //bytes
+          var offset = 0;
+          var self = this;
+          var chunkReaderBlock = null;
+
+          var readEventHandler = function(e) {
+            if (e.target.error === null) {
+              offset += e.target.result.length;
+              callback(e.target.result, i);
+            } else {
+              log('Read error: ' + e.target.error);
+              return;
+            }
+            if (offset >= fileSize) {
+              log('Done reading file');
+              return;
+            }
           }
-          reader.onerror = function (error) {
-            log('Error: ', error);
-          };
-          reader.readAsDataURL(file);
-        };
+
+          chunkReaderBlock = function(_offset, length, _file) {
+            var r = new FileReader();
+            var blob = _file.slice(_offset, length + _offset);
+            r.onload = readEventHandler;
+            r.readAsDataURL(blob);
+          }
+
+          chunkReaderBlock(offset, chunkSize, file);
+        }
 
         /**
          * When a file is uploaded update the value
@@ -9664,7 +9683,7 @@ var formcorp = (function () {
               var progressLabel = '<span>' + valuesArray[i].filename + '.' + valuesArray[i].extension + '</span>';
               progressBar[i] = $(progressLabel + '<progress class="fc-file-upload-progress" value="0" max="100"></progress><br/>');
               $('#fc-progress-list-' + id).append(progressBar);
-              getBase64(files[i], i, progressBar, function(v, i) {
+              getBase64(files[i], i, function(v, i) {
                 base64Array[i] = v;
                 valuesArray[i].contents = v;
                 // Once base64Array.length = files.length then it means all uploaded files base64 data
