@@ -7953,7 +7953,7 @@ var formcorp = (function () {
 
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
-          var fileTypes = typeof field.config.fileTypes === 'string' ? field.config.fileTypes.replace(/ /g, '') : '';
+          var fileTypes = typeof field.config.fileTypes === 'string' ? field.config.fileTypes.split(',').map(function(e){return '.'+e}).join(',') : '';
 
           html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
 
