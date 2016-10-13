@@ -12610,7 +12610,7 @@ var formcorp = (function () {
                 fileFriendlyFieldErrorPrefix: "We're sorry, but ",
                 fieldMustBeVerified: "You must first complete verification",
                 fileFieldTypeError: "Unaccepted file type. Available File Types: ",
-                fileFieldSizeError: "File is too large. Max File Size: ",
+                fileFieldSizeError: "We're sorry, the file you uploaded is too large. Max file size allowed: ",
                 invalidFiles: "You have invalid files.",
                 noValidFiles: "You have no valid files.",
                 sendSms: "Re-Send SMS",
