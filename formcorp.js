@@ -9634,7 +9634,7 @@ var formcorp = (function () {
          */
         function getBase64(file, i, callback) {
           var fileSize = file.size;
-          var chunkSize = 64 * 1024; //bytes
+          var chunkSize = 64 * 16384; //bytes
           var offset = 0;
           var self = this;
           var chunkReaderBlock = null;
