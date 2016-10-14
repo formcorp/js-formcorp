@@ -7895,7 +7895,7 @@ var formcorp = (function () {
           if (field.config !== undefined && (field.config.maxFileSize !== undefined || field.config.fileTypes !== undefined)) {
             if (field.config.maxFileSize !== undefined && $.isNumeric(field.config.maxFileSize) && field.config.maxFileSize > 0) {
               if ((value.size / 1000) > field.config.maxFileSize) {
-                errors.push(fc.lang.fileFieldSizeError + field.config.maxFileSize + 'KB');
+                errors.push(fc.lang.fileFieldSizeError + parseInt(field.config.maxFileSize / 1024) + 'MB');
               }
             }
             if (field.config.fileTypes !== undefined && field.config.fileTypes.length > 0) {
@@ -9704,6 +9704,26 @@ var formcorp = (function () {
                         file: valuesArray[j],
                         j: j
                       };
+
+                      var field = fc.fieldSchema[valuesArray[j].field_id]
+                      if(valuesArray[j].size > field.config.maxFileSize * 1024) {
+                          progressBar[i].fadeOut(function() {
+                            $(this).remove();
+                          });
+                          var fieldId = valuesArray[j].field_id;
+
+                          var value = JSON.stringify([{
+                              "filename":valuesArray[j].filename,
+                              "extension":valuesArray[j].extension,
+                              "size":valuesArray[j].size,
+                              "field_id":valuesArray[j].field_id
+                          }]);
+
+                          buildFileList(fieldId, value);
+
+                          continue;
+                      }
+
                       api('page/store-upload', fileData, 'post', function(data) {
                         if (typeof data === "object" && data.success === true && data.submission_values.upload_id.$id !== undefined) {
                           uploadData.push({
