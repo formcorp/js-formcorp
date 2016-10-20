@@ -6777,6 +6777,37 @@ var formcorp = (function () {
             }
           },
 
+          getPreviousPage = function() {
+            var filledFields = Object.keys(fc.fields);
+            var previousPages = getPreviousPages();
+            while(filledFields.length > 0) {
+              var last = filledFields.pop();
+              var lastFieldPageId = getFieldPageId(last);
+              if(lastFieldPageId !== fc.currentPage) {
+                var isInPreviousPages = getPreviousPages().filter(function(pageId) {
+                  return pageId == lastFieldPageId;
+                }).length;
+                if(isInPreviousPages > 0) {
+                  return lastFieldPageId;
+                }
+              }
+            }
+            return false;
+          },
+
+          getPreviousPages = function() {
+            var prev = [];
+            var collection = Object.keys(fc.pages);
+            var current = fc.currentPage;
+            for(var i = 1; i < collection.length; i++) {
+              prev.push(collection[i-1]);
+              if(collection[i] === current && i > 0) {
+                return prev;
+              }
+            }
+            return [];
+          },
+
           updateMobileFieldsVisibility,
           renderGrouplet,
           getNumericTagValue,
@@ -10478,7 +10509,7 @@ var formcorp = (function () {
           }
 
           fc.domContainer.trigger(fc.jsEvents.onPrevPage);
-          window.history.back();
+          render(getPreviousPage());
 
           return false;
         };
@@ -13295,4 +13326,6 @@ var formcorp = (function () {
 
     MODE_REVIEW: 'review'
   };
+
 }());
+
