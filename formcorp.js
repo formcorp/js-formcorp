@@ -6808,6 +6808,12 @@ var formcorp = (function () {
             return [];
           },
 
+          setCompletionCondition = function(pageId, callback) {
+            if(callback()) {
+              render(pageId);
+            }
+          },
+
           updateMobileFieldsVisibility,
           renderGrouplet,
           getNumericTagValue,
@@ -13095,6 +13101,8 @@ var formcorp = (function () {
           */
           setMode: setMode,
           getMode: getMode,
+
+          setCompletionCondition: setCompletionCondition,
 
           /**
            * Converts a string to camel case.
