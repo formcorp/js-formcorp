@@ -1255,3 +1255,8 @@ div.fc-container[data-mode="review"] input {
   -ms-user-select: none;
   user-select: none;
 }
+
+.fc-signed img {
+  max-width: 700px;
+  border: 2px solid #000;
+}

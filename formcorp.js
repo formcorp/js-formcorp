@@ -8237,8 +8237,17 @@ var formcorp = (function () {
                         if (data.data.data.signed_at > 0) {
                           $('.fc-field-digsigIframe').remove();
                           clearInterval(digsigCheck);
-                          html = '<span>You have successfully submitted your Digital Signature</span>';
-                          $('.fc-field-digsigCollect').append(html);
+                          var msg = 'You have successfully signed:';
+                          html = '<span>' + msg + '</span>';
+                          html += '<div class="fc-signed"><img src="' + data.data.data.signature.signature + '"></div>';
+                          var digSigDom = $('.fc-field-digsigCollect');
+                          if (digSigDom.html().indexOf(msg) == -1) {
+                            digSigDom.append(html);
+                          }
+
+                          // Close the modal
+                          var current = $.featherlight.current();
+                          current.close();
                         }
                       });
                     }, 1000);
@@ -11655,9 +11664,21 @@ var formcorp = (function () {
             }
           }
 
-          // Default to first page on form
+          // Default to first page on form (with no tags)
           /*jslint nomen: true*/
-          return fc.schema.stage[0].page[0]._id.$id;
+          if (typeof fc.tags !== 'object' || !$.isArray(fc.tags) || fc.tags.length == 0) {
+            return fc.schema.stage[0].page[0]._id.$id;
+          }
+
+          for (var stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
+            for (var pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
+              var page = fc.schema.stage[stageIterator].page[pageIterator];
+              if (typeof page.tags !== 'object' || !$.isArray(page.tags) || page.tags.length === 0 || hasTags(page.tags)) {
+                // No tags on this page, return
+                return page._id.$id;
+              }
+            }
+          }
           /*jslint nomen: false*/
         };
 
