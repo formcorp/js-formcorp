@@ -481,6 +481,23 @@ var formcorp = (function () {
             }
 
             if (fc.loadedLibs.length >= fc.libs2Load.length) {
+              // All the library files have been loaded, run the callbacks
+              if (fc.libsLoaded.length > 0) {
+                for (var i = 0; i < fc.libsLoaded.length; i += 1) {
+                  var field = fc.libsLoaded[i];
+
+                  // Call post loading callbacks
+                  if ($.isArray(fc.libraryCallbacks[field])) {
+                    for (var a = 0; a < fc.libraryCallbacks[field].length; a += 1) {
+                      var fn = fc.libraryCallbacks[field][a];
+                      if (typeof fn === 'function') {
+                        fn();
+                      }
+                    }
+                  }
+                }
+              }
+
               // If set to auto discover library files, initialise the render when all libs have loaded
               if (fc.config.autoDiscoverLibs) {
                 if (sessionRequiresVerification(data)) {
@@ -5207,31 +5224,13 @@ var formcorp = (function () {
               tmp,
               prePopulateFields;
 
-            // If the greenID was forced by the app, attempt to load/initialise it (at the moment, when a greenID is in an iterable field.
-            // there is no way to discern whether the greenID libs should be loaded. @todo: more intelligence)
-            if (typeof fc.config.forceGreenID === 'boolean') {
-              hasGreenId = fc.config.forceGreenID;
-            } else {
-              // Otherwise look throughout the schema for a greenID field - if it exists, initialise libs
-              for (fieldId in fc.fieldSchema) {
-                if (fc.fieldSchema.hasOwnProperty(fieldId) && fc.fieldSchema[fieldId].type === 'greenIdVerification') {
-                  hasGreenId = true;
-                  break;
-                }
-              }
-            }
-
             // If the form field has green id verification,
-            if (hasGreenId) {
-              // Initialise the worker and set the event listener
-              fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
-                fc.greenID = fcGreenID;
-                fc.greenID.init();
-                initGreenIdDOMFields();
-              });
-
-              loadJsFile(cdnUrl() + fc.constants.greenId.scriptPath);
-            }
+            // Initialise the worker and set the event listener
+            fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
+              fc.greenID = fcGreenID;
+              fc.greenID.init();
+              initGreenIdDOMFields();
+            });
 
             // Need to pre-populate fields with values that have already been entered. This needs to cater for both iterable fieldSchema
             // and basic identification fields. If part of a repeatable iterator, need to pull the values from the source id, otherwise
@@ -11834,7 +11833,18 @@ var formcorp = (function () {
             field = fields[fieldsIterator];
             if (typeof fc.requiredFieldLibraries[field] === 'object' && $.isArray(fc.requiredFieldLibraries[field]) && fc.requiredFieldLibraries[field].length > 0) {
               for (libIterator = 0; libIterator < fc.requiredFieldLibraries[field].length; libIterator += 1) {
+                // Call pre callbacks
+                if ($.isArray(fc.libraryPreCallbacks[field])) {
+                  for (var a = 0; a < fc.libraryPreCallbacks[field].length; a += 1) {
+                    var fn = fc.libraryPreCallbacks[field][a];
+                    if (typeof fn === 'function') {
+                      fn();
+                    }
+                  }
+                }
+
                 lib = fc.requiredFieldLibraries[field][libIterator];
+                fc.libsLoaded.push(field);
                 loadLib(lib);
                 ++libsLoaded;
               }
@@ -12125,6 +12135,18 @@ var formcorp = (function () {
                  isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
                ]
             };
+
+            // When libraries have finished, run the callback
+            this.libraryCallbacks = {};
+
+            // Post library callbacks
+            this.libraryPreCallbacks = {
+              'greenIdVerification': [
+                initGreenId
+              ]
+            };
+
+            this.libsLoaded = [];
 
             // Set default value for library files to load
             if (typeof this.libs2Load === 'undefined') {
