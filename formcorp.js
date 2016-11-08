@@ -6585,13 +6585,6 @@ var formcorp = (function () {
           },
 
           /**
-           * When the schema is loaded, initialise the greenID components
-           */
-          onSchemaLoaded = function () {
-            initGreenId();
-          },
-
-          /**
            * Flush the active page for a field (to be triggered when its value changes)
            * @param dataId
            * @param useDom
@@ -11811,9 +11804,6 @@ var formcorp = (function () {
           }
 
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
-
-          // Initialise the on schema loaded event
-          onSchemaLoaded();
         };
 
         /**
@@ -11966,7 +11956,6 @@ var formcorp = (function () {
 
           // On loaded
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
-          onSchemaLoaded();
         };
 
         /**
@@ -12131,6 +12120,9 @@ var formcorp = (function () {
               'digsigCollect': [
                  'lib/featherlight/featherlight.min.css',
                  'lib/featherlight/featherlight.min.js'
+               ],
+               'greenIdVerification': [
+                 isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
                ]
             };
 
@@ -12767,12 +12759,49 @@ var formcorp = (function () {
                     driversLicense: {
                       title: 'Drivers Licence',
                       body: 'Use your state issued driver\'s licence to help prove your identity.',
-                      icon: ''
+                      icon: '',
+                      dependencies: [
+                        'sources.driversLicense.act',
+                        'sources.driversLicense.nsw',
+                        'sources.driversLicense.nt',
+                        'sources.driversLicense.qld',
+                        'sources.driversLicense.sa',
+                        'sources.driversLicense.tas',
+                        'sources.driversLicense.vic',
+                        'sources.driversLicense.wa',
+                        'sources.driversLicense.act.dvs',
+                        'sources.driversLicense.nsw.dvs',
+                        'sources.driversLicense.nt.dvs',
+                        'sources.driversLicense.qld.dvs',
+                        'sources.driversLicense.sa.dvs',
+                        'sources.driversLicense.tas.dvs',
+                        'sources.driversLicense.vic.dvs',
+                        'sources.driversLicense.wa.dvs'
+                      ]
                     },
                     passport: {
                       title: 'Passport',
                       body: 'Help confirm your identity using the details on your Australian issued passport.',
-                      icon: ''
+                      icon: '',
+                      dependencies: [
+                        'sources.passport'
+                      ]
+                    },
+                    visa: {
+                      title: 'Visa',
+                      body: 'Help confirm your identity using the details on your Australian issued Visa',
+                      icon: '',
+                      dependencies: [
+                        'sources.visa'
+                      ]
+                    },
+                    passport: {
+                      title: 'Passport',
+                      body: 'Help confirm your identity using the details on your Australian issued passport.',
+                      icon: '',
+                      dependencies: [
+                        'sources.passport'
+                      ]
                     },
                     skip: {
                       title: 'Skip Verification',
