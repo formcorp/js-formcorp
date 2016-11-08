@@ -4621,7 +4621,7 @@ var formcorp = (function () {
                 html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + "</th></tr>";
 
                 for (key in value[iterator]) {
-                  if (value[iterator].hasOwnProperty(key)) {
+                  if (value[iterator].hasOwnProperty(key) && Array.isArray(value[iterator][key])) {
                     if (value[iterator][key].length > 0) {
                       if (key.indexOf(fc.constants.prefixSeparator) > -1) {
                         parts = key.split(fc.constants.prefixSeparator);
