@@ -11188,6 +11188,19 @@ var formcorp = (function () {
           },
 
           /**
+           * Expose UI controls to libraries
+           */
+          ui: {
+            renderDropdown: renderDropdown,
+            renderTextfield: renderTextfield
+          },
+
+          /**
+           * Retrieve the CDN URL in a function
+           */
+          getCdnUrl: cdnUrl,
+
+          /**
            * Set the API URL
            * @param url
            */
