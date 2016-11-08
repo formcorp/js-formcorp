@@ -10778,7 +10778,13 @@ var formcorp = (function () {
             };
 
             // When libraries have finished, run the callback
-            this.libraryCallbacks = {};
+            this.libraryCallbacks = {
+              'greenIdVerification': [
+                function () {
+                  fc.greenID.initGreenId();
+                }
+              ]
+            };
 
             // Post library callbacks
             this.libraryPreCallbacks = {
