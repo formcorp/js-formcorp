@@ -7208,6 +7208,7 @@ var formcorp = (function () {
          */
         initGreenIdFieldInDOM = function (field, prefix) {
           var html = '';
+          console.log('formcorp.js: initGreenIdFieldInm');
 
           // Force prefix to be a string
           if (typeof prefix !== 'string') {
@@ -7314,150 +7315,9 @@ var formcorp = (function () {
           // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
           var fieldId = prefix + getId(field);
           var value = getValue(fieldId);
+          var greenId = new fc.greenID.session(fieldId);
 
-          if (!bypass && (typeof value !== 'object' || typeof value.result === 'undefined' || typeof value.result.userId === 'undefined')) {
-            return initGreenIdFieldInDOM(field, prefix);
-          }
-
-          // If the credentials have changed (i.e. user has changed name, etc., need to re-verify)
-          var html = '',
-            summary,
-            options = [
-              {
-                class: "fc-drivers-license",
-                title: fc.lang.greenID.options.driversLicense.title,
-                desc: fc.lang.greenID.options.driversLicense.body,
-                icon: fc.lang.greenID.options.driversLicense.icon
-              },
-              {
-                class: "fc-passport-verification",
-                title: fc.lang.greenID.options.passport.title,
-                desc: fc.lang.greenID.options.passport.body,
-                icon: fc.lang.greenID.options.passport.icon
-              }
-            ],
-            optionString = '',
-            iterator,
-            contentListField,
-            packageHtml,
-            sourcesRequiredHtml,
-            packages,
-            fieldValue = value,
-            licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
-            licenseType;
-
-          if (getConfig(field, 'allowSkipping', true)) {
-            options.push({
-              class: "fc-skip-verification",
-              title: fc.lang.greenID.options.skip.title,
-              desc: fc.lang.greenID.options.skip.body,
-              icon: fc.lang.greenID.options.skip.icon
-            });
-          }
-
-          // Show a summary in the header
-          if (getConfig(field, 'showSummaryInHeader', false)) {
-            summary = greenIdFieldHeader(prefix + getId(field));
-            html += '<div class="fc-green-id-el fc-green-id-header-summary">' + summary + '</div>';
-          }
-
-          // Sources required
-          html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">' + fc.lang.greenID.html.completePrefix + '</p>';
-
-          // Already initialised
-          html += '<div class="fc-green-id-already-initialised-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.alreadyInitialised + '</div></div>';
-
-          // Skip text
-          html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.skipped + '</div></div>';
-
-          // Form the html
-          html += '<div class="fc-greenid-successfully-verified fc-green-id-el">' + fc.lang.greenID.html.completed + '</div>';
-
-          // Verification error html
-          html += '<div class="fc-greenid-verification-error fc-green-id-el">';
-          html += '<div class="alert alert-danger" role="alert"><strong>Uh oh!</strong> Unfortunately we weren\'t able to sufficiently verify your credentials to confirm your identity.</div>';
-          html += '<h5>What to do?</h5>';
-          html += '<p>Please verify the correctness of the details below. If you notice an error, please go back in the form to edit these details and try re-commencing verification.</p>';
-          html += '<h5>Please confirm the following details are correct: </h5>';
-          html += '<div class="fc-greenid-value-summary fc-green-id-el"></div>';
-          html += '<h5>They are correct, what do I do now?</h5>';
-          html += '<p>We\'ll have to attempt to verify you manually. Please attach a copy of your drivers licence and/or passport to your printed application and mail it through to us.</p>';
-          html += '</div>';
-
-          // Only show the options if the field was properly initialised
-          if (fieldValue !== undefined && typeof fieldValue.result === 'object' && Object.keys(fieldValue.result).length > 0) {
-            // Generate an options string
-            for (iterator = 0; iterator < options.length; iterator += 1) {
-              optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","' + options[iterator].icon + '", "","' + options[iterator].class + '"]' + "\n";
-            }
-
-            // Generate field obj
-            contentListField = {
-              '_id': {
-                '$id': prefix + getId(field) + '_rootSelection'
-              },
-              config: field.config
-            };
-
-            // Set default content list field options
-            contentListField.config.options = optionString;
-            contentListField.config.boxesPerRow = 3;
-            contentListField.config.buttonText = 'Select';
-
-            // Generate html for package selection
-            packageHtml = renderContentRadioList(contentListField);
-
-            // Add success messages
-            packages = $(packageHtml);
-            packages.find('.fc-content-content').append('<div class="fc-successfully-verified"> Successfully verified</div>');
-            packages.find('.fc-content-content').append('<div class="fc-locked-out-msg"> You have been locked out from using this data source.</div>');
-
-            // Iterates through all of the license types to see if that particular instance has been verified
-            if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-drivers-license').length > 0) {
-              for (iterator = 0; iterator < licenseServices.length; iterator += 1) {
-                licenseType = licenseServices[iterator];
-                if (typeof fieldValue.result.sources[licenseType] === 'object' && fieldValue.result.sources[licenseType].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources[licenseType].passed) > -1) {
-                  // Look to see if the source is verified
-                  packages.find('.fc-drivers-license').addClass('fc-verified');
-                } else if (typeof fieldValue.result.sources[licenseType] === 'object' && ['LOCKED_OUT', 'FAILED'].indexOf(fieldValue.result.sources[licenseType].state) > -1) {
-                  // Look to see if the source has been locked out
-                  packages.find('.fc-drivers-license').addClass('fc-locked-out');
-                }
-              }
-            }
-
-            // Check to see if passport should be checked
-            if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-passport-verification').length > 0) {
-              if (typeof fieldValue.result.sources['passport'] === 'object' && fieldValue.result.sources['passport'].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources['passport'].passed) > -1) {
-                packages.find('.fc-passport-verification').addClass('fc-verified');
-              } else if (typeof fieldValue.result.sources['passport'] === 'object' && ['LOCKED_OUT', 'FAILED'].indexOf(fieldValue.result.sources['passport'].state) > -1) {
-                // Look to see if the source has been locked out
-                packages.find('.fc-passport-verification').addClass('fc-locked-out');
-              }
-            }
-
-            // Check to see if visa should be checked
-            if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-visa-verification').length > 0) {
-              if (typeof fieldValue.result.sources['visa'] === 'object' && fieldValue.result.sources['visa'].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources['visa'].passed) > -1) {
-                packages.find('.fc-visa-verification').addClass('fc-verified');
-              } else if (typeof fieldValue.result.sources['visa'] === 'object' && ['LOCKED_OUT', 'FAILED'].indexOf(fieldValue.result.sources['visa'].state) > -1) {
-                // Look to see if the source has been locked out
-                packages.find('.fc-visa-verification').addClass('fc-locked-out');
-              }
-            }
-
-            // Show the packages and the progress bar
-            html += '<div class="fc-greenid-verification-packages fc-green-id-el">';
-            html += packages.prop('outerHTML');
-            html += '<div class="progress fc-greenid-progress fc-green-id-el"><div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0;">0%</div></div>';
-            html += '<div class="fc-greenid-error-summary fc-green-id-el"></div>';
-            html += '</div>';
-
-            // Render the options box
-            html += '<div class="fc-greenid-options fc-green-id-el"></div>';
-          }
-
-          return html;
+          return greenId.render();
         };
 
         /**
@@ -10773,7 +10633,8 @@ var formcorp = (function () {
                  'lib/featherlight/featherlight.min.js'
                ],
                'greenIdVerification': [
-                 isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
+                 isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js',
+                 'lib/green-id/green-id.css'
                ]
             };
 
