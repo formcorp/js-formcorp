@@ -5206,7 +5206,10 @@ var formcorp = (function () {
             if (greenIdFields.length > 0) {
               greenIdFields.each(function () {
                 var dataId = $(this).attr('fc-data-group');
-                fcGreenID.initGreenIdDOMField(dataId);
+                var session = fcGreenID.sessions[dataId];
+                if (typeof session === 'object') {
+                  session.init();
+                }
               });
             }
           },
