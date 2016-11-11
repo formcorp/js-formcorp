@@ -7320,7 +7320,7 @@ var formcorp = (function () {
           var value = getValue(fieldId);
           var greenId = new fc.greenID.session(fieldId);
 
-          return greenId.render();
+          return greenId.begin();
         };
 
         /**
