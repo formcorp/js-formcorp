@@ -196,7 +196,8 @@
   position: relative;
   height: 60px;
 }
-.fc-green-init-css > div {
+.fc-green-init-css > div,
+.fc-green-id .spinner {
   -ms-animation: fc-green-init-css 1s linear infinite;
   -moz-animation: fc-green-init-css 1s linear infinite;
   -webkit-animation: fc-green-init-css 1s linear infinite;
@@ -280,6 +281,10 @@
   border-radius: 4px;
 }
 
+.fc-green-id .child-container.with-submit {
+  border-radius: 4px 4px 0 0;
+}
+
 .fc-green-id .options.secondary li {
   list-style: none;
   float: left;
@@ -315,4 +320,50 @@
   width: 24px;
   height: 24px;
   background: url(images/close.svg) no-repeat;
+}
+
+.fc-green-id .source-submit {
+  background: #697f7f;
+  color: #fff;
+  text-align: center;
+  border-radius: 0 0 4px 4px;
+  min-height: 50px;
+}
+
+.fc-green-id .source-submit > div {
+  display: block;
+  line-height: 60px;
+}
+
+.fc-green-id .source-submit .submit {
+  display: block;
+}
+
+.fc-green-id .source-submit .verifying {
+  display: none;
+}
+
+.fc-green-id .source-submit.verifying .verifying {
+  display: block;
+}
+
+.fc-green-id .source-submit.verifying .verifying .container {
+  width: 150px;
+}
+
+.fc-green-id .source-submit.verifying .verifying .container .spinner {
+  width: 25px;
+  height: 25px;
+  border-width: 3px;
+  margin-top: 15px;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.fc-green-id .source-submit.verifying .verifying .container > * {
+  float: left;
+}
+
+.fc-green-id .source-submit.verifying .submit {
+  display: none;
 }
