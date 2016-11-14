@@ -480,7 +480,19 @@ var formcorp = (function () {
               data = fc.schemaData;
             }
 
-            if (fc.loadedLibs.length >= fc.libs2Load.length) {
+            // No way to check when CSS files are loaded, remove them
+            var libs = $.extend([], fc.libs2Load);
+            var re = /(?:\.([^.]+))?$/;
+            var ext;
+            for (var i = 0; i < libs.length; i += 1) {
+              ext = re.exec(libs[i])[1].toLowerCase();
+              if (ext !== 'js') {
+                delete libs[i];
+              }
+            }
+            libs = $.extend([], libs);
+
+            if (fc.loadedLibs.length >= libs.length) {
               // All the library files have been loaded, run the callbacks
               if (fc.libsLoaded.length > 0) {
                 for (var i = 0; i < fc.libsLoaded.length; i += 1) {
@@ -490,6 +502,8 @@ var formcorp = (function () {
                   if ($.isArray(fc.libraryCallbacks[field])) {
                     for (var a = 0; a < fc.libraryCallbacks[field].length; a += 1) {
                       var fn = fc.libraryCallbacks[field][a];
+                      console.log('call function for: ' + field);
+                      console.log(fn);
                       if (typeof fn === 'function') {
                         fn();
                       }
@@ -5220,11 +5234,19 @@ var formcorp = (function () {
            initGreenId = function () {
              // If the form field has green id verification,
              // Initialise the worker and set the event listener
+             if (typeof fc.initialisedGreenId === 'boolean' && fc.initialisedGreenId) {
+               return;
+             }
+             console.log('formcorp.js: initGreenId');
+
              fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
+               console.log('formcorp.js: onGreenIdLoaded');
                fc.greenID = fcGreenID;
                fc.greenID.init();
                initGreenIdDOMFields();
              });
+
+             fc.initialisedGreenId = true;
            },
 
           /**
@@ -7306,6 +7328,7 @@ var formcorp = (function () {
          */
         renderGreenIdField = function (field, prefix, bypass) {
           // Default bypass to false
+          console.log('formcorp.js: render greenid field');
           if (typeof bypass !== 'boolean') {
             bypass = false;
           }
@@ -10348,7 +10371,11 @@ var formcorp = (function () {
                 }
 
                 lib = fc.requiredFieldLibraries[field][libIterator];
-                fc.libsLoaded.push(field);
+                fc.libs2Load.push(lib);
+                if (fc.libsLoaded.indexOf(field) < 0) {
+                  // Only add if not already in
+                  fc.libsLoaded.push(field);
+                }
                 loadLib(lib);
                 ++libsLoaded;
               }
@@ -10636,6 +10663,7 @@ var formcorp = (function () {
                  'lib/featherlight/featherlight.min.js'
                ],
                'greenIdVerification': [
+                 'lib/green-id/lodash.core.min.js',
                  isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js',
                  'lib/green-id/green-id.css'
                ]
@@ -10645,12 +10673,13 @@ var formcorp = (function () {
             this.libraryCallbacks = {
               'greenIdVerification': [
                 function () {
+                  console.log('post callback');
                   fc.greenID.initGreenId();
                 }
               ]
             };
 
-            // Post library callbacks
+            // Pre library callbacks
             this.libraryPreCallbacks = {
               'greenIdVerification': [
                 initGreenId
