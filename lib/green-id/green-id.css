@@ -254,15 +254,13 @@
   clear: right;
 }
 
-.fc-green-id .options.primary ul li[data-status="available"] .icon {
+.fc-green-id .options.primary ul li .icon {
   width: 60px;
   height: 60px;
   margin: 25px auto 0 auto;
-  border-radius: 30px;
-  border: 4px solid #fff;
 }
 
-.fc-green-id .options.primary ul li[data-status="available"] .icon > div {
+.fc-green-id .options.primary ul li .icon > div {
   width: 100%;
   height: 100%;
 }
@@ -273,6 +271,14 @@
 
 .fc-green-id .options.primary ul li[data-status="available"] .icon > div {
   background: url(images/id-card.svg) no-repeat center center;
+}
+
+.fc-green-id .options.primary ul li[data-status="verified"] {
+  background: #3db878;
+}
+
+.fc-green-id .options.primary ul li[data-status="verified"] .icon > div {
+  background: url(images/check.svg) no-repeat center center;
 }
 
 .fc-green-id .child-container {
