@@ -367,3 +367,10 @@
 .fc-green-id .source-submit.verifying .submit {
   display: none;
 }
+
+.fc-green-id .status-bar .error {
+  border-top: 4px solid #ff8a75;
+  background: #ff4f30 url(images/warning.svg) 30px center no-repeat;
+  padding: 20px 20px 20px 80px;
+  color: #fff;
+}

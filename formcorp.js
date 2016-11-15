@@ -1064,6 +1064,11 @@ var formcorp = (function () {
 
               dataId = $(field).attr('formcorp-data-id');
 
+              if (typeof dataId === 'undefined') {
+                // If not data ID is found, return the dom value
+                return field.val();
+              }
+
               if (typeof fc.fieldSchema[dataId] !== 'undefined') {
                 if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
                   return parseMatrixField(field, true);
@@ -11150,6 +11155,11 @@ var formcorp = (function () {
           getValue: function (id) {
             return getValue(id);
           },
+
+          /**
+           * Retrieve a DOM field value
+           */
+          getFieldValue: getFieldValue,
 
           /**
            * Retrieve a field schema by ID
