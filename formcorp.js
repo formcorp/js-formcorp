@@ -3010,7 +3010,10 @@ var formcorp = (function () {
               type = 'password';
             }
 
-            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            // html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+
+            // // No placeholders!
+            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" id="fc-field-' + fieldId + '">';
 
             return html;
           },
@@ -5928,13 +5931,17 @@ var formcorp = (function () {
               }
             }
 
-            fieldHtml += '<div class="fc-fieldcontainer">';
+            var className = function(value) {
+              return (typeof value === 'string' && value.length > 0)?'fc-filled':'fc-pristine';
+            }(getValue(field._id.$id));
+
+            fieldHtml += '<div class="fc-fieldcontainer ' + className + '">';
 
             // Field label - don't show in this position for certain fields
             helpTitle = '';
             if (["creditCard"].indexOf(field.type) === -1) {
               if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
-                fieldHtml += '<label>';
+                fieldHtml += '<label for="fc-field-' + field._id.$id + '">';
                 fieldHtml += tokenise(field.config.label);
 
                 // Option to show labels on required fields
@@ -7476,7 +7483,7 @@ var formcorp = (function () {
           for (x = 0; x < sections.length; x += 1) {
             section = sections[x];
             sectionHtml = '<div class="fc-section fc-section-' + getId(section) + '" formcorp-data-id="' + getId(section) + '" data-form-state="' + fc.formState + '">';
-            sectionHtml += '<div class="fc-section-header">';
+            sectionHtml += '<div class="fc-section-container"><div class="fc-section-header">';
 
             if (typeof section.label === 'string' && section.label.length > 0) {
               sectionHtml += '<div class="fc-section-label">';
@@ -7510,7 +7517,7 @@ var formcorp = (function () {
             sectionHtml += '</div>';
 
             sectionHtml += '<div class="fc-section-end"></div>';
-            sectionHtml += '</div>';
+            sectionHtml += '</div></div>';
             html += sectionHtml;
           }
 
@@ -7530,9 +7537,10 @@ var formcorp = (function () {
          * @param page
          * @returns {string}
          */
-        renderPage = function (page) {
+        renderPage = function (page, isNextPage) {
           // Page details
-          var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '">',
+          var animation = (isNextPage)?'slideinnext 0.5s cubic-bezier(.22,.61,.36,1);':'slideinprev 0.5s cubic-bezier(.22,.61,.36,1)';
+          var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '" style="animation:' + animation + '"">',
             submitText = fc.lang.submitText,
             nextPageObj,
             submitClasses = ['fc-submit'];
@@ -7573,14 +7581,14 @@ var formcorp = (function () {
               if (fc.config.showPrevPageButton === true) {
                 if (typeof fc.prevPages[fc.pageId] === "object") {
                   pageDiv += '<div class="fc-prev-page">';
-                  pageDiv += '<input type="submit" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
+                  pageDiv += '<button type="button" class="fc-btn">' + fc.lang.prevButtonText + '</button>';
                   pageDiv += '</div>';
                 }
               }
 
               // Output the submit button
               pageDiv += '<div class="' + submitClasses.join(' ') + '">';
-              pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
+              pageDiv += '<button type="button" class="fc-btn">' + submitText + '</button>';
               pageDiv += '</div>';
             }
           }
@@ -7860,7 +7868,7 @@ var formcorp = (function () {
 
           // Store field schema locally
           updateFieldSchema(page.stage);
-          html += renderPage(page);
+          html += renderPage(page, isNextPage);
 
           if (!fc.config.onePage || isSubmitPage(page.page)) {
             // Show form in stages (if not one page, or if the submission page)
@@ -7902,6 +7910,7 @@ var formcorp = (function () {
 
           // Initialise greenID fields
           initGreenIdDOMFields();
+
         };
 
         /**
@@ -9043,7 +9052,7 @@ var formcorp = (function () {
 
           // Submit the form fields
           fc.domContainer.trigger(fc.jsEvents.onLoadingPageStart);
-          fc.domContainer.find('.fc-loading-screen').addClass('show');
+          //fc.domContainer.find('.fc-loading-screen').addClass('show');
 
           fc.preventNextPageLoad = true;
 
@@ -9059,7 +9068,7 @@ var formcorp = (function () {
               }
 
               fc.lastActivity = (new Date()).getTime();
-              fc.domContainer.find('.fc-loading-screen').removeClass('show');
+              //fc.domContainer.find('.fc-loading-screen').removeClass('show');
               fc.domContainer.trigger(fc.jsEvents.onLoadingPageEnd);
 
               // If 'critical' errors were returned (validation errors on required fields), need to alert the user
@@ -9096,7 +9105,12 @@ var formcorp = (function () {
               // Render the next page if available
               if (hasNextPage()) {
                 oldPage = fc.currentPage;
-                nextPage();
+                $('.fc-page-' + fc.currentPage).css({
+                  animation: 'slideoutnext 0.75s cubic-bezier(.22,.61,.36,1)',
+                });
+                setTimeout(function() {
+                  nextPage();
+                }, 750);
                 newPage = fc.currentPage;
 
                 if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
@@ -9161,7 +9175,13 @@ var formcorp = (function () {
               }
 
               // Form is deemed complete, output default completion message
-              $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+              // Creates the page animation
+              $('.fc-page-' + fc.currentPage).css({
+                animation: 'slideout 0.5s cubic-bezier(.22,.61,.36,1)',
+              });
+              setTimeout(function() {
+                $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+              }, 500);
               fc.domContainer.trigger(fc.jsEvents.onFormComplete);
               logEvent(fc.eventTypes.onFormComplete);
             } else {
@@ -9231,11 +9251,12 @@ var formcorp = (function () {
          */
         registerEventListeners = function () {
           // Submit a form page
-          fc.domContainer.on('click', 'div.fc-submit input[type=submit]', function () {
+          fc.domContainer.on('click', 'div.fc-submit button', function () {
             // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
             fc.nextPageButtonClicked = true;
 
             fc.functions.loadNextPage();
+
             return false;
           });
 
@@ -9247,8 +9268,13 @@ var formcorp = (function () {
           }
 
           // Previous page click
-          fc.domContainer.on('click', '.fc-prev-page', function () {
-            return fc.functions.loadPrevPage();
+          fc.domContainer.on('click', '.fc-prev-page button', function () {
+            $('.fc-page-' + fc.currentPage).css({
+              animation: 'slideoutprev 0.5s cubic-bezier(.22,.61,.36,1)',
+            });
+            setTimeout(function() {
+              return fc.functions.loadPrevPage();
+            }, 500);
           });
 
           // Description link clicks
@@ -10781,7 +10807,9 @@ var formcorp = (function () {
             this.libraryCallbacks = {
               'greenIdVerification': [
                 function () {
-                  fc.greenID.initGreenId();
+                  if(typeof fc.greenID.initGreenId === 'function')
+                    fc.greenID.initGreenId();
+                  return;
                 }
               ]
             };
