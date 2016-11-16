@@ -387,3 +387,12 @@
   padding: 20px 20px 20px 80px;
   color: #fff;
 }
+
+.fc-green-id.fatal-error {
+  background: #ff4f30 url(images/close.svg) center 20px no-repeat;
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+  padding: 90px 25px 30px 25px;
+  border-top: 4px solid #e34529;
+}
