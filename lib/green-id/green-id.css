@@ -380,3 +380,10 @@
   padding: 20px 20px 20px 80px;
   color: #fff;
 }
+
+.fc-green-id .status-bar .success {
+  border-top: 4px solid #7ccfa2;
+  background: #3db878 url(images/check.svg) 30px center no-repeat;
+  padding: 20px 20px 20px 80px;
+  color: #fff;
+}
