@@ -281,6 +281,14 @@
   background: url(images/check.svg) no-repeat center center;
 }
 
+.fc-green-id .options.primary ul li[data-status="locked-out"] {
+  background: #d6d6d6;
+}
+
+.fc-green-id .options.primary ul li[data-status="locked-out"] .icon > div {
+  background: url(images/lock.svg) no-repeat center center;
+}
+
 .fc-green-id .child-container {
   background: #fff;
   padding: 12px 15px;
