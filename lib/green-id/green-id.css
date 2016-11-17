@@ -396,3 +396,21 @@
   padding: 90px 25px 30px 25px;
   border-top: 4px solid #e34529;
 }
+
+
+.fc-green-id.large-success {
+  background: #3db878 url(images/check.svg) center 20px no-repeat;
+  color: #fff;
+  font-size: 16px;
+  text-align: center;
+  padding: 90px 25px 30px 25px;
+  border-top: 4px solid #36a36b;
+  position: relative;
+}
+
+.fc-green-id.large-success .close {
+  position: absolute;
+  left: 15px;
+  top: 15px;
+  background: url(images/arrow.svg) no-repeat;
+}
