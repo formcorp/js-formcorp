@@ -1382,6 +1382,7 @@ var formcorp = (function () {
             fc.domContainer.trigger(fc.jsEvents.onFieldError, [dataId, errors]);
 
             dataGroup.addClass('fc-error');
+            console.log('Show field error: ' + dataId);
 
             // If inline validation enabled, output error message(s)
             if (fc.config.inlineValidation === true) {
@@ -1848,17 +1849,20 @@ var formcorp = (function () {
             } else if (field.type === "greenIdVerification") {
               // Retrieve value from object, not DOM
               value = getValue(fieldId);
-
-              // Validate a Green ID field
-              if (fc.greenID === undefined) {
-                // Green ID has yet to be initialised
-                errors.push('Green ID has not been initialised.');
-              } else if (typeof value !== "object" || !fc.greenID.passesValidation(prefix + getId(field))) {
-                // Validation is allowed to pass
-                errors.push('You must verify your identity.');
+              var session = fc.greenID.session(fieldId);
+              if (typeof session === 'undefined') {
+                errors.push('GreenID has not been initialised for field');
               } else {
-                // Otherwise the verification is valid
-                skipCheck = true;
+                // Validate a Green ID field
+                var status = session.getApplicationStatus();
+                if (status === GREENID.STATE.PENDING) {
+                  errors.push('You must verify your identity.');
+                } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
+                  // Verified, do nothing
+                  skipCheck = true;
+                } else {
+                  errors.push('Please confirm your identity is verified.');
+                }
               }
             } else if (field.type === 'date') {
               var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;

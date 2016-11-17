@@ -414,3 +414,16 @@
   top: 15px;
   background: url(images/arrow.svg) no-repeat;
 }
+
+.fc-field-greenIdVerification .fc-error-text {
+  display: none;
+}
+
+.fc-field-greenIdVerification.fc-error .fc-error-text,
+.fc-green-id .verification-error {
+  border-top: 4px solid #ff8a75;
+  background: #ff4f30 url(images/warning.svg) 30px center no-repeat;
+  padding: 20px 20px 20px 80px;
+  color: #fff;
+  display: block;
+}
