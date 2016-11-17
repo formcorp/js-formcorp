@@ -5229,7 +5229,7 @@ var formcorp = (function () {
             if (greenIdFields.length > 0) {
               greenIdFields.each(function () {
                 var dataId = $(this).attr('fc-data-group');
-                var session = fcGreenID.sessions[dataId];
+                var session = fcGreenID.getSession(dataId);
                 if (typeof session === 'object') {
                   session.init();
                 }
