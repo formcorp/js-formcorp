@@ -5228,13 +5228,23 @@ var formcorp = (function () {
 
             if (greenIdFields.length > 0) {
               greenIdFields.each(function () {
-                var dataId = $(this).attr('fc-data-group');
+                var obj = $(this);
+                var dataId = obj.attr('fc-data-group');
+                var sectionId = obj.attr('fc-belongs-to');
+
+                if (obj.hasClass('fc-hide') || fc.domContainer.find('[formcorp-data-id="' + sectionId + '"]').hasClass('fc-hide')) {
+                  // If the field or section is hidden, don't render
+                  return;
+                }
+
+                if (fcGreenID.initialised.indexOf[dataId] >= 0) {
+                  // Already initialised, don't need to re-init
+                  return;
+                }
+
                 var session = fcGreenID.getSession(dataId);
-                console.log("GREENID VERIFICATION");
-                console.log(dataId);
-                console.log(session);
                 if (typeof session === 'object') {
-                  session.init();
+                  session.init(true, dataId);
                 }
               });
             }
@@ -7693,6 +7703,8 @@ var formcorp = (function () {
           flushSectionVisibility();
           flushFieldVisibility();
           updateMobileFieldsVisibility();
+
+          fc.domContainer.trigger(fc.jsEvents.onVisibilityChanged);
         };
 
         /**
@@ -10797,6 +10809,7 @@ var formcorp = (function () {
               onDynamicRowRemoved: 'onDynamicRowRemoved',
               onPreValueChange: 'onPreValueChange',
               onValueChanged: 'onValueChanged',
+              onVisibilityChanged: 'onVisibilityChanged',
               onFieldFocus: 'onFieldFocus',
               onFieldBlur: 'onFieldBlur',
               onCustomerAuthResult: 'onCustomerAuthResult',
@@ -11780,6 +11793,9 @@ var formcorp = (function () {
           getMode: getMode,
 
           setCompletionCondition: setCompletionCondition,
+
+          // Green ID
+          initGreenIdDOMFields: initGreenIdDOMFields,
 
           /**
            * Converts a string to camel case.
