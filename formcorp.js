@@ -5322,8 +5322,6 @@ var formcorp = (function () {
            * @return array
            */
           getTags = function () {
-            if(!fc.config.useTags)
-              return false;
             if (typeof fc.tags === 'undefined') {
               fc.tags = [];
             }
@@ -5338,8 +5336,6 @@ var formcorp = (function () {
            * @return boolean
            */
           objectHasTag = function (obj, key) {
-            if(!fc.config.useTags)
-              return false;
             if (typeof key !== 'string') {
               key = 'tags';
             }
@@ -5353,8 +5349,6 @@ var formcorp = (function () {
            * @return boolean
            */
           hasTag = function (tag) {
-            if(!fc.config.useTags)
-              return false;
             if (typeof tag !== 'string' || typeof fc.tags === 'undefined') {
               return false;
             }
@@ -5370,8 +5364,6 @@ var formcorp = (function () {
            * @return boolean
            */
           hasTags = function (tags) {
-            if(!fc.config.useTags)
-              return false
             if (typeof tags !== 'object' || !$.isArray(tags) || typeof fc.tags === 'undefined') {
               return false;
             }
@@ -5390,8 +5382,6 @@ var formcorp = (function () {
             * return @boolean
             */
           haveTags = function () {
-            if(!fc.config.useTags)
-              return false;
             return typeof fc.tags === 'object' && fc.tags.length > 0;
           },
 
@@ -5572,7 +5562,32 @@ var formcorp = (function () {
           removeAutoCompleteWidget,
           moveSelectionAutoCompleteWidget,
           enterSelectionAutoCompleteWidget,
-          selectRowAutoCompleteWidget;
+          selectRowAutoCompleteWidget,
+          util;
+
+          /**
+           * utility library
+           * @type {Object}
+           */
+          util = {
+            /**
+             * @param  array {array}
+             * @return {function}
+             */
+            inArray : function(array) {
+              /**
+               * @param  value {mixed}
+               * @return {boolean}
+               */
+              if(!Array.isArray(array))
+                return function(){return false};
+              return function(value) {
+                return (array.length > 0 && array.filter(function(t) {
+                  return value === t;
+                }).length > 0);
+              }/*(value, array)*/;
+            }
+          }
 
         /**
          * Load the libraries required for signature fields
@@ -7625,7 +7640,7 @@ var formcorp = (function () {
             }
 
             section = fc.sections[dataId];
-            if (objectHasTag(section)) {
+            if (fc.config.useTags && objectHasTag(section)) {
               // If the object has tags, check to see if it should be visible
               visible = hasTags(section.tags);
             }
@@ -7731,7 +7746,7 @@ var formcorp = (function () {
 
             // If field has a visibility configurative set, act on it
             field = fc.fieldSchema[dataId];
-            if (objectHasTag(field.config)) {
+            if (fc.config.useTags && objectHasTag(field.config)) {
               visible = hasTags(field.config.tags);
             }
 
@@ -7979,7 +7994,7 @@ var formcorp = (function () {
             stage = fc.schema.stage[x];
 
             // If the stage has field tags, check to see if it should be ignored
-            if (objectHasTag(stage) && !hasTags(stage.tags)) {
+            if (fc.config.useTags && objectHasTag(stage) && !hasTags(stage.tags)) {
               // Do nothing if has tags but they don't match
               continue;
             }
@@ -7990,7 +8005,7 @@ var formcorp = (function () {
                 if (typeof stage.page === 'object' && stage.page.length > 0) {
                   for (y = 0; y < stage.page.length; y += 1) {
                     if (foundPage && typeof pageToRender === 'undefined') {
-                      if (objectHasTag(stage.page[y])) {
+                      if (fc.config.useTags && objectHasTag(stage.page[y])) {
                         // If the object has tags, check to see if it should be rendered
                         if (hasTags(stage.page[y].tags)) {
                           pageToRender = stage.page[y];
@@ -8017,7 +8032,7 @@ var formcorp = (function () {
             // If the stage that is to be rendered has been found, do so
             if (typeof pageToRender === 'undefined' && foundStage && typeof stage.page === 'object' && stage.page.length > 0) {
               // Only mark this page as the one to render if it hasn't been previously defined
-              if (objectHasTag(stage.page[0])) {
+              if (fc.config.useTags && objectHasTag(stage.page[0])) {
                 // If the object has tags, check to see if it should be rendered
                 if (hasTags(stage.page[0].tags)) {
                   pageToRender = stage.page[0];
@@ -10231,7 +10246,7 @@ var formcorp = (function () {
           } catch (ignore) {
           }
 
-          if (objectHasTag(schema.config) && !hasTags(schema.config.tags)) {
+          if (fc.config.useTags && objectHasTag(schema.config) && !hasTags(schema.config.tags)) {
             // If the object has tags, check to see if it should be visible
             return true;
           }
@@ -10335,20 +10350,22 @@ var formcorp = (function () {
 
           // Default to first page on form (with no tags)
           /*jslint nomen: true*/
-          return fc.schema.stage[0].page[0]._id.$id;
-          // if (typeof fc.tags !== 'object' || !$.isArray(fc.tags) || fc.tags.length == 0) {
-          //   return fc.schema.stage[0].page[0]._id.$id;
-          // }
+          if(!fc.config.useTags)
+            return fc.schema.stage[0].page[0]._id.$id;
 
-          // for (var stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
-          //   for (var pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
-          //     var page = fc.schema.stage[stageIterator].page[pageIterator];
-          //     if (typeof page.tags !== 'object' || !$.isArray(page.tags) || page.tags.length === 0 || hasTags(page.tags)) {
-          //       // No tags on this page, return
-          //       return page._id.$id;
-          //     }
-          //   }
-          // }
+          if (typeof fc.tags !== 'object' || !$.isArray(fc.tags) || fc.tags.length == 0) {
+            return fc.schema.stage[0].page[0]._id.$id;
+          }
+
+          for (var stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
+            for (var pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
+              var page = fc.schema.stage[stageIterator].page[pageIterator];
+              if (typeof page.tags !== 'object' || !$.isArray(page.tags) || page.tags.length === 0 || hasTags(page.tags)) {
+                // No tags on this page, return
+                return page._id.$id;
+              }
+            }
+          }
           /*jslint nomen: false*/
         };
 
@@ -10470,9 +10487,7 @@ var formcorp = (function () {
             });
           });
 
-          // data.stage[0].page[0].tags = ['merchant']
-
-          var t = function(tag, stages) {
+          /*var t = function(tag, stages) {
             return stages.reduce(function(a, b) {
               return a.concat(function(tag, stage) {
                 return function(tag, pages) {
@@ -10482,8 +10497,22 @@ var formcorp = (function () {
                         return (tags.length > 0 && tags.filter(function(t) {
                           return tag === t;
                         }).length > 0);
-                      }(tag, page.tags);
+                      }(tag, page.tags || '');
                     }(tag, page);
+                  });
+                }(tag, stage.page);
+              }(tag, b));
+            }, []);
+          }('merchant', data.stage);*/
+
+          var t = function(tag, stages) {
+            return stages.reduce(function(a, b) {
+              return a.concat(function(tag, stage) {
+                return function(tag, pages) {
+                  return pages.filter(function(page) {
+                    console.log(page);
+                    console.log(tag);
+                    return fc.util.inArray(page.tags)(tag);
                   });
                 }(tag, stage.page);
               }(tag, b));
@@ -10826,6 +10855,7 @@ var formcorp = (function () {
             this.intervals = [];
             this.loadedLibs = [];
             this.languagePacks = {};
+            this.util = util;
 
             // This allows the users/apps to override core functions within the SDK
             this.functions = {
