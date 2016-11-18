@@ -5230,6 +5230,9 @@ var formcorp = (function () {
               greenIdFields.each(function () {
                 var dataId = $(this).attr('fc-data-group');
                 var session = fcGreenID.getSession(dataId);
+                console.log("GREENID VERIFICATION");
+                console.log(dataId);
+                console.log(session);
                 if (typeof session === 'object') {
                   session.init();
                 }
