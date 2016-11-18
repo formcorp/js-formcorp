@@ -5322,6 +5322,8 @@ var formcorp = (function () {
            * @return array
            */
           getTags = function () {
+            if(!fc.config.useTags)
+              return false;
             if (typeof fc.tags === 'undefined') {
               fc.tags = [];
             }
@@ -5336,6 +5338,8 @@ var formcorp = (function () {
            * @return boolean
            */
           objectHasTag = function (obj, key) {
+            if(!fc.config.useTags)
+              return false;
             if (typeof key !== 'string') {
               key = 'tags';
             }
@@ -5349,6 +5353,8 @@ var formcorp = (function () {
            * @return boolean
            */
           hasTag = function (tag) {
+            if(!fc.config.useTags)
+              return false;
             if (typeof tag !== 'string' || typeof fc.tags === 'undefined') {
               return false;
             }
@@ -5364,6 +5370,8 @@ var formcorp = (function () {
            * @return boolean
            */
           hasTags = function (tags) {
+            if(!fc.config.useTags)
+              return false
             if (typeof tags !== 'object' || !$.isArray(tags) || typeof fc.tags === 'undefined') {
               return false;
             }
@@ -5382,6 +5390,8 @@ var formcorp = (function () {
             * return @boolean
             */
           haveTags = function () {
+            if(!fc.config.useTags)
+              return false;
             return typeof fc.tags === 'object' && fc.tags.length > 0;
           },
 
@@ -10325,19 +10335,20 @@ var formcorp = (function () {
 
           // Default to first page on form (with no tags)
           /*jslint nomen: true*/
-          if (typeof fc.tags !== 'object' || !$.isArray(fc.tags) || fc.tags.length == 0) {
-            return fc.schema.stage[0].page[0]._id.$id;
-          }
+          return fc.schema.stage[0].page[0]._id.$id;
+          // if (typeof fc.tags !== 'object' || !$.isArray(fc.tags) || fc.tags.length == 0) {
+          //   return fc.schema.stage[0].page[0]._id.$id;
+          // }
 
-          for (var stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
-            for (var pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
-              var page = fc.schema.stage[stageIterator].page[pageIterator];
-              if (typeof page.tags !== 'object' || !$.isArray(page.tags) || page.tags.length === 0 || hasTags(page.tags)) {
-                // No tags on this page, return
-                return page._id.$id;
-              }
-            }
-          }
+          // for (var stageIterator = 0; stageIterator < fc.schema.stage.length; stageIterator += 1) {
+          //   for (var pageIterator = 0; pageIterator < fc.schema.stage[stageIterator].page.length; pageIterator += 1) {
+          //     var page = fc.schema.stage[stageIterator].page[pageIterator];
+          //     if (typeof page.tags !== 'object' || !$.isArray(page.tags) || page.tags.length === 0 || hasTags(page.tags)) {
+          //       // No tags on this page, return
+          //       return page._id.$id;
+          //     }
+          //   }
+          // }
           /*jslint nomen: false*/
         };
 
@@ -10450,6 +10461,38 @@ var formcorp = (function () {
          * @param data object
          */
         initRender = function (data) {
+          var pages = [];
+          var stages = data.stage;
+
+          stages.forEach(function(stage) {
+            stage.page.forEach(function(page) {
+              pages.push(page);
+            });
+          });
+
+          // data.stage[0].page[0].tags = ['merchant']
+
+          var t = function(tag, stages) {
+            return stages.reduce(function(a, b) {
+              return a.concat(function(tag, stage) {
+                return function(tag, pages) {
+                  return pages.filter(function(page) {
+                    return function(tag, page) {
+                      return function(tag, tags) {
+                        return (tags.length > 0 && tags.filter(function(t) {
+                          return tag === t;
+                        }).length > 0);
+                      }(tag, page.tags);
+                    }(tag, page);
+                  });
+                }(tag, stage.page);
+              }(tag, b));
+            }, []);
+          }('merchant', data.stage);
+
+          console.log(data.stage[0], t);
+          console.log(pages);
+
           var firstPageId;
 
           // Render the opening page for the form
@@ -11307,6 +11350,7 @@ var formcorp = (function () {
             // Default values
             this.config = {
               debug: false,
+              useTags: true,
               analytics: true,
               realTimeValidation: true,
               inlineValidation: true,
