@@ -5563,7 +5563,18 @@ var formcorp = (function () {
           moveSelectionAutoCompleteWidget,
           enterSelectionAutoCompleteWidget,
           selectRowAutoCompleteWidget,
+          getPagesByTag,
           util;
+
+          /**
+           * return the list of pages which have the tag
+           * @return {[function]}
+           */
+          getPagesByTag = function(schema) {
+            return function(tag) {
+
+            }
+          };
 
           /**
            * utility library
@@ -10481,12 +10492,6 @@ var formcorp = (function () {
           var pages = [];
           var stages = data.stage;
 
-          stages.forEach(function(stage) {
-            stage.page.forEach(function(page) {
-              pages.push(page);
-            });
-          });
-
           /*var t = function(tag, stages) {
             return stages.reduce(function(a, b) {
               return a.concat(function(tag, stage) {
@@ -10505,22 +10510,19 @@ var formcorp = (function () {
             }, []);
           }('merchant', data.stage);*/
 
-          var t = function(tag, stages) {
-            return stages.reduce(function(a, b) {
-              return a.concat(function(tag, stage) {
-                return function(tag, pages) {
-                  return pages.filter(function(page) {
-                    console.log(page);
-                    console.log(tag);
+          var t = function(stages) {
+            return function(tag) {
+              return stages.reduce(function(a, b) {
+                return a.concat(function(stage) {
+                  return stage.page.filter(function(page) {
                     return fc.util.inArray(page.tags)(tag);
                   });
-                }(tag, stage.page);
-              }(tag, b));
-            }, []);
-          }('merchant', data.stage);
+                }(b));
+              }, []);
+            }
+          };
 
-          console.log(data.stage[0], t);
-          console.log(pages);
+          console.log('t', t(stages)('merchant'));
 
           var firstPageId;
 
