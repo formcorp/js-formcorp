@@ -5444,9 +5444,19 @@ var formcorp = (function () {
           },
 
           getPreviousPages = function(_fc) {
+
             if(typeof _fc !== 'object')
               _fc = fc;
-            return _fc.prevPages || [];
+
+            var prev = [];
+            var pageId = _fc.currentPage;
+
+            while(_fc.prevPages[pageId]) {
+              prev.push(_fc.prevPages[pageId]);
+              pageId = _fc.prevPages[pageId].page._id.$id;
+            }
+
+            return prev || [];
 
             // var prev = [];
             // var collection = Object.keys(fc.pages);
@@ -5460,10 +5470,13 @@ var formcorp = (function () {
             // return [];
           },
 
-          getPreviousPage = function(_fc) {
+          getPreviousPage = function(pageId, _fc) {
 
             if(typeof _fc !== 'object')
               _fc = fc;
+
+            if(typeof pageId !== 'string')
+              pageId = _fc.currentPage;
 
             var filledFields = Object.keys(_fc.fields);
             var previousPages = Object.keys(_fc.prevPages);
@@ -5473,19 +5486,32 @@ var formcorp = (function () {
             if(previousPages.length < 1)
               return false;
 
-            while(filledFields.length > 0) {
-              var last = filledFields.pop();
-              var lastFieldPageId = getFieldPageId(last);
-              if(lastFieldPageId !== _fc.currentPage) {
-                var isInPreviousPages = previousPages.filter(function(pageId) {
-                  return pageId == lastFieldPageId;
-                }).length;
-                if(isInPreviousPages > 0) {
-                  return lastFieldPageId;
-                }
-              }
+            // while(filledFields.length > 0) {
+            //   var last = filledFields.pop();
+            //   var lastFieldPageId = getFieldPageId(last);
+            //   if(lastFieldPageId !== _fc.currentPage) {
+            //     var isInPreviousPages = previousPages.filter(function(pageId) {
+            //       return pageId == lastFieldPageId;
+            //     }).length;
+            //     if(isInPreviousPages > 0) {
+            //       return lastFieldPageId;
+            //     }
+            //   }
+            // }
+
+            return (typeof _fc.prevPages[pageId] === 'object')?_fc.prevPages[pageId].page._id.$id:false;
+          },
+
+          getNextPages = function(pageId) {
+            if(typeof pageId === 'undefined')
+              pageId = fc.currentPage;
+            var a = [];
+            var page = nextPage(false, true, getPageById(pageId));
+            while(page && page.page.completion === '0') {
+              a.push(page)
+              page = nextPage(false, true, page.page._id.$id);
             }
-            return false;
+            return a;
           },
 
           setCompletionCondition = function(pageId, callback) {
@@ -5578,7 +5604,108 @@ var formcorp = (function () {
           enterSelectionAutoCompleteWidget,
           selectRowAutoCompleteWidget,
           getPagesByTag,
+          progressBar,
           util;
+
+          progressBar = function(schema) {
+            return {
+              schema: schema,
+              hash: function(schema) {
+                var a = {};
+                var i = 0;
+                for(var label in schema) {
+                  i++;
+                  for(var page in schema[label]) {
+                    a[page] = {
+                      label: schema[label][page]||label,
+                      index: i,
+                      step: schema[label]
+                    }
+                  }
+                }
+                return a;
+              }(schema),
+              getStep: function(pageId) {
+                return this.hash[pageId].step;
+              },
+              stepCount: function(schema) {
+                var c = 0;
+                for(var i in schema) {
+                  c++;
+                }
+                return c;
+              }(schema),
+              init: function() {
+                this.currentPage = fc.currentPage;
+                this.currentStep = this.getStep(fc.currentPage);
+                this.currentStepNumber = this.hash[fc.currentPage].index;
+                console.log('progress bar, YO!', this.hash);
+                this.renderContainer();
+                this.render();
+              },
+              setPage: function(pageId) {
+
+              },
+              $barContainer: null,
+              $bar: null,
+              $stepCount: null,
+              $stepsBar: null,
+              renderContainer: function() {
+                this.$stepCount = $('<div class="fc-step-count"></div>');
+                this.$stepsBar = $('<div class="fc-steps-bar"></div>');
+                this.$bar = $('<div class="fc-progress-bar"></div>');
+                this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$bar.append(this.$stepCount).append(this.$stepsBar));
+
+                fc.domContainer.before(this.$barContainer);
+                console.log(this.schema);
+              },
+              render: function() {
+                var html = '';
+                var c = 0;
+                for(var label in this.schema) {
+                  html += this.renderSteps(c, this.stepCount, label);
+                  c++;
+                }
+                console.log(this.$stepsBar)
+                this.$stepsBar.html(html);
+              },
+              groupLabelAlignment: function(order, count) {
+                if(order < count / 2)
+                  return 'fc-pb-group-label-pull-right';
+                return 'fc-pb-group-label-pull-left';
+              },
+              renderProgressBar: function() {
+
+              },
+              groupStatusClasses: function(order, currentOrder) {
+                if(order === currentOrder)
+                  return 'progress-bar-group progress-bar-current-group';
+
+                if(order < currentOrder)
+                  return 'progress-bar-group complete';
+
+                return 'progress-bar-group uncomplete';
+              },
+              renderSteps: function(curr, count, label) {
+                var left = curr / (count -1) * 100;
+                var translate = left - 100;
+                var classList = '';
+                return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="progress-bar-group ' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
+              }
+            }
+          }({
+            'Welcome': {
+              '582bdc0f5acf70ce478b4d32': 'Page 1',
+            },
+            'About you': {
+              '582be50f5acf707f488b491f': 'Page 2',
+              '582be64a5acf70d4488b4620': 'Page 3',
+              '582be6b246fde2b9458b502c': 'Page 4',
+            },
+            'Step 3': {
+              '582e7a635acf70e3648b55d6': 'Page 5',
+            }
+          });
 
           /**
            * return the list of pages which have the tag
@@ -7924,7 +8051,7 @@ var formcorp = (function () {
 
           // Store the previous page
           if (isNextPage === true && fc.currentPage !== undefined) {
-            fc.prevPages[fc.currentPage] = getPageById(fc.currentPage);
+            fc.prevPages[pageId] = getPageById(fc.currentPage);
           }
 
           // Update the current page on render
@@ -9275,7 +9402,7 @@ var formcorp = (function () {
           var previousPageId = getPreviousPage();
           render(previousPageId);
 
-          return delete(fc.prevPages[previousPageId]);
+          //return delete(fc.prevPages[previousPageId]);
 
           return false;
         };
@@ -10484,7 +10611,7 @@ var formcorp = (function () {
                 /*jslint nomen: true*/
                 id = nextPageObj.page._id.$id;
                 /*jslint nomen: false*/
-                fc.prevPages[page.page._id.$id] = page.page;
+                fc.prevPages[id] = page;
 
                 // If next page is a submit page, do not render it
                 if (isSubmitPage(nextPageObj.page) === true) {
@@ -10535,6 +10662,10 @@ var formcorp = (function () {
               }
             }
           }
+
+          console.log('previous pages:', getPreviousPages());
+          console.log('current page:', getPageById(fc.currentPage));
+          console.log('next pages:', getNextPages());
 
           if (fc.mode === formcorp.MODE_REVIEW) {
             readOnly();
@@ -10856,6 +10987,8 @@ var formcorp = (function () {
             this.languagePacks = {};
             this.getPagesByTag = getPagesByTag;
             this.util = util;
+
+            this.progressBar = progressBar;
 
             // This allows the users/apps to override core functions within the SDK
             this.functions = {
