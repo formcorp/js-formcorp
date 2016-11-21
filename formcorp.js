@@ -5443,14 +5443,41 @@ var formcorp = (function () {
             }
           },
 
-          getPreviousPage = function() {
-            var filledFields = Object.keys(fc.fields);
-            var previousPages = getPreviousPages();
+          getPreviousPages = function(_fc) {
+            if(typeof _fc !== 'object')
+              _fc = fc;
+            return _fc.prevPages || [];
+
+            // var prev = [];
+            // var collection = Object.keys(fc.pages);
+            // var current = fc.currentPage;
+            // for(var i = 1; i < collection.length; i++) {
+            //   prev.push(collection[i-1]);
+            //   if(collection[i] === current && i > 0) {
+            //     return prev;
+            //   }
+            // }
+            // return [];
+          },
+
+          getPreviousPage = function(_fc) {
+
+            if(typeof _fc !== 'object')
+              _fc = fc;
+
+            var filledFields = Object.keys(_fc.fields);
+            var previousPages = Object.keys(_fc.prevPages);
+
+            if(!Array.isArray(previousPages))
+              return false;
+            if(previousPages.length < 1)
+              return false;
+
             while(filledFields.length > 0) {
               var last = filledFields.pop();
               var lastFieldPageId = getFieldPageId(last);
-              if(lastFieldPageId !== fc.currentPage) {
-                var isInPreviousPages = getPreviousPages().filter(function(pageId) {
+              if(lastFieldPageId !== _fc.currentPage) {
+                var isInPreviousPages = previousPages.filter(function(pageId) {
                   return pageId == lastFieldPageId;
                 }).length;
                 if(isInPreviousPages > 0) {
@@ -5459,19 +5486,6 @@ var formcorp = (function () {
               }
             }
             return false;
-          },
-
-          getPreviousPages = function() {
-            var prev = [];
-            var collection = Object.keys(fc.pages);
-            var current = fc.currentPage;
-            for(var i = 1; i < collection.length; i++) {
-              prev.push(collection[i-1]);
-              if(collection[i] === current && i > 0) {
-                return prev;
-              }
-            }
-            return [];
           },
 
           setCompletionCondition = function(pageId, callback) {
@@ -5572,7 +5586,13 @@ var formcorp = (function () {
            */
           getPagesByTag = function(schema) {
             return function(tag) {
-
+              return schema.stage.reduce(function(a, b) {
+                return a.concat(function(stage) {
+                  return stage.page.filter(function(page) {
+                    return fc.util.inArray(page.tags)(tag);
+                  });
+                }(b));
+              }, []);
             }
           };
 
@@ -5585,19 +5605,27 @@ var formcorp = (function () {
              * @param  array {array}
              * @return {function}
              */
-            inArray : function(array) {
+            inArray: function(array) {
               /**
                * @param  value {mixed}
                * @return {boolean}
                */
               if(!Array.isArray(array))
                 return function(){return false};
+
               return function(value) {
                 return (array.length > 0 && array.filter(function(t) {
                   return value === t;
                 }).length > 0);
-              }/*(value, array)*/;
-            }
+              }
+            },
+            arrayFrom: function(obj) {
+              var a = [];
+              for(var key in obj) {
+                a.push(obj[key]);
+              }
+              return a;
+            },
           }
 
         /**
@@ -7615,7 +7643,7 @@ var formcorp = (function () {
 
               // Show the prev stage button
               if (fc.config.showPrevPageButton === true) {
-                if (typeof fc.prevPages[fc.pageId] === "object") {
+                if (typeof getPageById(getPreviousPage()) === "object") {
                   pageDiv += '<div class="fc-prev-page">';
                   pageDiv += '<button type="button" class="fc-btn">' + fc.lang.prevButtonText + '</button>';
                   pageDiv += '</div>';
@@ -7896,7 +7924,7 @@ var formcorp = (function () {
 
           // Store the previous page
           if (isNextPage === true && fc.currentPage !== undefined) {
-            fc.prevPages[pageId] = getPageById(fc.currentPage);
+            fc.prevPages[fc.currentPage] = getPageById(fc.currentPage);
           }
 
           // Update the current page on render
@@ -9244,7 +9272,10 @@ var formcorp = (function () {
           }
 
           fc.domContainer.trigger(fc.jsEvents.onPrevPage);
-          render(getPreviousPage());
+          var previousPageId = getPreviousPage();
+          render(previousPageId);
+
+          return delete(fc.prevPages[previousPageId]);
 
           return false;
         };
@@ -10453,7 +10484,7 @@ var formcorp = (function () {
                 /*jslint nomen: true*/
                 id = nextPageObj.page._id.$id;
                 /*jslint nomen: false*/
-                fc.prevPages[id] = page;
+                fc.prevPages[page.page._id.$id] = page.page;
 
                 // If next page is a submit page, do not render it
                 if (isSubmitPage(nextPageObj.page) === true) {
@@ -10489,40 +10520,6 @@ var formcorp = (function () {
          * @param data object
          */
         initRender = function (data) {
-          var pages = [];
-          var stages = data.stage;
-
-          /*var t = function(tag, stages) {
-            return stages.reduce(function(a, b) {
-              return a.concat(function(tag, stage) {
-                return function(tag, pages) {
-                  return pages.filter(function(page) {
-                    return function(tag, page) {
-                      return function(tag, tags) {
-                        return (tags.length > 0 && tags.filter(function(t) {
-                          return tag === t;
-                        }).length > 0);
-                      }(tag, page.tags || '');
-                    }(tag, page);
-                  });
-                }(tag, stage.page);
-              }(tag, b));
-            }, []);
-          }('merchant', data.stage);*/
-
-          var t = function(stages) {
-            return function(tag) {
-              return stages.reduce(function(a, b) {
-                return a.concat(function(stage) {
-                  return stage.page.filter(function(page) {
-                    return fc.util.inArray(page.tags)(tag);
-                  });
-                }(b));
-              }, []);
-            }
-          };
-
-          console.log('t', t(stages)('merchant'));
 
           var firstPageId;
 
@@ -10857,6 +10854,7 @@ var formcorp = (function () {
             this.intervals = [];
             this.loadedLibs = [];
             this.languagePacks = {};
+            this.getPagesByTag = getPagesByTag;
             this.util = util;
 
             // This allows the users/apps to override core functions within the SDK
