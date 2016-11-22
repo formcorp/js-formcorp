@@ -11787,6 +11787,11 @@ var formcorp = (function () {
          setEntityTokens: setEntityTokens,
 
          /**
+          * Tokenisation
+          */
+          tokenise: tokenise,
+
+         /**
           * Mode getter/setter functions
           */
           setMode: setMode,

@@ -435,3 +435,10 @@
   color: #fff;
   display: block;
 }
+
+.fc-green-id .source-submit .btn {
+  color: #fff;
+  text-decoration: underline;
+  padding: 6px;
+  margin: 0 9px;
+}
