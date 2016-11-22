@@ -2860,6 +2860,7 @@ var formcorp = (function () {
             if (valInputs.length > 0) {
               // Input type text
               valInputs.val(value);
+              valInputs.trigger('blur');
 
               // Range, set the outcome value
               if (valInputs.attr('type') === 'range') {
@@ -2901,11 +2902,14 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            if (value === undefined && schema !== undefined) {
+            if (util.isEmpty(value) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
+              console.log(1, populateFromId, value);
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
+                console.log(2, fc.fields[populateFromId]);
                 if (fc.fields[populateFromId] !== undefined) {
+                  console.log(3);
                   value = fc.fields[populateFromId];
                 }
               }
@@ -3010,10 +3014,10 @@ var formcorp = (function () {
               type = 'password';
             }
 
-            // html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
-
-            // // No placeholders!
-            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" id="fc-field-' + fieldId + '">';
+            if(fc.config.hidePlaceholderText)
+              html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" id="fc-field-' + fieldId + '">';
+            else
+              html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
 
             return html;
           },
@@ -5636,15 +5640,18 @@ var formcorp = (function () {
                 return c;
               }(schema),
               init: function() {
-                this.currentPage = fc.currentPage;
-                this.currentStep = this.getStep(fc.currentPage);
-                this.currentStepNumber = this.hash[fc.currentPage].index;
+                this.currentPage = getFirstPageId();
+                this.currentStep = this.getStep(getFirstPageId());
+                this.currentStepNumber = this.hash[getFirstPageId()].index-1;
                 console.log('progress bar, YO!', this.hash);
                 this.renderContainer();
                 this.render();
               },
               setPage: function(pageId) {
-
+                this.currentPage = getPageById(pageId);
+                this.currentStep = this.getStep(pageId);
+                this.currentStepNumber = this.hash[pageId].index-1;
+                this.render();
               },
               $barContainer: null,
               $bar: null,
@@ -5656,7 +5663,7 @@ var formcorp = (function () {
                 this.$bar = $('<div class="fc-progress-bar"></div>');
                 this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$bar.append(this.$stepCount).append(this.$stepsBar));
 
-                fc.domContainer.before(this.$barContainer);
+                fc.domContainer.prepend(this.$barContainer);
                 console.log(this.schema);
               },
               render: function() {
@@ -5693,19 +5700,7 @@ var formcorp = (function () {
                 return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="progress-bar-group ' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
               }
             }
-          }({
-            'Welcome': {
-              '582bdc0f5acf70ce478b4d32': 'Page 1',
-            },
-            'About you': {
-              '582be50f5acf707f488b491f': 'Page 2',
-              '582be64a5acf70d4488b4620': 'Page 3',
-              '582be6b246fde2b9458b502c': 'Page 4',
-            },
-            'Step 3': {
-              '582e7a635acf70e3648b55d6': 'Page 5',
-            }
-          });
+          };
 
           /**
            * return the list of pages which have the tag
@@ -5753,6 +5748,27 @@ var formcorp = (function () {
               }
               return a;
             },
+            isEmpty: function(value) {
+              if(typeof value === 'undefined')
+                return true;
+
+              if(typeof value === 'string')
+                return value.length === 0;
+
+              if(typeof value === 'object') {
+                if(value === null)
+                  return true;
+                if(Array.isArray(value))
+                  return value.length === 0;
+                else
+                  return Object.keys(value).length === 0;
+              }
+
+              if(typeof value === 'boolean' || typeof value === 'number')
+                return false;
+
+              return (!value);
+            }
           }
 
         /**
@@ -6124,7 +6140,7 @@ var formcorp = (function () {
 
             var className = function(value) {
               return (typeof value === 'string' && value.length > 0)?'fc-filled':'fc-pristine';
-            }(getValue(field._id.$id));
+            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id) );
 
             fieldHtml += '<div class="fc-fieldcontainer ' + className + '">';
 
@@ -6645,7 +6661,7 @@ var formcorp = (function () {
                 total += parseFloat($(this).val());
               }
             });
-            $('input[data-matrix-total^="fc-' + $(this).attr('formcorp-matrix-header') + '"]').val(total);
+            $('input[data-matrix-total^="fc-' + $(this).attr('formcorp-matrix-header') + '"]').val();
           });
         };
 
@@ -8056,6 +8072,10 @@ var formcorp = (function () {
 
           // Update the current page on render
           fc.currentPage = pageId;
+          if(progressBar && true /*fc.config.progressBar*/){
+            progressBar.setPage(pageId);
+          }
+
 
           // Store field schema locally
           updateFieldSchema(page.stage);
@@ -8306,7 +8326,7 @@ var formcorp = (function () {
               for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
                 tmp = prePopulate[iterator]; // The data id to prepopulate
                 if (tmp.length > 0 && (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0)) {
-                  setVirtualValue(tmp, value);
+                  setValue(tmp, value);
                 }
               }
             }
@@ -10648,6 +10668,7 @@ var formcorp = (function () {
          */
         initRender = function (data) {
 
+
           var firstPageId;
 
           // Render the opening page for the form
@@ -10656,6 +10677,11 @@ var formcorp = (function () {
             if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
               firstPageId = getFirstPage();
 
+              if(true /**/) {
+                progressBar = progressBar(fc.config.progressBar);
+                progressBar.init();
+              }
+
               // If one page layout, getFirstPage() already rendered
               if (!fc.config.onePage) {
                 render(firstPageId);
@@ -10663,15 +10689,16 @@ var formcorp = (function () {
             }
           }
 
-          console.log('previous pages:', getPreviousPages());
-          console.log('current page:', getPageById(fc.currentPage));
-          console.log('next pages:', getNextPages());
+          console.log('previous pages:', getPreviousPages().map(function(m){console.log(m.page._id.$id, m.page.label); return m;}));
+          console.log('current page:', fc.currentPage);
+          console.log('next pages:', getNextPages().map(function(m){console.log(m.page._id.$id, m.page.label); return m;}));
 
           if (fc.mode === formcorp.MODE_REVIEW) {
             readOnly();
           }
 
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
+
         };
 
         /**
@@ -11323,6 +11350,7 @@ var formcorp = (function () {
                 }
               });
             });
+
           },
 
           /**
