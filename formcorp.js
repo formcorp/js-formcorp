@@ -2933,9 +2933,9 @@ var formcorp = (function () {
               }
 
               // If read-only and a default value set, use it
-              if (getConfig(schema, 'readOnly', false)) {
-                value = getConfig(schema, 'defaultValue', '');
-              }
+              // if (getConfig(schema, 'readOnly', false)) {
+              //   value = getConfig(schema, 'defaultValue', '');
+              // }
 
               if (schema.type === 'grouplet' && !fieldIsRepeatable(fieldId)) {
                 log('restore grouplet that isnt repeatable');
@@ -3007,17 +3007,24 @@ var formcorp = (function () {
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
               fieldId = prefix + getId(field),
               html = '',
-              type = 'text';
+              type = 'text',
+              placeholder = (fc.config.hidePlaceholderText)?'':getConfig(field, 'placeholder'),
+              readonly = (field.config.readOnly)?'disabled':'';
 
             // Render a password field if appropriate
             if (getConfig(field, 'isPassword', false)) {
               type = 'password';
             }
 
-            if(fc.config.hidePlaceholderText)
-              html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" id="fc-field-' + fieldId + '">';
-            else
-              html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input \
+              class="fc-fieldinput" \
+              type="' + type + '" \
+              formcorp-data-id="' + fieldId + '" \
+              data-required="' + required + '" \
+              id="fc-field-' + fieldId + '" \
+              placeholder="' + placeholder + '" \
+              ' + readonly + ' \
+            >';
 
             return html;
           },
@@ -3035,12 +3042,13 @@ var formcorp = (function () {
             /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
               fieldId = prefix + field._id.$id,
-              html = '<select class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '">',
+              html = '<select class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" ' + readonly + '>',
               options = getConfig(field, 'options', ''),
               optGroupOpen = false,
               x,
               option,
-              label;
+              label,
+              readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
 
             if (getConfig(field, 'placeholder', '').length > 0) {
@@ -3086,7 +3094,8 @@ var formcorp = (function () {
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
               fieldId = prefix + getId(field),
               html,
-              value;
+              value,
+              readonly = (field.config.readOnly)?'readonly':'';
 
             // Default value
             value = getConfig(field, 'defaultValue', '').length > 0 ? getConfig(field, 'defaultValue') : '';
@@ -3097,7 +3106,7 @@ var formcorp = (function () {
               html += ' readonly';
             }
 
-            html += ' class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '">' + htmlEncode(value) + '</textarea>';
+            html += ' class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '" ' + readonly + '>' + htmlEncode(value) + '</textarea>';
             return html;
           },
 
@@ -3365,7 +3374,8 @@ var formcorp = (function () {
               tmpHtml,
               checked,
               value,
-              isChecked;
+              isChecked,
+              readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
 
             savedValue = fc.fields[fieldId];
@@ -3396,7 +3406,7 @@ var formcorp = (function () {
                         tmpHtml += '</div>';
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
-                        tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + value + '" data-required="' + required + '"' + checked + '>';
+                        tmpHtml += '<input class="fc-fieldinput" type="radio" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '" value="' + value + '" data-required="' + required + '"' + checked + ' ' + readonly + '>';
                         tmpHtml += '<label title="' + htmlEncode(option[key]) + '" for="' + id + '"><span><i>&nbsp;</i></span><em>' + htmlEncode(option[key]) + '</em><span class="fc-end-radio-item"></span></label>';
                         tmpHtml += '</div>';
                       }
@@ -3443,7 +3453,8 @@ var formcorp = (function () {
               savedValues = [],
               htmlItems = [],
               finalKey,
-              tmpHtml;
+              tmpHtml,
+              readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
 
             // Create an array of the field's values
@@ -3475,7 +3486,7 @@ var formcorp = (function () {
                       id = prefix + getId(field) + '_' + x++;
 
                       tmpHtml = '<div class="' + cssClass + '">';
-                      tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(finalKey) + '" data-required="' + required + '"';
+                      tmpHtml += '<input class="fc-fieldinput" type="checkbox" id="' + id + '" formcorp-data-id="' + fieldId + '" name="' + fieldId + '[]" value="' + htmlEncode(finalKey) + '" data-required="' + required + '" ' + readonly + ' ';
 
                       if (savedValues.indexOf(finalKey) > -1) {
                         checked = true;
@@ -6868,8 +6879,9 @@ var formcorp = (function () {
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? 'multiple' : '') : '';
           var required = typeof field.config.required === 'boolean' ? field.config.required : false;
           var fileTypes = typeof field.config.fileTypes === 'string' ? field.config.fileTypes.split(',').map(function(e){return '.'+e}).join(',') : '';
+          var readonly = (field.config.readOnly)?'disabled':'';
 
-          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" />';
+          html = '<input class="fc-fieldinput" formcorp-data-id="' + getId(field) + '" type="hidden" id="' + getId(field) + '" ' + readonly + ' />';
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" + accept=" ' + fileTypes + ' " />';
 
