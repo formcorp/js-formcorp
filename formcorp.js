@@ -2905,11 +2905,8 @@ var formcorp = (function () {
             if (util.isEmpty(value) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
-              console.log(1, populateFromId, value);
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
-                console.log(2, fc.fields[populateFromId]);
                 if (fc.fields[populateFromId] !== undefined) {
-                  console.log(3);
                   value = fc.fields[populateFromId];
                 }
               }
@@ -5654,10 +5651,6 @@ var formcorp = (function () {
                 return c;
               }(schema),
               init: function() {
-                // this.currentPage = getFirstPage();
-                // this.currentStep = this.getStep(this.currentPage);
-                // this.currentStepNumber = this.hash[this.currentPage].index;
-                // console.log('progress bar, YO!', this.hash);
                 this.renderContainer();
                 this.renderProgress();
                 this.setPage(getFirstPage());
@@ -5666,7 +5659,6 @@ var formcorp = (function () {
                 this.currentPage = getPageById(pageId);
                 this.currentStep = this.getStep(pageId);
                 this.currentStepNumber = this.currentStep.step;
-                console.log(2, this.currentStep);
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
                 this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
@@ -5684,13 +5676,11 @@ var formcorp = (function () {
                 this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$stepCount).append(this.$bar.append(this.$stepsBar).append(this.$progress));
 
                 fc.domContainer.prepend(this.$barContainer);
-                console.log(this.schema);
               },
               render: function() {
                 var html = '';
                 var c = 0;
                 for(var label in this.schema) {
-                  console.log(c, this.stepCount, label)
                   html += this.renderSteps(c, this.stepCount, label);
                   c++;
                 }
@@ -5698,7 +5688,6 @@ var formcorp = (function () {
               },
               update: function(curr, count, label) {
                 curr--;
-                console.log(curr-1, count, label, this.$currentStep)
                 var left = curr / (count -1) * 100;
                 var translate = left - 100;
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
@@ -5723,7 +5712,6 @@ var formcorp = (function () {
                 return 'progress-bar-group uncomplete';
               },
               renderSteps: function(curr, count, label) {
-                console.log(2, this.currentStepNumber)
                 var left = curr / (count -1) * 100;
                 var translate = left - 100;
                 var classList = '';
@@ -10724,10 +10712,6 @@ var formcorp = (function () {
               }
             }
           }
-
-          console.log('previous pages:', getPreviousPages().map(function(m){console.log(m.page._id.$id, m.page.label); return m;}));
-          console.log('current page:', fc.currentPage);
-          console.log('next pages:', getNextPages().map(function(m){console.log(m.page._id.$id, m.page.label); return m;}));
 
           if (fc.mode === formcorp.MODE_REVIEW) {
             readOnly();
