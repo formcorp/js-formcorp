@@ -5641,7 +5641,10 @@ var formcorp = (function () {
                 return a;
               }(schema),
               getStep: function(pageId) {
-                return this.hash[pageId].step;
+                return {
+                  label: this.hash[pageId].label,
+                  step: this.hash[pageId].index,
+                };
               },
               stepCount: function(schema) {
                 var c = 0;
@@ -5651,28 +5654,34 @@ var formcorp = (function () {
                 return c;
               }(schema),
               init: function() {
-                this.currentPage = getFirstPageId();
-                this.currentStep = this.getStep(getFirstPageId());
-                this.currentStepNumber = this.hash[getFirstPageId()].index-1;
-                console.log('progress bar, YO!', this.hash);
+                // this.currentPage = getFirstPage();
+                // this.currentStep = this.getStep(this.currentPage);
+                // this.currentStepNumber = this.hash[this.currentPage].index;
+                // console.log('progress bar, YO!', this.hash);
                 this.renderContainer();
-                this.render();
+                this.renderProgress();
+                this.setPage(getFirstPage());
               },
               setPage: function(pageId) {
                 this.currentPage = getPageById(pageId);
                 this.currentStep = this.getStep(pageId);
-                this.currentStepNumber = this.hash[pageId].index-1;
+                this.currentStepNumber = this.currentStep.step;
+                console.log(2, this.currentStep);
+                this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
+                this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
               },
               $barContainer: null,
               $bar: null,
               $stepCount: null,
+              $currentStep: null,
               $stepsBar: null,
               renderContainer: function() {
                 this.$stepCount = $('<div class="fc-step-count"></div>');
                 this.$stepsBar = $('<div class="fc-steps-bar"></div>');
                 this.$bar = $('<div class="fc-progress-bar"></div>');
-                this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$bar.append(this.$stepCount).append(this.$stepsBar));
+                this.$progress = $('<div class="fc-progress"></div>');
+                this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$stepCount).append(this.$bar.append(this.$stepsBar).append(this.$progress));
 
                 fc.domContainer.prepend(this.$barContainer);
                 console.log(this.schema);
@@ -5681,23 +5690,32 @@ var formcorp = (function () {
                 var html = '';
                 var c = 0;
                 for(var label in this.schema) {
+                  console.log(c, this.stepCount, label)
                   html += this.renderSteps(c, this.stepCount, label);
                   c++;
                 }
-                console.log(this.$stepsBar)
                 this.$stepsBar.html(html);
+              },
+              update: function(curr, count, label) {
+                curr--;
+                console.log(curr-1, count, label, this.$currentStep)
+                var left = curr / (count -1) * 100;
+                var translate = left - 100;
+                this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
               },
               groupLabelAlignment: function(order, count) {
                 if(order < count / 2)
                   return 'fc-pb-group-label-pull-right';
                 return 'fc-pb-group-label-pull-left';
               },
-              renderProgressBar: function() {
-
+              renderProgress: function() {
+                this.$currentStep = $('<div class="progress-bar-group progress-bar-current-group"><span class="progress-bar-label"></span></div>');
+                this.$progress.html(this.$currentStep);
               },
               groupStatusClasses: function(order, currentOrder) {
-                if(order === currentOrder)
-                  return 'progress-bar-group progress-bar-current-group';
+                order++;
+                // if(order === currentOrder)
+                //   return 'progress-bar-group progress-bar-current-group';
 
                 if(order < currentOrder)
                   return 'progress-bar-group complete';
@@ -5705,10 +5723,16 @@ var formcorp = (function () {
                 return 'progress-bar-group uncomplete';
               },
               renderSteps: function(curr, count, label) {
+                console.log(2, this.currentStepNumber)
                 var left = curr / (count -1) * 100;
                 var translate = left - 100;
                 var classList = '';
-                return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="progress-bar-group ' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
+                return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
+              },
+              updateProgress: function(curr, count, label) {
+                var left = curr / (count -1) * 100;
+                var translate = left - 100;
+                return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
               }
             }
           };
