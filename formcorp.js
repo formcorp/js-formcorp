@@ -5686,7 +5686,9 @@ var formcorp = (function () {
                 return a;
               }(schema),
               getStep: function(pageId) {
+                console.log(pageId);
                 console.log(this.hash);
+                console.log(this.hash[pageId])
                 if(!this.hash[pageId])
                   return false;
                 return {
