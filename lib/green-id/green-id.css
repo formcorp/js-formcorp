@@ -479,4 +479,10 @@
   .fc-green-id .options.primary ul li label {
     top: 130px;
   }
+
+  .fc-green-id .options.primary ul li .icon {
+    width: 50px;
+    height: 50px;
+    margin: 45px auto 0 auto;
+  }
 }
