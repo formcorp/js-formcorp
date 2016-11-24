@@ -4686,7 +4686,7 @@ var formcorp = (function () {
                       }
 
                       var schema = fc.fieldSchema[fieldId];
-                      if (typeof schema === 'undefined') {
+                      if (typeof schema === 'undefined' && typeof field === 'object' && typeof field.config === 'object' && typeof field.config.grouplet === 'undefined') {
                         // Unable to find the schema directly, iterate through the object and map
                         for (var groupletKey in field.config.grouplet.field) {
                           if (field.config.grouplet.field.hasOwnProperty(groupletKey)) {
