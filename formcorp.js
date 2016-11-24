@@ -9266,26 +9266,27 @@ var formcorp = (function () {
                 });
                 setTimeout(function() {
                   nextPage();
-                }, 750);
-                newPage = fc.currentPage;
+                  newPage = fc.currentPage;
 
-                if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
-                  // There was a page mismatch between the server and the client, throw out a critical error
-                  showSecurityError({
-                    message: 'Next page mismatch between client and server'
+                  if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
+                    // There was a page mismatch between the server and the client, throw out a critical error
+                    showSecurityError({
+                      message: 'Next page mismatch between client and server'
+                    });
+                  }
+
+                  // Trigger the newpage event
+                  fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
+                  fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
+                  logEvent(fc.eventTypes.onNextPageSuccess, {
+                    from: oldPage,
+                    to: newPage,
+                    timeSpent: (Date.now() - fc.nextPageLoadedTimestamp) / 1000
                   });
-                }
 
-                // Trigger the newpage event
-                fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
-                fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
-                logEvent(fc.eventTypes.onNextPageSuccess, {
-                  from: oldPage,
-                  to: newPage,
-                  timeSpent: (Date.now() - fc.nextPageLoadedTimestamp) / 1000
-                });
+                  fc.nextPageLoadedTimestamp = Date.now();
 
-                fc.nextPageLoadedTimestamp = Date.now();
+                }, 750);
 
                 // If the application is complete, raise completion event
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -9370,9 +9371,11 @@ var formcorp = (function () {
             return false;
           }
 
-          fc.domContainer.trigger(fc.jsEvents.onPrevPage);
           var previousPageId = getPreviousPage();
           render(previousPageId);
+          setTimeout(function() {
+            fc.domContainer.trigger(fc.jsEvents.onPrevPage);
+          }, 10);
 
           //return delete(fc.prevPages[previousPageId]);
 
