@@ -13152,6 +13152,11 @@ var formcorp = (function () {
          setEntityToken: setEntityToken,
          setEntityTokens: setEntityTokens,
 
+         // Value changed functions
+         valueChanged: valueChanged,
+	 setValueUpdate: setValueUpdate,
+		  
+
          /**
           * Mode getter/setter functions
           */
