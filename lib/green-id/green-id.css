@@ -224,6 +224,7 @@
 }
 
 .fc-green-id .options.primary ul li {
+  cursor: pointer;
   list-style: none;
   float: left;
   width: 31%;
@@ -252,6 +253,7 @@
 .fc-green-id .options.primary ul li:nth-child(3n) {
   margin-right: 0;
   clear: right;
+  margin-bottom: 3.5%;
 }
 
 .fc-green-id .options.primary ul li .icon {
@@ -452,4 +454,28 @@
   border-radius: 0;
   float: none;
   overflow: hidden;
+}
+
+@media (min-width:1025px) {
+  .fc-green-id .options.primary ul li {
+    width: 18.8%;
+    margin-right: 1.5%;
+    min-height: 200px;
+  }
+
+  .fc-green-id .options.primary ul li:nth-child(5n) {
+    margin-right: 0;
+    clear: right;
+    margin-bottom: 1.5%;
+  }
+
+  .fc-green-id .options.primary ul li:nth-child(3n) {
+    margin-right: 1.5%;
+    clear: none;
+    margin-bottom: 0;
+  }
+
+  .fc-green-id .options.primary ul li label {
+    top: 130px;
+  }
 }
