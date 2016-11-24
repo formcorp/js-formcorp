@@ -5667,6 +5667,7 @@ var formcorp = (function () {
           util;
 
           progressBar = function(schema) {
+            console.log('schema', schema);
             return {
               schema: schema,
               hash: function(schema) {
