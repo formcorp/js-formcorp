@@ -9291,6 +9291,13 @@ var formcorp = (function () {
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
+                  
+                  $('.fc-page-' + fc.currentPage).css({
+                    animation: 'slideout 0.5s cubic-bezier(.22,.61,.36,1)',
+                  });
+                  setTimeout(function() {
+                    $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                  }, 500);
                 }
 
                 if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
