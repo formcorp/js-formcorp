@@ -471,47 +471,61 @@ var formcorp = (function () {
            * @param {object} data Form schema
            * @return boolean
            */
-          checkAllLibsLoaded = function (data) {
-            if (typeof data === 'undefined') {
-              data = fc.schema;
-            }
+           checkAllLibsLoaded = function (data) {
+             if (typeof data === 'undefined') {
+               data = fc.schema;
+             }
 
-            if (typeof data === 'undefined') {
-              data = fc.schemaData;
-            }
+             if (typeof data === 'undefined') {
+               data = fc.schemaData;
+             }
 
-            if (fc.loadedLibs.length >= fc.libs2Load.length) {
-              // All the library files have been loaded, run the callbacks
-              if (fc.libsLoaded.length > 0) {
-                for (var i = 0; i < fc.libsLoaded.length; i += 1) {
-                  var field = fc.libsLoaded[i];
+             // No way to check when CSS files are loaded, remove them
+             var libs = $.extend([], fc.libs2Load);
+             var re = /(?:\.([^.]+))?$/;
+             var ext;
+             for (var i = 0; i < libs.length; i += 1) {
+               ext = re.exec(libs[i])[1].toLowerCase();
+               if (ext !== 'js') {
+                 delete libs[i];
+               }
+             }
+             libs = $.extend([], libs);
 
-                  // Call post loading callbacks
-                  if ($.isArray(fc.libraryCallbacks[field])) {
-                    for (var a = 0; a < fc.libraryCallbacks[field].length; a += 1) {
-                      var fn = fc.libraryCallbacks[field][a];
-                      if (typeof fn === 'function') {
-                        fn();
-                      }
-                    }
-                  }
-                }
-              }
+             if (fc.loadedLibs.length >= libs.length) {
+               // All the library files have been loaded, run the callbacks
+               if (fc.libsLoaded.length > 0) {
+                 for (var i = 0; i < fc.libsLoaded.length; i += 1) {
+                   var field = fc.libsLoaded[i];
 
-              // If set to auto discover library files, initialise the render when all libs have loaded
-              if (fc.config.autoDiscoverLibs) {
-                if (sessionRequiresVerification(data)) {
-                  verifySession();
-                } else {
-                  initRender(fc.schemaData);
-                }
-              }
+                   // Call post loading callbacks
+                   if ($.isArray(fc.libraryCallbacks[field])) {
+                     for (var a = 0; a < fc.libraryCallbacks[field].length; a += 1) {
+                       var fn = fc.libraryCallbacks[field][a];
+                       console.log('call function for: ' + field);
+                       console.log(fn);
+                       if (typeof fn === 'function') {
+                         fn();
+                       }
+                     }
+                   }
+                 }
+               }
 
-              return true;
-            }
+               // If set to auto discover library files, initialise the render when all libs have loaded
+               if (fc.config.autoDiscoverLibs) {
+                 if (sessionRequiresVerification(data)) {
+                   verifySession();
+                 } else {
+                   initRender(fc.schemaData);
+                 }
+               }
 
-            return false;
-          },
+               return true;
+             }
+
+             return false;
+           },
 
           /**
            * Register a loaded library file.
@@ -1050,6 +1064,11 @@ var formcorp = (function () {
 
               dataId = $(field).attr('formcorp-data-id');
 
+              if (typeof dataId === 'undefined') {
+                // If not data ID is found, return the dom value
+                return field.val();
+              }
+
               if (typeof fc.fieldSchema[dataId] !== 'undefined') {
                 if (typeof fc.fieldSchema[dataId] !== 'undefined' && fc.fieldSchema[dataId].type === 'matrix') {
                   return parseMatrixField(field, true);
@@ -1363,6 +1382,7 @@ var formcorp = (function () {
             fc.domContainer.trigger(fc.jsEvents.onFieldError, [dataId, errors]);
 
             dataGroup.addClass('fc-error');
+            console.log('Show field error: ' + dataId);
 
             // If inline validation enabled, output error message(s)
             if (fc.config.inlineValidation === true) {
@@ -1829,17 +1849,20 @@ var formcorp = (function () {
             } else if (field.type === "greenIdVerification") {
               // Retrieve value from object, not DOM
               value = getValue(fieldId);
-
-              // Validate a Green ID field
-              if (fc.greenID === undefined) {
-                // Green ID has yet to be initialised
-                errors.push('Green ID has not been initialised.');
-              } else if (typeof value !== "object" || !fc.greenID.passesValidation(prefix + getId(field))) {
-                // Validation is allowed to pass
-                errors.push('You must verify your identity.');
+              var session = fc.greenID.session(fieldId);
+              if (typeof session === 'undefined') {
+                errors.push('GreenID has not been initialised for field');
               } else {
-                // Otherwise the verification is valid
-                skipCheck = true;
+                // Validate a Green ID field
+                var status = session.getApplicationStatus();
+                if (status === GREENID.STATE.PENDING) {
+                  errors.push('You must verify your identity.');
+                } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
+                  // Verified, do nothing
+                  skipCheck = true;
+                } else {
+                  errors.push('Please confirm your identity is verified.');
+                }
               }
             } else if (field.type === 'date') {
               var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;
@@ -5220,8 +5243,24 @@ var formcorp = (function () {
 
             if (greenIdFields.length > 0) {
               greenIdFields.each(function () {
-                var dataId = $(this).attr('fc-data-group');
-                fcGreenID.initGreenIdDOMField(dataId);
+                var obj = $(this);
+                var dataId = obj.attr('fc-data-group');
+                var sectionId = obj.attr('fc-belongs-to');
+
+                if (obj.hasClass('fc-hide') || fc.domContainer.find('[formcorp-data-id="' + sectionId + '"]').hasClass('fc-hide')) {
+                  // If the field or section is hidden, don't render
+                  return;
+                }
+
+                if (fcGreenID.initialised.indexOf[dataId] >= 0) {
+                  // Already initialised, don't need to re-init
+                  return;
+                }
+
+                var session = fcGreenID.getSession(dataId);
+                if (typeof session === 'object') {
+                  session.init(true, dataId);
+                }
               });
             }
           },
@@ -5232,11 +5271,19 @@ var formcorp = (function () {
            initGreenId = function () {
              // If the form field has green id verification,
              // Initialise the worker and set the event listener
+             if (typeof fc.initialisedGreenId === 'boolean' && fc.initialisedGreenId) {
+               return;
+             }
+             console.log('formcorp.js: initGreenId');
+
              fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
+               console.log('formcorp.js: onGreenIdLoaded');
                fc.greenID = fcGreenID;
                fc.greenID.init();
                initGreenIdDOMFields();
              });
+
+             fc.initialisedGreenId = true;
            },
 
           /**
@@ -7446,6 +7493,7 @@ var formcorp = (function () {
          */
         initGreenIdFieldInDOM = function (field, prefix) {
           var html = '';
+          console.log('formcorp.js: initGreenIdFieldInm');
 
           // Force prefix to be a string
           if (typeof prefix !== 'string') {
@@ -7540,6 +7588,7 @@ var formcorp = (function () {
          */
         renderGreenIdField = function (field, prefix, bypass) {
           // Default bypass to false
+          console.log('formcorp.js: render greenid field');
           if (typeof bypass !== 'boolean') {
             bypass = false;
           }
@@ -7552,150 +7601,9 @@ var formcorp = (function () {
           // If the green id verification hasn't been initialised, do so here (@todo: default screen for initialisation)
           var fieldId = prefix + getId(field);
           var value = getValue(fieldId);
+          var greenId = new fc.greenID.session(fieldId);
 
-          if (!bypass && (typeof value !== 'object' || typeof value.result === 'undefined' || typeof value.result.userId === 'undefined')) {
-            return initGreenIdFieldInDOM(field, prefix);
-          }
-
-          // If the credentials have changed (i.e. user has changed name, etc., need to re-verify)
-          var html = '',
-            summary,
-            options = [
-              {
-                class: "fc-drivers-license",
-                title: fc.lang.greenID.options.driversLicense.title,
-                desc: fc.lang.greenID.options.driversLicense.body,
-                icon: fc.lang.greenID.options.driversLicense.icon
-              },
-              {
-                class: "fc-passport-verification",
-                title: fc.lang.greenID.options.passport.title,
-                desc: fc.lang.greenID.options.passport.body,
-                icon: fc.lang.greenID.options.passport.icon
-              }
-            ],
-            optionString = '',
-            iterator,
-            contentListField,
-            packageHtml,
-            sourcesRequiredHtml,
-            packages,
-            fieldValue = value,
-            licenseServices = ['nswrego', 'warego', 'actrego', 'vicrego', 'sarego', 'qldrego'],
-            licenseType;
-
-          if (getConfig(field, 'allowSkipping', true)) {
-            options.push({
-              class: "fc-skip-verification",
-              title: fc.lang.greenID.options.skip.title,
-              desc: fc.lang.greenID.options.skip.body,
-              icon: fc.lang.greenID.options.skip.icon
-            });
-          }
-
-          // Show a summary in the header
-          if (getConfig(field, 'showSummaryInHeader', false)) {
-            summary = greenIdFieldHeader(prefix + getId(field));
-            html += '<div class="fc-green-id-el fc-green-id-header-summary">' + summary + '</div>';
-          }
-
-          // Sources required
-          html += '<p class="fc-green-id-el fc-green-id-sources-required" data-for="' + (prefix + getId(field)) + '">' + fc.lang.greenID.html.completePrefix + '</p>';
-
-          // Already initialised
-          html += '<div class="fc-green-id-already-initialised-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.alreadyInitialised + '</div></div>';
-
-          // Skip text
-          html += '<div class="fc-green-id-skipped-container fc-green-id-el"><div class="alert alert-success" role="alert">' + fc.lang.greenID.html.skipped + '</div></div>';
-
-          // Form the html
-          html += '<div class="fc-greenid-successfully-verified fc-green-id-el">' + fc.lang.greenID.html.completed + '</div>';
-
-          // Verification error html
-          html += '<div class="fc-greenid-verification-error fc-green-id-el">';
-          html += '<div class="alert alert-danger" role="alert"><strong>Uh oh!</strong> Unfortunately we weren\'t able to sufficiently verify your credentials to confirm your identity.</div>';
-          html += '<h5>What to do?</h5>';
-          html += '<p>Please verify the correctness of the details below. If you notice an error, please go back in the form to edit these details and try re-commencing verification.</p>';
-          html += '<h5>Please confirm the following details are correct: </h5>';
-          html += '<div class="fc-greenid-value-summary fc-green-id-el"></div>';
-          html += '<h5>They are correct, what do I do now?</h5>';
-          html += '<p>We\'ll have to attempt to verify you manually. Please attach a copy of your drivers licence and/or passport to your printed application and mail it through to us.</p>';
-          html += '</div>';
-
-          // Only show the options if the field was properly initialised
-          if (fieldValue !== undefined && typeof fieldValue.result === 'object' && Object.keys(fieldValue.result).length > 0) {
-            // Generate an options string
-            for (iterator = 0; iterator < options.length; iterator += 1) {
-              optionString += '["' + options[iterator].title + '","' + options[iterator].desc + '","' + options[iterator].icon + '", "","' + options[iterator].class + '"]' + "\n";
-            }
-
-            // Generate field obj
-            contentListField = {
-              '_id': {
-                '$id': prefix + getId(field) + '_rootSelection'
-              },
-              config: field.config
-            };
-
-            // Set default content list field options
-            contentListField.config.options = optionString;
-            contentListField.config.boxesPerRow = 3;
-            contentListField.config.buttonText = 'Select';
-
-            // Generate html for package selection
-            packageHtml = renderContentRadioList(contentListField);
-
-            // Add success messages
-            packages = $(packageHtml);
-            packages.find('.fc-content-content').append('<div class="fc-successfully-verified"> Successfully verified</div>');
-            packages.find('.fc-content-content').append('<div class="fc-locked-out-msg"> You have been locked out from using this data source.</div>');
-
-            // Iterates through all of the license types to see if that particular instance has been verified
-            if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-drivers-license').length > 0) {
-              for (iterator = 0; iterator < licenseServices.length; iterator += 1) {
-                licenseType = licenseServices[iterator];
-                if (typeof fieldValue.result.sources[licenseType] === 'object' && fieldValue.result.sources[licenseType].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources[licenseType].passed) > -1) {
-                  // Look to see if the source is verified
-                  packages.find('.fc-drivers-license').addClass('fc-verified');
-                } else if (typeof fieldValue.result.sources[licenseType] === 'object' && ['LOCKED_OUT', 'FAILED'].indexOf(fieldValue.result.sources[licenseType].state) > -1) {
-                  // Look to see if the source has been locked out
-                  packages.find('.fc-drivers-license').addClass('fc-locked-out');
-                }
-              }
-            }
-
-            // Check to see if passport should be checked
-            if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-passport-verification').length > 0) {
-              if (typeof fieldValue.result.sources['passport'] === 'object' && fieldValue.result.sources['passport'].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources['passport'].passed) > -1) {
-                packages.find('.fc-passport-verification').addClass('fc-verified');
-              } else if (typeof fieldValue.result.sources['passport'] === 'object' && ['LOCKED_OUT', 'FAILED'].indexOf(fieldValue.result.sources['passport'].state) > -1) {
-                // Look to see if the source has been locked out
-                packages.find('.fc-passport-verification').addClass('fc-locked-out');
-              }
-            }
-
-            // Check to see if visa should be checked
-            if (fieldValue !== undefined && fieldValue.result !== undefined && typeof fieldValue.result.sources === 'object' && packages.find('.fc-visa-verification').length > 0) {
-              if (typeof fieldValue.result.sources['visa'] === 'object' && fieldValue.result.sources['visa'].passed !== undefined && ['true', true].indexOf(fieldValue.result.sources['visa'].passed) > -1) {
-                packages.find('.fc-visa-verification').addClass('fc-verified');
-              } else if (typeof fieldValue.result.sources['visa'] === 'object' && ['LOCKED_OUT', 'FAILED'].indexOf(fieldValue.result.sources['visa'].state) > -1) {
-                // Look to see if the source has been locked out
-                packages.find('.fc-visa-verification').addClass('fc-locked-out');
-              }
-            }
-
-            // Show the packages and the progress bar
-            html += '<div class="fc-greenid-verification-packages fc-green-id-el">';
-            html += packages.prop('outerHTML');
-            html += '<div class="progress fc-greenid-progress fc-green-id-el"><div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0;">0%</div></div>';
-            html += '<div class="fc-greenid-error-summary fc-green-id-el"></div>';
-            html += '</div>';
-
-            // Render the options box
-            html += '<div class="fc-greenid-options fc-green-id-el"></div>';
-          }
-
-          return html;
+          return greenId.begin();
         };
 
         /**
@@ -8034,6 +7942,8 @@ var formcorp = (function () {
           flushSectionVisibility();
           flushFieldVisibility();
           updateMobileFieldsVisibility();
+
+          fc.domContainer.trigger(fc.jsEvents.onVisibilityChanged);
         };
 
         /**
@@ -10760,7 +10670,11 @@ var formcorp = (function () {
                 }
 
                 lib = fc.requiredFieldLibraries[field][libIterator];
-                fc.libsLoaded.push(field);
+                fc.libs2Load.push(lib);
+                if (fc.libsLoaded.indexOf(field) < 0) {
+                  // Only add if not already in
+                  fc.libsLoaded.push(field);
+                }
                 loadLib(lib);
                 ++libsLoaded;
               }
@@ -11052,7 +10966,9 @@ var formcorp = (function () {
                  'lib/featherlight/featherlight.min.js'
                ],
                'greenIdVerification': [
-                 isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js'
+                 'lib/green-id/lodash.core.min.js',
+                 isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js',
+                 'lib/green-id/green-id.css'
                ]
             };
 
@@ -11060,14 +10976,13 @@ var formcorp = (function () {
             this.libraryCallbacks = {
               'greenIdVerification': [
                 function () {
-                  if(typeof fc.greenID.initGreenId === 'function')
-                    fc.greenID.initGreenId();
-                  return;
+                  console.log('post callback');
+                  fc.greenID.initGreenId();
                 }
               ]
             };
 
-            // Post library callbacks
+            // Pre library callbacks
             this.libraryPreCallbacks = {
               'greenIdVerification': [
                 initGreenId
@@ -11173,6 +11088,7 @@ var formcorp = (function () {
               onDynamicRowRemoved: 'onDynamicRowRemoved',
               onPreValueChange: 'onPreValueChange',
               onValueChanged: 'onValueChanged',
+              onVisibilityChanged: 'onVisibilityChanged',
               onFieldFocus: 'onFieldFocus',
               onFieldBlur: 'onFieldBlur',
               onCustomerAuthResult: 'onCustomerAuthResult',
@@ -11539,6 +11455,11 @@ var formcorp = (function () {
           getValue: function (id) {
             return getValue(id);
           },
+
+          /**
+           * Retrieve a DOM field value
+           */
+          getFieldValue: getFieldValue,
 
           /**
            * Retrieve a field schema by ID
@@ -12147,12 +12068,20 @@ var formcorp = (function () {
          setEntityTokens: setEntityTokens,
 
          /**
+          * Tokenisation
+          */
+          tokenise: tokenise,
+
+         /**
           * Mode getter/setter functions
           */
           setMode: setMode,
           getMode: getMode,
 
           setCompletionCondition: setCompletionCondition,
+
+          // Green ID
+          initGreenIdDOMFields: initGreenIdDOMFields,
 
           /**
            * Converts a string to camel case.
