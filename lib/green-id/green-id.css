@@ -442,3 +442,14 @@
   padding: 6px;
   margin: 0 9px;
 }
+
+.fc-green-id .date {
+  width: auto;
+  height: auto;
+  margin: 4px 20px 0 0;
+  background: none transparent;
+  box-shadow: none;
+  border-radius: 0;
+  float: none;
+  overflow: hidden;
+}
