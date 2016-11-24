@@ -3394,6 +3394,7 @@ var formcorp = (function () {
               tmpHtml,
               checked,
               value,
+              defaultValue,
               isChecked,
               readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
@@ -3422,7 +3423,7 @@ var formcorp = (function () {
 
                       if (getConfig(field, 'asButton', false)) {
                         tmpHtml = '<div class="fc-option-buttons ' + cssClass + '">';
-                        tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + value + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
+                        tmpHtml += '<button class="fc-fieldinput fc-button' + checked + '" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + value + '" data-required="' + required + '">' + htmlEncode(option[key]) + '</button>';
                         tmpHtml += '</div>';
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
@@ -6109,6 +6110,7 @@ var formcorp = (function () {
             groupletId,
             visibility,
             matches,
+            savedValue,
             iterator,
             match,
             re,
@@ -6178,6 +6180,15 @@ var formcorp = (function () {
             fieldClass = getConfig(field, 'class', '');
             if (fieldClass.length > 0) {
               fieldHtml += fieldClass + ' ';
+            }
+
+            savedValue = getValue(fieldId, false);
+            if (typeof savedValue === 'boolean' && !savedValue) {
+              var defaultValue = getConfig(field, 'default', false);
+              if (typeof defaultValue === 'string' && defaultValue.length > 0) {
+                // Default value has been set for the field, set it accordingly
+                setVirtualValue(fieldId, defaultValue);
+              }
             }
 
             fieldHtml += 'fc-field fc-field-' + field.type + '" fc-data-group="' + fieldId + '" data-required="' + required + '" data-field-count="' + fc.fieldCount + '" data-form-state="' + fc.formState + '"';
@@ -9292,7 +9303,7 @@ var formcorp = (function () {
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
-                  
+
                   $('.fc-page-' + fc.currentPage).css({
                     animation: 'slideout 0.5s cubic-bezier(.22,.61,.36,1)',
                   });
