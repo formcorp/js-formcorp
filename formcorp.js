@@ -8016,7 +8016,7 @@ var formcorp = (function () {
 
           // Update the current page on render
           fc.currentPage = pageId;
-          if(progressBar && true /*fc.config.progressBar*/){
+          if(progressBar && fc.config.progressBar){
             progressBar.setPage(pageId);
           }
 
@@ -10621,7 +10621,7 @@ var formcorp = (function () {
             if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
               firstPageId = getFirstPage();
 
-              if(true /**/) {
+              if(fc.config.progressBar) {
                 progressBar = progressBar(fc.config.progressBar);
                 progressBar.init();
               }
