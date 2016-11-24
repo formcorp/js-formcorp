@@ -5685,6 +5685,9 @@ var formcorp = (function () {
                 return a;
               }(schema),
               getStep: function(pageId) {
+                console.log(this.hash);
+                if(!this.hash[pageId])
+                  return false;
                 return {
                   label: this.hash[pageId].label,
                   step: this.hash[pageId].index,
@@ -5703,8 +5706,11 @@ var formcorp = (function () {
                 this.setPage(getFirstPage());
               },
               setPage: function(pageId) {
+                console.log(2, pageId)
                 this.currentPage = getPageById(pageId);
                 this.currentStep = this.getStep(pageId);
+                if(!this.currentStep)
+                  return;
                 this.currentStepNumber = this.currentStep.step;
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
@@ -5732,6 +5738,7 @@ var formcorp = (function () {
                   c++;
                 }
                 this.$stepsBar.html(html);
+                console.log('hash', this.hash)
               },
               update: function(curr, count, label) {
                 curr--;
