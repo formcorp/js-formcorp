@@ -2925,7 +2925,7 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            if (util.isEmpty(value) && schema !== undefined) {
+            if (/*util.isEmpty(value) && */schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
@@ -8269,7 +8269,7 @@ var formcorp = (function () {
             if ($.isArray(prePopulate) && prePopulate.length > 0) {
               for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
                 tmp = prePopulate[iterator]; // The data id to prepopulate
-                if (tmp.length > 0 && (fc.fields[tmp] === undefined || fc.fields[tmp].length === 0)) {
+                if (tmp.length > 0) {
                   setValue(tmp, value);
                 }
               }
