@@ -4700,9 +4700,10 @@ var formcorp = (function () {
                       }
                       schema = fc.fieldSchema[fieldId];
 
-                      html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
-
-                      html += "</td><td><span class=\"" + fc.fieldSchema[fieldId].config.class + "\">" + htmlEncode(value[iterator][key]) + "</span></td></tr>";
+                      if (typeof schema === 'object' && typeof schema.config === 'object') {
+                        html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
+                        html += "</td><td><span class=\"" + fc.fieldSchema[fieldId].config.class + "\">" + htmlEncode(value[iterator][key]) + "</span></td></tr>";
+                      }
                     }
                   }
                 }
