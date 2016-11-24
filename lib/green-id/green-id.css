@@ -248,6 +248,8 @@
   position: absolute;
   left: 0;
   top: 95px;
+  color: #fff;
+  cursor: pointer;
 }
 
 .fc-green-id .options.primary ul li:nth-child(3n) {
@@ -314,6 +316,7 @@
   margin: 0 4% 10px 0;
   text-align: center;
   padding-top: 10px;
+  cursor: pointer;
 }
 
 .fc-green-id .options.secondary li:nth-child(2n) {
@@ -337,6 +340,7 @@
   width: 24px;
   height: 24px;
   background: url(images/close.svg) no-repeat;
+  float: right;
 }
 
 .fc-green-id .source-submit {
@@ -345,11 +349,13 @@
   text-align: center;
   border-radius: 0 0 4px 4px;
   min-height: 50px;
+  cursor: pointer;
 }
 
 .fc-green-id .source-submit > div {
   display: block;
   line-height: 60px;
+  cursor: pointer;
 }
 
 .fc-green-id .source-submit .submit {
@@ -457,6 +463,10 @@
   overflow: hidden;
 }
 
+.fc-green-id .fields .row {
+  margin: 15px 0;
+}
+
 @media (min-width:1025px) {
   .fc-green-id .options.primary ul li {
     width: 18.8%;
@@ -478,6 +488,7 @@
 
   .fc-green-id .options.primary ul li label {
     top: 130px;
+    padding: 0 15px;
   }
 
   .fc-green-id .options.primary ul li .icon {
