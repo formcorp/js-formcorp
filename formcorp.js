@@ -8270,7 +8270,7 @@ var formcorp = (function () {
               for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
                 tmp = prePopulate[iterator]; // The data id to prepopulate
                 if (tmp.length > 0) {
-                  setValue(tmp, value);
+                  valueChanged(tmp, value);
                 }
               }
             }
