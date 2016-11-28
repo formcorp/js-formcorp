@@ -319,6 +319,14 @@
   cursor: pointer;
 }
 
+.fc-green-id .child-container .header {
+  max-width: 75%;
+}
+
+.fc-green-id .options.secondary li * {
+  cursor: pointer;
+}
+
 .fc-green-id .options.secondary li:nth-child(2n) {
   clear: right;
   margin-right: 0;
@@ -341,6 +349,8 @@
   height: 24px;
   background: url(images/close.svg) no-repeat;
   float: right;
+  cursor: pointer;
+  z-index: 9;
 }
 
 .fc-green-id .source-submit {
@@ -355,7 +365,6 @@
 .fc-green-id .source-submit > div {
   display: block;
   line-height: 60px;
-  cursor: pointer;
 }
 
 .fc-green-id .source-submit .submit {
@@ -372,6 +381,7 @@
 
 .fc-green-id .source-submit.verifying .verifying .container {
   width: 150px;
+  margin: 0 auto;
 }
 
 .fc-green-id .source-submit.verifying .verifying .container .spinner {
@@ -393,14 +403,14 @@
 
 .fc-green-id .status-bar .error {
   border-top: 4px solid #ff8a75;
-  background: #ff4f30 url(images/warning.svg) 30px center no-repeat;
+  background: #ff4f30 url(images/warning-sm.svg) 30px center no-repeat;
   padding: 20px 20px 20px 80px;
   color: #fff;
 }
 
 .fc-green-id .status-bar .success {
   border-top: 4px solid #7ccfa2;
-  background: #3db878 url(images/check.svg) 30px center no-repeat;
+  background: #3db878 url(images/check-sm.svg) 30px center no-repeat;
   padding: 20px 20px 20px 80px;
   color: #fff;
 }
@@ -416,7 +426,7 @@
 
 
 .fc-green-id.large-success {
-  background: #3db878 url(images/check.svg) center 20px no-repeat;
+  background: #3db878 url(images/check-large.svg) center 20px no-repeat;
   color: #fff;
   font-size: 16px;
   text-align: center;
@@ -430,6 +440,7 @@
   left: 15px;
   top: 15px;
   background: url(images/arrow.svg) no-repeat;
+  transform: rotate(180deg);
 }
 
 .fc-field-greenIdVerification .fc-error-text {
@@ -465,6 +476,26 @@
 
 .fc-green-id .fields .row {
   margin: 15px 0;
+}
+
+.fc-green-id .fields .row input {
+  margin-bottom: 5px;
+}
+
+label[for="greenid_vicrego_address"] {
+  &:before {
+    content: "Address";
+    font-size: 16px;
+  }
+
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 0.1px;
+}
+
+.fc-green-id .options.secondary li label {
+  text-transform: uppercase;
 }
 
 @media (min-width:1025px) {
