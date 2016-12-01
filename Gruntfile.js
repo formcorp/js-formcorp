@@ -10,7 +10,7 @@ module.exports = function (grunt) {
                 processors: [
                   require('pixrem')(), // add fallbacks for rem units
                   require('autoprefixer')({browsers: 'last 2 versions, ie 9, > 5% in AU'}), // add vendor prefixes
-                  require('cssnano')() // minify the result
+                  //require('cssnano')() // minify the result
                 ]
             },
             dist: {
@@ -31,7 +31,7 @@ module.exports = function (grunt) {
         watch: {
             styles: {
                 files: [
-                    'lib/green-id/green-id.less',
+                    'lib/green-id/**/*.less',
                 ],
                 tasks: ['less']
             }
