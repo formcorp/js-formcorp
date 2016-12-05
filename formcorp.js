@@ -3846,7 +3846,7 @@ var formcorp = (function () {
 
             // Render the pay now button
             html += '<div class="fc-submit-payment">';
-            html += '<input class="fc-btn" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.payNow + '"><div class="fc-loading fc-hide"></div>';
+            html += '<input class="fc-btn" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + fc.lang.payNow + '"><div class="fc-loading fc-hide"></div>';
             html += '</div>';
 
             html += '</div>';
@@ -4171,7 +4171,7 @@ var formcorp = (function () {
            */
           registerEmailVerificationListeners = function () {
             // Send an email to the user
-            fc.domContainer.on('click', '.fc-email-verification .fc-send-email input[type=submit]', function () {
+            fc.domContainer.on('click', '.fc-email-verification .fc-send-email input[type='+fc.config.buttonInputType+']', function () {
               var elParent = $(this).parent(),
                 data,
                 fieldId;
@@ -4294,14 +4294,14 @@ var formcorp = (function () {
 
               // Display the verification button text
               if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
-                html += '<div class="fc-verify-email"><input class="fc-btn fc-email-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
+                html += '<div class="fc-verify-email"><input class="fc-btn fc-email-verification-modal" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + verificationButtonText + '"></div>';
               } else {
                 html += '<div class="fc-verify-email-input-code"><input type="text" class="fc-verify-email-input fc-fieldinput" value=""></div>';
-                html += '<div class="fc-verify-email-button"><input class="fc-btn fc-email-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
+                html += '<div class="fc-verify-email-button"><input class="fc-btn fc-email-verification-verify" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + fc.lang.verify + '"></div>';
               }
 
               html += '<div class="fc-send-email">';
-              html += '<input class="fc-btn" type="submit" value="' + buttonText + '"><div class="fc-loading fc-hide"></div>';
+              html += '<input class="fc-btn" type="' + fc.config.buttonInputType + '" value="' + buttonText + '"><div class="fc-loading fc-hide"></div>';
               html += '</div>';
 
               html += '<div class="fc-clear"></div>';
@@ -4374,7 +4374,7 @@ var formcorp = (function () {
            */
           registerSmsVerificationListeners = function () {
             // Send an email to the user
-            fc.domContainer.on('click', '.fc-sms-verification .fc-send-sms input[type=submit]', function () {
+            fc.domContainer.on('click', '.fc-sms-verification .fc-send-sms input[type=' + fc.config.buttonInputType + ']', function () {
               var elParent = $(this).parent(),
                 data,
                 fieldId;
@@ -4498,15 +4498,15 @@ var formcorp = (function () {
 
               // Display the verification button text
               if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
-                html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
+                html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + verificationButtonText + '"></div>';
               } else {
                 html += '<div class="fc-sms-loader fc-loader"></div>';
                 html += '<div class="fc-verify-sms-input-code"><input type="tel" class="fc-verify-sms-input fc-fieldinput" value=""></div>';
-                html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
+                html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + fc.lang.verify + '"></div>';
               }
 
               html += '<div class="fc-send-sms">';
-              html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
+              html += '<input class="fc-btn" type="' + fc.config.buttonInputType + '" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
 
               if (getConfig(field, 'renderAsModal', false)) {
                 html += '<div class="fc-clear fc-verification-options">';
@@ -8940,14 +8940,14 @@ var formcorp = (function () {
               if (fc.config.showPrevPageButton === true) {
                 if (typeof fc.prevPages[fc.pageId] === "object") {
                   pageDiv += '<div class="fc-prev-page">';
-                  pageDiv += '<input type="submit" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
+                  pageDiv += '<input type="' + fc.config.buttonInputType + '" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
                   pageDiv += '</div>';
                 }
               }
 
               // Output the submit button
               pageDiv += '<div class="' + submitClasses.join(' ') + '">';
-              pageDiv += '<input type="submit" value="' + submitText + '" class="fc-btn">';
+              pageDiv += '<input type="' + fc.config.buttonInputType + '" value="' + submitText + '" class="fc-btn">';
               pageDiv += '</div>';
             }
           }
@@ -10598,7 +10598,7 @@ var formcorp = (function () {
          */
         registerEventListeners = function () {
           // Submit a form page
-          fc.domContainer.on('click', 'div.fc-submit input[type=submit]', function () {
+          fc.domContainer.on('click', 'div.fc-submit input[type=' + fc.config.buttonInputType + ']', function () {
             // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
             fc.nextPageButtonClicked = true;
 
@@ -11926,7 +11926,7 @@ var formcorp = (function () {
           html += '<div class="fc-section-body">';
           html += '<div class="fc-resume-choice">';
           html += '<p>The progress of filling your application has been saved since your last visit.</p><p>You can resume your application or start a new one by clicking on the buttons below:</p>';
-          html += '<input type="submit" class="fc-btn fc-resume-application-button" onclick="resumeApplication()" value="Resume application">';
+          html += '<input type="' + fc.config.buttonInputType + '" class="fc-btn fc-resume-application-button" onclick="resumeApplication()" value="Resume application">';
           html += '<script>function hardreload() {$.removeCookie("fcSessionId");location.reload(true);}</script>';
           html += '<script>function resumeApplication() {$(".fc-resume-choice").slideUp();$(".fc-resume-application").slideDown();$(".fc-send-sms input").trigger("click");}</script>';
           html += '</div>';
@@ -11954,7 +11954,7 @@ var formcorp = (function () {
 
           html += '</div>'; //!fc-field-smsVerification
           html += '</div>';
-          html += '<input type="submit" class="fc-btn fc-restart-application" onclick="hardreload()" value="Restart application">';
+          html += '<input type="' + fc.config.buttonInputType + '" class="fc-btn fc-restart-application" onclick="hardreload()" value="Restart application">';
           html += '<div class="fc-clear"></div>';
 
           html += '</div>'; //!fc-section-body
@@ -12666,7 +12666,8 @@ var formcorp = (function () {
               autoDiscoverLibs: true,
               verificationModal: false,
               forceNextPageAutoload: false,
-              administrativeEdit: false
+              administrativeEdit: false,
+              buttonInputType: 'submit',
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
