@@ -11,6 +11,54 @@
   }
 }
 
+@keyframes fc-greenid-status-bar-growslidein {
+  0% {
+    transform: translate3d(0,100%,0) rotateX(90deg) scale3d(0.9,0.9,0.9);
+  }
+  15% {
+    transform: translate3d(0,100%,0) rotateX(60deg) scale3d(0.9,0.9,0.9);
+  }
+  75% {
+    transform: translate3d(0,0,0) rotateX(0deg) scale3d(0.95,0.95,0.95);
+  }
+  100% {
+    transform: translate3d(0,0,0) rotateX(0deg) scale3d(1,1,1);
+  }
+}
+
+@keyframes fc-greenid-status-bar-slidein {
+  0% {
+    transform: translate3d(0,100%,0) rotateX(90deg);
+  }
+  15% {
+    transform: translate3d(0,100%,0) rotateX(60deg);
+  }
+  75% {
+    transform: translate3d(0,0,0) rotateX(0deg);
+  }
+  100% {
+    transform: translate3d(0,0,0) rotateX(0deg);
+  }
+}
+
+@keyframes fc-greenid-status-bar-blinkin {
+  0% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.85;
+  }
+  90% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .generate-init-animation(@count, @baseX, @maxY, @maxAngle, @minScale, @i : 1) when (@i <= @count) {
 
   @scale: (@count - 1) / 2 * @baseX;

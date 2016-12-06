@@ -1,3 +1,51 @@
+//Font
+@import url('https://fonts.googleapis.com/css?family=Roboto:100,300,400,700');
+@font-family: Roboto, Helvetica Neue, Helvetica, Arial, Ubuntu, sans-serif;
+@font-weight: 300;
+
+//Colors
+@error-color: #ff8a75;
+@available-color: #697f7f;
+@success-color: #3db878;
+
+//Page setup
+@page-max-width: 650px;
+@greenid-container-margin: ~'0 calc(50% - 50vw + 0px)';
+
+//Cards
+@available-card-background: @available-color;
+@available-card-hover-background: darken(@available-color, 7.5%);
+@verified-card-background: @success-color;
+@card-icon-width: 50px;
+@card-icon-height: @card-icon-width;
+@card-icon-margin: 30px auto 5px auto;
+@card-label-font-size: 16px;
+@card-label-line-height: @card-label-font-size + 4px;
+
+//Loading screen
+@loading-background-color: @available-color;
+
+//Success screen
+@success-page-background-color: @success-color;
+
+//Source submit button
+@source-submit-button-background: @available-color;
+@source-submit-button-hover-background: darken(@source-submit-button-background, 7.5%);
+@source-submit-button-verifying-background: lighten(@source-submit-button-background, 10%);
+
+//Forms
+@form-title-font-size: 21px;
+@form-title-font-weight: 300;
+
+//Secondary options
+@secondary-button-background-color: #e1e1e1;
+@secondary-button-hover-background-color: darken(@secondary-button-background-color, 7.5%);
+
+//Status bar
+@status-bar-border-top: 4px solid rgba(0,0,0,0.15);
+@status-bar-success-background-color: @success-color;
+@status-bar-error-background-color: @error-color;
+
 //Animation easing
 //EASE IN
 @ease-in-sine: cubic-bezier(.47,0,.74,.71);
