@@ -2016,7 +2016,7 @@ var formcorp = (function () {
                 showFieldSuccess(dataId);
               }
             });
-
+            console.log(Object.keys(errors))
             return Object.keys(errors).length === 0;
           },
 
@@ -5706,6 +5706,16 @@ var formcorp = (function () {
                 return c;
               }(schema),
               init: function() {
+                $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
+                  var $target = $(e.currentTarget);
+                  console.log($target);
+
+                  var $currentSection = $target.parents('.fc-section');
+                  var $nextSection = $currentSection.next();
+                  console.log($currentSection, $nextSection, $currentSection.next());
+                  if(validForm($currentSection))
+                    $('html, body').animate({scrollTop:$nextSection.offset().top});
+                });
                 this.renderContainer();
                 this.renderProgress();
                 this.setPage(getFirstPage());
@@ -7677,7 +7687,9 @@ var formcorp = (function () {
 
             sectionHtml += '</div>';
 
-            sectionHtml += '<div class="fc-section-end"></div>';
+            sectionHtml += '<div class="fc-section-end">\
+              <input type="button" value="Next" class="fc-next-section-button">\
+            </div>';
             sectionHtml += '</div></div>';
             html += sectionHtml;
           }
