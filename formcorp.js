@@ -1901,11 +1901,14 @@ var formcorp = (function () {
            * @param rootElement
            * @returns {boolean}
            */
-          validForm = function (rootElement, showErrors) {
+          validForm = function (rootElement, showErrors, returnFields) {
             if (fc.config.administrativeEdit) {
               // If in administrative mode, form is always valid
               return true;
             }
+
+            if(typeof returnFields !== 'boolean')
+              returnFields = false;
 
             var errors = {},
               required;
@@ -2016,8 +2019,7 @@ var formcorp = (function () {
                 showFieldSuccess(dataId);
               }
             });
-            console.log(Object.keys(errors))
-            return Object.keys(errors).length === 0;
+            return (returnFields)?Object.keys(errors):(Object.keys(errors).length === 0);
           },
 
           /**
@@ -5666,6 +5668,8 @@ var formcorp = (function () {
           selectRowAutoCompleteWidget,
           getPagesByTag,
           progressBar,
+          getCurrentSection,
+          setCurrentSection,
           util;
 
           progressBar = function(schema) {
@@ -5705,16 +5709,63 @@ var formcorp = (function () {
                 }
                 return c;
               }(schema),
+              scrollInterval: false,
               init: function() {
+
+                $(window).scroll(function(e) {
+                  if(this.scrollInterval !== false)
+                    return;
+
+                  this.scrollInterval = setTimeout(function() {
+                    var $target = $('body');
+                    var vh = $(window).height();
+                    var viewportScrollTop = $(window).scrollTop();
+                    var sections = [];
+
+                    $('.fc-section').each(function(i) {
+                      var $this = $(this);
+                      var height = $this.outerHeight();
+                      var offset = $this.offset().top;
+                      var relativeOffset = offset - viewportScrollTop;
+                      var isInViewport = (relativeOffset >= 0 && relativeOffset < vh || relativeOffset + height >= 0 && relativeOffset + height < vh);
+                      sections.push({
+                        height: height,
+                        offset: offset,
+                        relativeOffset: relativeOffset,
+                        isInViewport: isInViewport,
+                        $this: $this,
+                      });
+                    }).removeClass('fc-focused-section');
+
+                    sections.forEach(function(section) {
+                      if(section.isInViewport)
+                        section.$this.addClass('fc-focused-section');
+                    });
+
+                    clearInterval(this.scrollInterval);
+                    this.scrollInterval = false;
+                  }.bind(this), 120);
+                }.bind(this));
+
                 $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
                   var $target = $(e.currentTarget);
                   console.log($target);
 
                   var $currentSection = $target.parents('.fc-section');
-                  var $nextSection = $currentSection.next();
-                  console.log($currentSection, $nextSection, $currentSection.next());
-                  if(validForm($currentSection))
-                    $('html, body').animate({scrollTop:$nextSection.offset().top});
+
+                  if(validForm($currentSection)) {
+                    var $nextSection = $currentSection.next('.fc-section');
+
+                    if($nextSection.length > 0) {
+                      var nextSectionId = $nextSection.attr('formcorp-data-id');
+                      setCurrentSection(nextSectionId, true);
+                    } else {
+                      $('.fc-submit button, .fc-submit button').trigger('click');
+                    }
+                  } else {
+                    var $originalSection = $('.fc-section-' + fc.currentSection);
+                    $('html, body').stop(true, true).animate({scrollTop: $originalSection.offset().top}, 'fast');
+                  }
                 });
                 this.renderContainer();
                 this.renderProgress();
@@ -5860,6 +5911,13 @@ var formcorp = (function () {
                 return false;
 
               return (!value);
+            },
+            intersectArray: function(arr1, arr2) {
+              return arr1.filter(function(value1) {
+                return arr2.filter(function(value2) {
+                  return value1 === value2;
+                }).length > 0
+              })
             }
           }
 
@@ -10537,6 +10595,60 @@ var formcorp = (function () {
         };
 
         /**
+         * Retrieve first section that contains fields that failed validation
+         * @return {[type]} [description]
+         */
+        getCurrentSection = function() {
+          var firstPageId = getFirstPage();
+          var currentPage = getPageById(firstPageId);
+          var $currentPage = $('.fc-page-' + firstPageId);
+
+          var invalidFields = validForm($currentPage, false, true);
+
+          var pageSections = currentPage.page.section;
+          var sectionFields = function(sections) {
+            var a = {};
+            sections.forEach(function(section) {
+              a[section._id.$id] = section.field.map(getId);
+            });
+            return a;
+          }(pageSections);
+
+          var currentSectionId;
+
+          console.log(7, invalidFields);
+          console.log(8, sectionFields);
+
+          for(var sectionId in sectionFields) {
+            if(util.intersectArray(invalidFields, sectionFields[sectionId]).length > 0) {
+              currentSectionId = sectionId;
+              break;
+            }
+          }
+
+          var $currentSection = $('.fc-section-' + currentSectionId)
+
+          console.log('CURRENT SECTION', currentSectionId, $currentSection);
+
+          return currentSectionId;
+        };
+
+        setCurrentSection = function(sectionId, scrollToSection) {
+          var $sections = $('.fc-section');
+          var $currentSection = $('.fc-section-' + sectionId);
+
+          $sections.removeClass('fc-current-section');
+
+          $currentSection.addClass('fc-current-section');
+          fc.currentSection = sectionId;
+
+          if(typeof scrollToSection === 'boolean' && scrollToSection) {
+            $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top});
+          }
+
+        }
+
+        /**
          * Retrieve the first page (if the user has an active session, the opening page might be later on in the process)
          * @returns {*}
          */
@@ -10672,6 +10784,12 @@ var formcorp = (function () {
           }
 
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
+
+          var currentSectionId = getCurrentSection()
+          var $currentSection = $('.fc-section-' + currentSectionId);
+          setTimeout(function() {
+            setCurrentSection(currentSectionId, true);
+          }, 300);
 
         };
 
