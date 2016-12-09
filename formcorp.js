@@ -9357,6 +9357,9 @@ var formcorp = (function () {
                   }
 
                   // Trigger the newpage event
+                  setTimeout(function() {
+                    setCurrentSection(getCurrentSection(getId(newPage)), true);
+                  }, 600);
                   fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
                   fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
                   logEvent(fc.eventTypes.onNextPageSuccess, {
@@ -9455,6 +9458,7 @@ var formcorp = (function () {
           var previousPageId = getPreviousPage();
           render(previousPageId);
           setTimeout(function() {
+            setCurrentSection(getCurrentSection(previousPageId), true);
             fc.domContainer.trigger(fc.jsEvents.onPrevPage);
           }, 10);
 
@@ -10598,8 +10602,9 @@ var formcorp = (function () {
          * Retrieve first section that contains fields that failed validation
          * @return {[type]} [description]
          */
-        getCurrentSection = function() {
-          var firstPageId = getFirstPage();
+        getCurrentSection = function(pageId) {
+          var firstPageId = (util.isEmpty(pageId))?getFirstPage():pageId;
+          console.log(28, firstPageId);
           var currentPage = getPageById(firstPageId);
           var $currentPage = $('.fc-page-' + firstPageId);
 
@@ -10624,6 +10629,7 @@ var formcorp = (function () {
               currentSectionId = sectionId;
               break;
             }
+            currentSectionId = sectionId;
           }
 
           var $currentSection = $('.fc-section-' + currentSectionId)
