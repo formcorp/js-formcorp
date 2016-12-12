@@ -5755,7 +5755,7 @@ var formcorp = (function () {
 
                   if(validForm($currentSection)) {
 
-                    var $nextSection = function(currentPageId, currentSectionId) {
+                    var $nextSection = $currentSection.next('.fc-section:visible'); /*function(currentPageId, currentSectionId) {
                       var sections = getPageById(currentPageId).page.section;
                       var currentSection = sections.filter(function(section) {
                         console.log(4, getId(section));
@@ -5778,7 +5778,7 @@ var formcorp = (function () {
 
                       return sections[1] || false;
 
-                    }(fc.currentPage, $currentSection.attr('formcorp-data-id'));
+                    }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
                     console.log(2, $nextSection);
 
                     if($nextSection.length > 0) {
@@ -7846,7 +7846,7 @@ var formcorp = (function () {
 
               // Output the submit button
               pageDiv += '<div class="' + submitClasses.join(' ') + '">';
-              pageDiv += '<button type="button" class="fc-btn">' + submitText + '</button>';
+              pageDiv += '<input type="' + fc.config.buttonInputType + '" value="' + submitText + '" class="fc-btn">';
               pageDiv += '</div>';
             }
           }
@@ -9385,7 +9385,7 @@ var formcorp = (function () {
 
                   // Trigger the newpage event
                   setTimeout(function() {
-                    setCurrentSection(getCurrentSection(getId(newPage)), true);
+                    setCurrentSection(getCurrentSection(fc.pageId), true);
                   }, 600);
                   fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
                   fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
@@ -9532,7 +9532,7 @@ var formcorp = (function () {
          */
         registerEventListeners = function () {
           // Submit a form page
-          fc.domContainer.on('click', 'div.fc-submit button', function () {
+          fc.domContainer.on('click', 'div.fc-submit button, div.fc-submit input[type=' + fc.config.buttonInputType + ']', function () {
             // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
             fc.nextPageButtonClicked = true;
 
@@ -10684,7 +10684,9 @@ var formcorp = (function () {
 
         setCurrentSection = function(sectionId, scrollToSection) {
           var $sections = $('.fc-section');
+          console.log(3, $sections);
           var $currentSection = $('.fc-section-' + sectionId);
+          console.log(4, $currentSection);
 
           $sections.removeClass('fc-current-section');
 
@@ -11755,7 +11757,8 @@ var formcorp = (function () {
               autoDiscoverLibs: true,
               verificationModal: false,
               forceNextPageAutoload: false,
-              administrativeEdit: false
+              administrativeEdit: false,
+              buttonInputType: 'submit',
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
