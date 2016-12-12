@@ -688,7 +688,7 @@ var formcorp = (function () {
            * @returns {string}
            */
           getSessionId = function () {
-            return $.cookie(this.config.sessionIdName);
+            return this.sessionId;
           },
 
           /**
