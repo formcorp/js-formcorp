@@ -5754,13 +5754,38 @@ var formcorp = (function () {
                   var $currentSection = $target.parents('.fc-section');
 
                   if(validForm($currentSection)) {
-                    var $nextSection = $currentSection.next('.fc-section');
+
+                    var $nextSection = function(currentPageId, currentSectionId) {
+                      var sections = getPageById(currentPageId).page.section;
+                      var currentSection = sections.filter(function(section) {
+                        console.log(4, getId(section));
+                        return getId(section) === fc.currentSection;
+                      });
+
+                      console.log(3, currentSection, sections);
+
+                      sections = sections.sort(function(a, b) {
+                        if(typeof a.order === 'undefined')
+                          return true;
+                        if(typeof b.order === 'undefined')
+                          return false;
+                        return a.order < b.order;
+                      }).filter(function(section) {
+                        if(typeof currentSection.order === 'undefined')
+                          return getId(currentSection) !== getId(section);
+                        return section.order > currentSection.order;
+                      });
+
+                      return sections[1] || false;
+
+                    }(fc.currentPage, $currentSection.attr('formcorp-data-id'));
+                    console.log(2, $nextSection);
 
                     if($nextSection.length > 0) {
                       var nextSectionId = $nextSection.attr('formcorp-data-id');
                       setCurrentSection(nextSectionId, true);
                     } else {
-                      $('.fc-submit button, .fc-submit button').trigger('click');
+                      $('.fc-submit button, .fc-submit input').trigger('click');
                     }
                   } else {
                     var $originalSection = $('.fc-section-' + fc.currentSection);
@@ -6307,55 +6332,57 @@ var formcorp = (function () {
             // Field label - don't show in this position for certain fields
             helpTitle = '';
             if (["creditCard"].indexOf(field.type) === -1) {
-              if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 fieldHtml += '<label for="fc-field-' + field._id.$id + '">';
+              if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 fieldHtml += tokenise(field.config.label);
-
-                // Option to show labels on required fields
-                if (fc.config.asterisksOnLabels && getConfig(field, 'required', false)) {
-                  fieldHtml += '<span class="fc-required-caret">' + fc.lang.requiredAsterisk + '</span>';
-                }
-
-                // Option: show colon after label
-                if (fc.config.colonAfterLabel) {
-                  fieldHtml += fc.lang.labelColon;
-                }
-
-                // If set to open help data in a modal, output the link
-                if (fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
-                  if (fc.helpData === undefined) {
-                    fc.helpData = [];
-                    fc.helpTitle = [];
-                  }
-
-                  // The title to use for the help link
-                  helpTitle = getConfig(field, 'helpTitle', '');
-                  if (helpTitle.length === 0) {
-                    if (fc.config.helpDefaultWhenNoTitleText === false) {
-                      helpTitle = fc.lang.helpModalLink;
-                    }
-                  }
-
-                  if (helpTitle.length > 0) {
-                    // Push to the data array
-                    fc.helpData.push(getConfig(field, 'help'));
-                    fc.helpTitle.push(helpTitle);
-
-                    // Use the static title if forced
-                    if (fc.config.staticHelpModalLink) {
-                      helpTitle = fc.lang.helpModalLink;
-                    }
-
-                    showHelpAsText = false;
-                    fieldHtml += ' <a class="fc-help-link" tabindex="-1" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
-                  } else {
-                    // At this stage, show the help as text instead
-                    showHelpAsText = true;
-                  }
-                }
-
-                fieldHtml += '</label>';
+              } else {
+                fieldHtml += '&nbsp;';
               }
+
+              // Option to show labels on required fields
+              if (fc.config.asterisksOnLabels && getConfig(field, 'required', false)) {
+                fieldHtml += '<span class="fc-required-caret">' + fc.lang.requiredAsterisk + '</span>';
+              }
+
+              // Option: show colon after label
+              if (fc.config.colonAfterLabel) {
+                fieldHtml += fc.lang.labelColon;
+              }
+
+              // If set to open help data in a modal, output the link
+              if (fc.config.helpAsModal && getConfig(field, 'help').replace(/(<([^>]+)>)/ig, "").length > 0) {
+                if (fc.helpData === undefined) {
+                  fc.helpData = [];
+                  fc.helpTitle = [];
+                }
+
+                // The title to use for the help link
+                helpTitle = getConfig(field, 'helpTitle', '');
+                if (helpTitle.length === 0) {
+                  if (fc.config.helpDefaultWhenNoTitleText === false) {
+                    helpTitle = fc.lang.helpModalLink;
+                  }
+                }
+
+                if (helpTitle.length > 0) {
+                  // Push to the data array
+                  fc.helpData.push(getConfig(field, 'help'));
+                  fc.helpTitle.push(helpTitle);
+
+                  // Use the static title if forced
+                  if (fc.config.staticHelpModalLink) {
+                    helpTitle = fc.lang.helpModalLink;
+                  }
+
+                  showHelpAsText = false;
+                  fieldHtml += ' <a class="fc-help-link" tabindex="-1" href="#" data-for="' + (fc.helpData.length - 1) + '">' + helpTitle + '</a>';
+                } else {
+                  // At this stage, show the help as text instead
+                  showHelpAsText = true;
+                }
+              }
+
+              fieldHtml += '</label>';
 
               // Show the description after the label
               if (fc.config.descriptionBeforeLabel === false && getConfig(field, 'description').replace(/(<([^>]+)>)/ig, "").length > 0) {
@@ -10602,13 +10629,15 @@ var formcorp = (function () {
          * Retrieve first section that contains fields that failed validation
          * @return {[type]} [description]
          */
-        getCurrentSection = function(pageId) {
+        getCurrentSection = function(pageId, useValidation) {
+
+          if(typeof useValidation !== 'boolean')
+            useValidation = false;
+
           var firstPageId = (util.isEmpty(pageId))?getFirstPage():pageId;
           console.log(28, firstPageId);
           var currentPage = getPageById(firstPageId);
           var $currentPage = $('.fc-page-' + firstPageId);
-
-          var invalidFields = validForm($currentPage, false, true);
 
           var pageSections = currentPage.page.section;
           var sectionFields = function(sections) {
@@ -10621,15 +10650,29 @@ var formcorp = (function () {
 
           var currentSectionId;
 
-          console.log(7, invalidFields);
-          console.log(8, sectionFields);
+          if(useValidation) {
 
-          for(var sectionId in sectionFields) {
-            if(util.intersectArray(invalidFields, sectionFields[sectionId]).length > 0) {
+            var invalidFields = validForm($currentPage, false, true);
+
+            console.log(7, invalidFields);
+            console.log(8, sectionFields);
+
+            for(var sectionId in sectionFields) {
+              if(util.intersectArray(invalidFields, sectionFields[sectionId]).length > 0) {
+                currentSectionId = sectionId;
+                break;
+              }
               currentSectionId = sectionId;
-              break;
             }
-            currentSectionId = sectionId;
+
+          } else {
+            currentSectionId = getId(currentPage.page.section.sort(function(a, b) {
+              if(typeof a.order === 'undefined')
+                return true;
+              if(typeof b.order === 'undefined')
+                return false;
+              return b.order - a.order;
+            }).pop());
           }
 
           var $currentSection = $('.fc-section-' + currentSectionId)
