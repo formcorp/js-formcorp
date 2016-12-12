@@ -12834,6 +12834,11 @@ var formcorp = (function () {
            * Initialise the existing session, or instantiate a new one.
            */
           initSession: function () {
+            // If the session id has already been set, use it
+            if (typeof this.sessionId === 'string' && this.sessionId.length > 0) {
+              return;
+            }
+
             // If session id set in URL, use it
             if (this.getSetting(this.constants.persistentSessions, false)) {
               var urlSessionId = getHashVar(fc.lang.urlSessionPrefix);
