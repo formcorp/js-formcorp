@@ -3029,24 +3029,14 @@ var formcorp = (function () {
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
               fieldId = prefix + getId(field),
               html = '',
-              type = 'text',
-              placeholder = (fc.config.hidePlaceholderText)?'':getConfig(field, 'placeholder'),
-              readonly = (field.config.readOnly)?'disabled':'';
+              type = 'text';
 
             // Render a password field if appropriate
             if (getConfig(field, 'isPassword', false)) {
               type = 'password';
             }
 
-            html = '<input \
-              class="fc-fieldinput" \
-              type="' + type + '" \
-              formcorp-data-id="' + fieldId + '" \
-              data-required="' + required + '" \
-              id="fc-field-' + fieldId + '" \
-              placeholder="' + placeholder + '" \
-              ' + readonly + ' \
-            >';
+            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
 
             return html;
           },
