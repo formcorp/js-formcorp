@@ -7787,7 +7787,11 @@ var formcorp = (function () {
          */
         renderPage = function (page, isNextPage) {
           // Page details
-          var animation = (isNextPage)?'slideinnext 0.5s cubic-bezier(.22,.61,.36,1);':'slideinprev 0.5s cubic-bezier(.22,.61,.36,1)';
+          var animation = function(config) {
+            if(!config)
+              return '';
+            return (isNextPage)?config.next.nextPageAnimation:config.prev.nextPageAnimation;
+          }(fc.config.pageAnimations);
           var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '" style="animation:' + animation + '"">',
             submitText = fc.lang.submitText,
             nextPageObj,
@@ -7829,7 +7833,7 @@ var formcorp = (function () {
               if (fc.config.showPrevPageButton === true) {
                 if (typeof getPageById(getPreviousPage()) === "object") {
                   pageDiv += '<div class="fc-prev-page">';
-                  pageDiv += '<button type="button" class="fc-btn">' + fc.lang.prevButtonText + '</button>';
+                  pageDiv += '<input type="' + fc.config.buttonInputType + '" value="' + fc.lang.prevButtonText + '" class="fc-btn">';
                   pageDiv += '</div>';
                 }
               }
@@ -9360,7 +9364,7 @@ var formcorp = (function () {
               if (hasNextPage()) {
                 oldPage = fc.currentPage;
                 $('.fc-page-' + fc.currentPage).css({
-                  animation: 'slideoutnext 0.75s cubic-bezier(.22,.61,.36,1)',
+                  animation: fc.config.pageAnimations.next.currentPageAnimation,
                 });
                 setTimeout(function() {
                   nextPage();
@@ -9376,9 +9380,11 @@ var formcorp = (function () {
                   // Trigger the newpage event
                   setTimeout(function() {
                     setCurrentSection(getCurrentSection(fc.pageId), true);
-                  }, 600);
+                  }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+
                   fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
                   fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
+
                   logEvent(fc.eventTypes.onNextPageSuccess, {
                     from: oldPage,
                     to: newPage,
@@ -9387,19 +9393,21 @@ var formcorp = (function () {
 
                   fc.nextPageLoadedTimestamp = Date.now();
 
-                }, 750);
+                }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
 
                 // If the application is complete, raise completion event
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
 
-                  $('.fc-page-' + fc.currentPage).css({
-                    animation: 'slideout 0.5s cubic-bezier(.22,.61,.36,1)',
-                  });
+                  if(fc.config.pageAnimations) {
+                    $('.fc-page-' + fc.currentPage).css({
+                      animation: fc.config.pageAnimations.next.currentPageAnimation,
+                    });
+                  }
                   setTimeout(function() {
                     $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                  }, 500);
+                  }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
                 }
 
                 if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
@@ -9441,12 +9449,14 @@ var formcorp = (function () {
 
               // Form is deemed complete, output default completion message
               // Creates the page animation
-              $('.fc-page-' + fc.currentPage).css({
-                animation: 'slideout 0.5s cubic-bezier(.22,.61,.36,1)',
-              });
+              if(fc.config.pageAnimations) {
+                $('.fc-page-' + fc.currentPage).css({
+                  animation: fc.config.pageAnimations.next.currentPageAnimation,
+                });
+              }
               setTimeout(function() {
                 $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-              }, 500);
+              }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
               fc.domContainer.trigger(fc.jsEvents.onFormComplete);
               logEvent(fc.eventTypes.onFormComplete);
             } else {
@@ -9539,13 +9549,15 @@ var formcorp = (function () {
           }
 
           // Previous page click
-          fc.domContainer.on('click', '.fc-prev-page button', function () {
-            $('.fc-page-' + fc.currentPage).css({
-              animation: 'slideoutprev 0.5s cubic-bezier(.22,.61,.36,1)',
-            });
+          fc.domContainer.on('click', '.fc-prev-page input, .fc-prev-page button', function () {
+            if(fc.config.pageAnimations) {
+              $('.fc-page-' + fc.currentPage).css({
+                animation: fc.config.pageAnimations.prev.currentPageAnimation,
+              });
+            }
             setTimeout(function() {
               return fc.functions.loadPrevPage();
-            }, 500);
+            }, (fc.config.pageAnimations)?fc.config.pageAnimations.prev.delay:0);
           });
 
           // Description link clicks
@@ -10830,7 +10842,7 @@ var formcorp = (function () {
           var $currentSection = $('.fc-section-' + currentSectionId);
           setTimeout(function() {
             setCurrentSection(currentSectionId, true);
-          }, 300);
+          }, (fc.config.pageAnimations)?fc.config.pageAnimations.prev.delay:0);
 
         };
 
@@ -11749,6 +11761,7 @@ var formcorp = (function () {
               forceNextPageAutoload: false,
               administrativeEdit: false,
               buttonInputType: 'submit',
+              pageAnimations: false,
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
