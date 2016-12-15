@@ -3036,7 +3036,7 @@ var formcorp = (function () {
               type = 'password';
             }
 
-            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'disabled':'') + '>';
 
             return html;
           },
@@ -7712,6 +7712,7 @@ var formcorp = (function () {
               return '';
             return (isNextPage)?config.next.nextPageAnimation:config.prev.nextPageAnimation;
           }(fc.config.pageAnimations);
+
           var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '" style="animation:' + animation + '"">',
             submitText = fc.lang.submitText,
             nextPageObj,
