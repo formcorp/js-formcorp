@@ -1382,7 +1382,7 @@ var formcorp = (function () {
             fc.domContainer.trigger(fc.jsEvents.onFieldError, [dataId, errors]);
 
             dataGroup.addClass('fc-error');
-            console.log('Show field error: ' + dataId);
+            console.trace('Show field error: ' + dataId);
 
             // If inline validation enabled, output error message(s)
             if (fc.config.inlineValidation === true) {
@@ -5701,87 +5701,6 @@ var formcorp = (function () {
               }(schema),
               scrollInterval: false,
               init: function() {
-
-                $(window).scroll(function(e) {
-                  if(this.scrollInterval !== false)
-                    return;
-
-                  this.scrollInterval = setTimeout(function() {
-                    var $target = $('body');
-                    var vh = $(window).height();
-                    var viewportScrollTop = $(window).scrollTop();
-                    var sections = [];
-
-                    $('.fc-section').each(function(i) {
-                      var $this = $(this);
-                      var height = $this.outerHeight();
-                      var offset = $this.offset().top;
-                      var relativeOffset = offset - viewportScrollTop;
-                      var isInViewport = (relativeOffset >= 0 && relativeOffset < vh || relativeOffset + height >= 0 && relativeOffset + height < vh);
-                      sections.push({
-                        height: height,
-                        offset: offset,
-                        relativeOffset: relativeOffset,
-                        isInViewport: isInViewport,
-                        $this: $this,
-                      });
-                    }).removeClass('fc-focused-section');
-
-                    sections.forEach(function(section) {
-                      if(section.isInViewport)
-                        section.$this.addClass('fc-focused-section');
-                    });
-
-                    clearInterval(this.scrollInterval);
-                    this.scrollInterval = false;
-                  }.bind(this), 120);
-                }.bind(this));
-
-                $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
-                  var $target = $(e.currentTarget);
-                  console.log($target);
-
-                  var $currentSection = $target.parents('.fc-section');
-
-                  if(validForm($currentSection)) {
-
-                    var $nextSection = $currentSection.next('.fc-section:visible'); /*function(currentPageId, currentSectionId) {
-                      var sections = getPageById(currentPageId).page.section;
-                      var currentSection = sections.filter(function(section) {
-                        console.log(4, getId(section));
-                        return getId(section) === fc.currentSection;
-                      });
-
-                      console.log(3, currentSection, sections);
-
-                      sections = sections.sort(function(a, b) {
-                        if(typeof a.order === 'undefined')
-                          return true;
-                        if(typeof b.order === 'undefined')
-                          return false;
-                        return a.order < b.order;
-                      }).filter(function(section) {
-                        if(typeof currentSection.order === 'undefined')
-                          return getId(currentSection) !== getId(section);
-                        return section.order > currentSection.order;
-                      });
-
-                      return sections[1] || false;
-
-                    }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
-                    console.log(2, $nextSection);
-
-                    if($nextSection.length > 0) {
-                      var nextSectionId = $nextSection.attr('formcorp-data-id');
-                      setCurrentSection(nextSectionId, true);
-                    } else {
-                      $('.fc-submit button, .fc-submit input').trigger('click');
-                    }
-                  } else {
-                    var $originalSection = $('.fc-section-' + fc.currentSection);
-                    $('html, body').stop(true, true).animate({scrollTop: $originalSection.offset().top}, 'fast');
-                  }
-                });
                 this.renderContainer();
                 this.renderProgress();
                 this.setPage(getFirstPage());
@@ -6325,18 +6244,17 @@ var formcorp = (function () {
                 fieldHtml += '<label for="fc-field-' + field._id.$id + '">';
               if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 fieldHtml += tokenise(field.config.label);
-              } else {
+                // Option: show colon after label
+                if (fc.config.colonAfterLabel) {
+                  fieldHtml += fc.lang.labelColon;
+                }
+              } else if(fc.config.renderEmptyLabels) {
                 fieldHtml += '&nbsp;';
               }
 
               // Option to show labels on required fields
               if (fc.config.asterisksOnLabels && getConfig(field, 'required', false)) {
                 fieldHtml += '<span class="fc-required-caret">' + fc.lang.requiredAsterisk + '</span>';
-              }
-
-              // Option: show colon after label
-              if (fc.config.colonAfterLabel) {
-                fieldHtml += fc.lang.labelColon;
               }
 
               // If set to open help data in a modal, output the link
@@ -7762,9 +7680,11 @@ var formcorp = (function () {
 
             sectionHtml += '</div>';
 
-            sectionHtml += '<div class="fc-section-end">\
-              <input type="button" value="Next" class="fc-next-section-button">\
-            </div>';
+            if(fc.config.showNextSectionButtons) {
+              sectionHtml += '<div class="fc-section-end">\
+                <input type="button" value="Next" class="fc-next-section-button">\
+              </div>';
+            }
             sectionHtml += '</div></div>';
             html += sectionHtml;
           }
@@ -9363,10 +9283,41 @@ var formcorp = (function () {
               // Render the next page if available
               if (hasNextPage()) {
                 oldPage = fc.currentPage;
-                $('.fc-page-' + fc.currentPage).css({
-                  animation: fc.config.pageAnimations.next.currentPageAnimation,
-                });
-                setTimeout(function() {
+                if(fc.config.pageAnimations) {
+                  $('.fc-page-' + fc.currentPage).css({
+                    animation: fc.config.pageAnimations.next.currentPageAnimation,
+                  });
+                }
+                if(fc.config.pageAnimations) {
+                  setTimeout(function() {
+                    nextPage();
+                    newPage = fc.currentPage;
+
+                    if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
+                      // There was a page mismatch between the server and the client, throw out a critical error
+                      showSecurityError({
+                        message: 'Next page mismatch between client and server'
+                      });
+                    }
+
+                    // Trigger the newpage event
+                    setTimeout(function() {
+                      setCurrentSection(getCurrentSection(fc.pageId), true);
+                    }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+
+                    fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
+                    fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
+
+                    logEvent(fc.eventTypes.onNextPageSuccess, {
+                      from: oldPage,
+                      to: newPage,
+                      timeSpent: (Date.now() - fc.nextPageLoadedTimestamp) / 1000
+                    });
+
+                    fc.nextPageLoadedTimestamp = Date.now();
+
+                  }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                } else {
                   nextPage();
                   newPage = fc.currentPage;
 
@@ -9392,8 +9343,7 @@ var formcorp = (function () {
                   });
 
                   fc.nextPageLoadedTimestamp = Date.now();
-
-                }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                }
 
                 // If the application is complete, raise completion event
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
@@ -9405,9 +9355,13 @@ var formcorp = (function () {
                       animation: fc.config.pageAnimations.next.currentPageAnimation,
                     });
                   }
-                  setTimeout(function() {
+                  if(fc.config.pageAnimations) {
+                    setTimeout(function() {
+                      $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                    }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                  } else {
                     $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                  }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                  }
                 }
 
                 if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
@@ -9428,6 +9382,7 @@ var formcorp = (function () {
                     }
 
                     // Scroll to offset
+                    console.log('OFFSET:', offset);
                     scrollToOffset(offset);
 
                     fc.nextPageButtonClicked = false;
@@ -9453,10 +9408,12 @@ var formcorp = (function () {
                 $('.fc-page-' + fc.currentPage).css({
                   animation: fc.config.pageAnimations.next.currentPageAnimation,
                 });
-              }
-              setTimeout(function() {
+                setTimeout(function() {
+                  $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+              } else {
                 $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-              }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+              }
               fc.domContainer.trigger(fc.jsEvents.onFormComplete);
               logEvent(fc.eventTypes.onFormComplete);
             } else {
@@ -9531,6 +9488,94 @@ var formcorp = (function () {
          * Register event listeners.
          */
         registerEventListeners = function () {
+
+          if(fc.config.flagFocusedCurrentSection) {
+            $(window).scroll(function(e) {
+              if(this.scrollInterval !== false)
+                return;
+
+              this.scrollInterval = setTimeout(function() {
+                var $target = $('body');
+                var vh = $(window).height();
+                var viewportScrollTop = $(window).scrollTop();
+                var sections = [];
+
+                $('.fc-section').each(function(i) {
+                  var $this = $(this);
+                  var height = $this.outerHeight();
+                  var offset = $this.offset().top;
+                  var relativeOffset = offset - viewportScrollTop;
+                  var isInViewport = (relativeOffset >= 0 && relativeOffset < vh || relativeOffset + height >= 0 && relativeOffset + height < vh);
+                  sections.push({
+                    height: height,
+                    offset: offset,
+                    relativeOffset: relativeOffset,
+                    isInViewport: isInViewport,
+                    $this: $this,
+                  });
+                }).removeClass(fc.config.flagFocusedCurrentSection);
+
+                sections.forEach(function(section) {
+                  if(section.isInViewport)
+                    section.$this.addClass(fc.config.flagFocusedCurrentSection);
+                });
+
+                clearInterval(this.scrollInterval);
+                this.scrollInterval = false;
+              }.bind(this), 120);
+            }.bind(this));
+
+          }
+
+          if(fc.config.showNextSectionButtons) {
+            $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
+              var $target = $(e.currentTarget);
+              console.log($target);
+
+              var $currentSection = $target.parents('.fc-section');
+              var currentSectionId = $currentSection.attr('formcorp-data-id');
+
+              if(validForm($currentSection)) {
+
+                var $nextSection = $currentSection.next('.fc-section:visible'); /*function(currentPageId, currentSectionId) {
+                  var sections = getPageById(currentPageId).page.section;
+                  var currentSection = sections.filter(function(section) {
+                    console.log(4, getId(section));
+                    return getId(section) === fc.currentSection;
+                  });
+
+                  console.log(3, currentSection, sections);
+
+                  sections = sections.sort(function(a, b) {
+                    if(typeof a.order === 'undefined')
+                      return true;
+                    if(typeof b.order === 'undefined')
+                      return false;
+                    return a.order < b.order;
+                  }).filter(function(section) {
+                    if(typeof currentSection.order === 'undefined')
+                      return getId(currentSection) !== getId(section);
+                    return section.order > currentSection.order;
+                  });
+
+                  return sections[1] || false;
+
+                }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
+
+                if($nextSection.length > 0) {
+                  var nextSectionId = $nextSection.attr('formcorp-data-id');
+                  setCurrentSection(nextSectionId, true);
+                } else {
+                  $('.fc-submit button, .fc-submit input').last().trigger('click');
+                }
+              } else {
+                var $originalSection = $('.fc-section-' + currentSectionId);
+                $('html, body').stop(true, true).animate({scrollTop: $originalSection.offset().top + fc.config.scrollOffset}, 'fast');
+              }
+            });
+          }
+
+
           // Submit a form page
           fc.domContainer.on('click', 'div.fc-submit button, div.fc-submit input[type=' + fc.config.buttonInputType + ']', function () {
             // When true, loadNextPage() knows the page was submitted from clicking the button, and not automatically
@@ -10632,6 +10677,8 @@ var formcorp = (function () {
          * @return {[type]} [description]
          */
         getCurrentSection = function(pageId, useValidation) {
+          if(!fc.config.sectionManagement)
+            return;
 
           if(typeof useValidation !== 'boolean')
             useValidation = false;
@@ -10685,6 +10732,9 @@ var formcorp = (function () {
         };
 
         setCurrentSection = function(sectionId, scrollToSection) {
+          if(!fc.config.sectionManagement)
+            return;
+
           var $sections = $('.fc-section');
           console.log(3, $sections);
           var $currentSection = $('.fc-section-' + sectionId);
@@ -10696,7 +10746,7 @@ var formcorp = (function () {
           fc.currentSection = sectionId;
 
           if(typeof scrollToSection === 'boolean' && scrollToSection) {
-            $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top});
+            $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top + fc.config.scrollOffset}, 400, 'swing');
           }
 
         }
@@ -10810,7 +10860,6 @@ var formcorp = (function () {
          * @param data object
          */
         initRender = function (data) {
-
 
           var firstPageId;
 
@@ -11762,6 +11811,9 @@ var formcorp = (function () {
               administrativeEdit: false,
               buttonInputType: 'submit',
               pageAnimations: false,
+              renderEmptyLabels: false,
+              showNextSectionButtons: false,
+              sectionManagement: false,
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
