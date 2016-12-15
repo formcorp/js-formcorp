@@ -6428,6 +6428,7 @@ var formcorp = (function () {
             fieldHtml += fieldDOMHTML;
 
             // Close the field element container
+            fieldHtml += '<div class="fc-lock-icon"><span></span></div>';
             fieldHtml += '<div class="fc-success-box"><span></span></div>';
             fieldHtml += '<div class="fc-error-box"><span></span></div>';
             fieldHtml += '</div>'; // fc-field-element-container
