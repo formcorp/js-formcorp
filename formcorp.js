@@ -9491,10 +9491,10 @@ var formcorp = (function () {
 
           if(fc.config.flagFocusedCurrentSection) {
             $(window).scroll(function(e) {
-              if(this.scrollInterval !== false)
+              if(fc.scrollInterval !== false)
                 return;
 
-              this.scrollInterval = setTimeout(function() {
+              fc.scrollInterval = setTimeout(function() {
                 var $target = $('body');
                 var vh = $(window).height();
                 var viewportScrollTop = $(window).scrollTop();
@@ -9520,8 +9520,8 @@ var formcorp = (function () {
                     section.$this.addClass(fc.config.flagFocusedCurrentSection);
                 });
 
-                clearInterval(this.scrollInterval);
-                this.scrollInterval = false;
+                clearInterval(fc.scrollInterval);
+                fc.scrollInterval = false;
               }.bind(this), 120);
             }.bind(this));
 
@@ -11212,6 +11212,7 @@ var formcorp = (function () {
             this.languagePacks = {};
             this.getPagesByTag = getPagesByTag;
             this.util = util;
+            this.scrollInterval = false;
 
             this.progressBar = progressBar;
 
