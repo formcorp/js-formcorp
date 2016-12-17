@@ -6192,7 +6192,7 @@ var formcorp = (function () {
 
             // Pass field class through tokenisation
             if (fieldClass.length > 0) {
-              fieldClass = tokenise(fieldclass, {}, false);
+              fieldClass = tokenise(fieldClass, {}, false);
               fieldHtml += fieldClass + ' ';
             }
 
