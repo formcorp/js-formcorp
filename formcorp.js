@@ -3041,7 +3041,7 @@ var formcorp = (function () {
               maxLength = 'maxlength="' + maxLength + '"';
             }
 
-            html = '<input class="fc-fieldinput" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'disabled ':'') + maxlength '>';
+            html = '<input class="fc-fieldinput" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'disabled ':'') + maxlength + '>';
 
             return html;
           },
