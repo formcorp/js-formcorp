@@ -5091,11 +5091,16 @@ var formcorp = (function () {
            *
            * @param raw
            * @param additionalTokens
+           * @param withHtml {bool}
            * @returns {*}
            */
-          tokenise = function (raw, additionalTokens) {
+          tokenise = function (raw, additionalTokens, withHtml) {
             if (!additionalTokens) {
               additionalTokens = {};
+            }
+
+            if (typeof withHtml !== 'boolean') {
+              withHtml = true;
             }
 
             var tokenisedString = raw,
@@ -5130,7 +5135,11 @@ var formcorp = (function () {
                   replacement = tokenise(replacement);
                 }
 
-                replacement = '<span class="fc-token" data-token="' + htmlEncode(token) + '">' + replacement + '</span>';
+                if (withHtml) {
+                  // Most of the time will want to replace with HTML to ensure it gets updated as the token gets updated
+                  // However, sometimes will just want to do a blanket replace (as is the case with class etc.)
+                  replacement = '<span class="fc-token" data-token="' + htmlEncode(token) + '">' + replacement + '</span>';
+                }
 
                 tokenisedString = tokenisedString.replace(new RegExp(tokens[iterator].escapeRegExp(), 'g'), replacement);
               }
@@ -6185,7 +6194,10 @@ var formcorp = (function () {
 
             // Render the field class
             fieldClass = getConfig(field, 'class', '');
+
+            // Pass field class through tokenisation
             if (fieldClass.length > 0) {
+              fieldClass = tokenise(fieldClass, {}, false);
               fieldHtml += fieldClass + ' ';
             }
 
