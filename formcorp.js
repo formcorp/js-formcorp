@@ -8239,7 +8239,7 @@ var formcorp = (function () {
           if (typeof pageToRender === 'object') {
             // If found a page, render/return it
             if (shouldRender) {
-              render(getId(pageToRender), true, true);
+              render(getId(pageToRender), true, !fc.config.onePage);
             }
             return returnPage ? getPageById(getId(pageToRender)) : true;
           }
