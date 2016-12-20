@@ -8037,11 +8037,14 @@ var formcorp = (function () {
          * @param pageId
          * @param isNextPage
          */
-        render = function (pageId, isNextPage) {
+        render = function (pageId, isNextPage, scrollToTop) {
           // If expired, do not render anything
           if (fc.expired === true) {
             return;
           }
+
+          if(scrollToTop)
+            $('html, body').scrollTop(fc.config.initialScrollOffset);
 
           // If the page has already been rendered on the page, do not re-render
           if (fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]').length > 0) {
@@ -8236,7 +8239,7 @@ var formcorp = (function () {
           if (typeof pageToRender === 'object') {
             // If found a page, render/return it
             if (shouldRender) {
-              render(getId(pageToRender), true);
+              render(getId(pageToRender), true, true);
             }
             return returnPage ? getPageById(getId(pageToRender)) : true;
           }
@@ -9566,7 +9569,7 @@ var formcorp = (function () {
 
               if(validForm($currentSection)) {
 
-                var $nextSection = $currentSection.next('.fc-section:visible'); /*function(currentPageId, currentSectionId) {
+                var $nextSection = $currentSection.nextAll('.fc-section:visible').first(); /*function(currentPageId, currentSectionId) {
                   var sections = getPageById(currentPageId).page.section;
                   var currentSection = sections.filter(function(section) {
                     console.log(4, getId(section));
@@ -9590,6 +9593,8 @@ var formcorp = (function () {
                   return sections[1] || false;
 
                 }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
+
+                console.log(111, $nextSection);
 
                 if($nextSection.length > 0) {
                   var nextSectionId = $nextSection.attr('formcorp-data-id');
