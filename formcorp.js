@@ -3036,7 +3036,12 @@ var formcorp = (function () {
               type = 'password';
             }
 
-            html = '<input class="fc-fieldinput" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'disabled':'') + '>';
+            var maxLength = (getConfig(field, 'maxLength', ''));
+            if(maxLength.length > 0) {
+              maxLength = 'maxlength="' + maxLength + '"';
+            }
+
+            html = '<input class="fc-fieldinput" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'disabled ':'') + maxlength '>';
 
             return html;
           },
@@ -7682,8 +7687,18 @@ var formcorp = (function () {
             sectionHtml += '</div>';
 
             if(fc.config.showNextSectionButtons) {
+              var label = 'Next';
+
+              if(typeof fc.config.showNextSectionButtons === 'object') {
+                label = fc.config.showNextSectionButtons[getId(section)] || 'Next';
+              }
+
+              if(typeof fc.config.showNextSectionButtons === 'string') {
+                label = fc.config.showNextSectionButtons;
+              }
+
               sectionHtml += '<div class="fc-section-end">\
-                <input type="button" value="Next" class="fc-next-section-button">\
+                <input type="button" value="'+label+'" class="fc-next-section-button">\
               </div>';
             }
             sectionHtml += '</div></div>';
