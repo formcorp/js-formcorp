@@ -502,8 +502,6 @@ var formcorp = (function () {
                    if ($.isArray(fc.libraryCallbacks[field])) {
                      for (var a = 0; a < fc.libraryCallbacks[field].length; a += 1) {
                        var fn = fc.libraryCallbacks[field][a];
-                       console.log('call function for: ' + field);
-                       console.log(fn);
                        if (typeof fn === 'function') {
                          fn();
                        }
@@ -1382,7 +1380,6 @@ var formcorp = (function () {
             fc.domContainer.trigger(fc.jsEvents.onFieldError, [dataId, errors]);
 
             dataGroup.addClass('fc-error');
-            console.trace('Show field error: ' + dataId);
 
             // If inline validation enabled, output error message(s)
             if (fc.config.inlineValidation === true) {
@@ -2932,15 +2929,15 @@ var formcorp = (function () {
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
                 if (fc.fields[populateFromId] !== undefined) {
-                  value = fc.fields[populateFromId];
+                  value = fc.fields[populateFromId].slice(0, getConfig(schema, 'maxLength', -1));
                 }
               }
 
               // Otherwise use the default
-              if (value === undefined) {
-                defaultValue = getConfig(schema, 'default', '');
+              if (value === undefined || value === '') {
+                defaultValue = getConfig(schema, 'default', getConfig(schema, 'defaultValue', ''));
                 if (defaultValue.length > 0) {
-                  value = defaultValue;
+                  value = defaultValue.slice(0, getConfig(schema, 'maxLength', -1));
                 }
               }
             }
@@ -3059,7 +3056,7 @@ var formcorp = (function () {
             /*jslint nomen: true*/
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
               fieldId = prefix + field._id.$id,
-              html = '<select class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" ' + readonly + '>',
+              html = '<select id="fc-field-' + fieldId + '" class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" ' + readonly + '>',
               options = getConfig(field, 'options', ''),
               optGroupOpen = false,
               x,
@@ -5282,10 +5279,8 @@ var formcorp = (function () {
              if (typeof fc.initialisedGreenId === 'boolean' && fc.initialisedGreenId) {
                return;
              }
-             console.log('formcorp.js: initGreenId');
 
              fc.domContainer.on(fc.jsEvents.onGreenIdLoaded, function () {
-               console.log('formcorp.js: onGreenIdLoaded');
                fc.greenID = fcGreenID;
                fc.greenID.init();
                initGreenIdDOMFields();
@@ -5677,7 +5672,6 @@ var formcorp = (function () {
           util;
 
           progressBar = function(schema) {
-            console.log('schema', schema);
             return {
               schema: schema,
               hash: function(schema) {
@@ -5696,9 +5690,6 @@ var formcorp = (function () {
                 return a;
               }(schema),
               getStep: function(pageId) {
-                console.log(pageId);
-                console.log(this.hash);
-                console.log(this.hash[pageId])
                 if(!this.hash[pageId])
                   return false;
                 return {
@@ -5720,7 +5711,6 @@ var formcorp = (function () {
                 this.setPage(getFirstPage());
               },
               setPage: function(pageId) {
-                console.log(2, pageId)
                 this.currentPage = getPageById(pageId);
                 this.currentStep = this.getStep(pageId);
                 if(!this.currentStep)
@@ -5752,7 +5742,6 @@ var formcorp = (function () {
                   c++;
                 }
                 this.$stepsBar.html(html);
-                console.log('hash', this.hash)
               },
               update: function(curr, count, label) {
                 curr--;
@@ -6611,7 +6600,7 @@ var formcorp = (function () {
           /*jslint nomen: true*/
           var required = typeof field.config.required === 'boolean' ? field.config.required : false,
             fieldId = prefix + field._id.$id,
-            html = '<input class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input id="fc-field-' + fieldId + '" class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
           /*jslint nomen: false*/
           return html;
         };
@@ -7536,7 +7525,6 @@ var formcorp = (function () {
          */
         initGreenIdFieldInDOM = function (field, prefix) {
           var html = '';
-          console.log('formcorp.js: initGreenIdFieldInm');
 
           // Force prefix to be a string
           if (typeof prefix !== 'string') {
@@ -7631,7 +7619,6 @@ var formcorp = (function () {
          */
         renderGreenIdField = function (field, prefix, bypass) {
           // Default bypass to false
-          console.log('formcorp.js: render greenid field');
           if (typeof bypass !== 'boolean') {
             bypass = false;
           }
@@ -8334,9 +8321,11 @@ var formcorp = (function () {
           log($.extend({}, fc.fields));
 
           // If the value hasn't actually changed, return
-          if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
-            return;
-          }
+          // if (!force && fc.fields[dataId] !== undefined && fc.fields[dataId] === value) {
+          //   if(dataId === '58295b6846fde23d1a8b505d'){
+          //   }
+          //   return;
+          // }
 
           fc.domContainer.trigger(fc.jsEvents.onFieldValueChange, [dataId, value]);
 
@@ -9414,7 +9403,6 @@ var formcorp = (function () {
                     }
 
                     // Scroll to offset
-                    console.log('OFFSET:', offset);
                     scrollToOffset(offset);
 
                     fc.nextPageButtonClicked = false;
@@ -9562,7 +9550,6 @@ var formcorp = (function () {
           if(fc.config.showNextSectionButtons) {
             $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
               var $target = $(e.currentTarget);
-              console.log($target);
 
               var $currentSection = $target.parents('.fc-section');
               var currentSectionId = $currentSection.attr('formcorp-data-id');
@@ -9572,11 +9559,9 @@ var formcorp = (function () {
                 var $nextSection = $currentSection.nextAll('.fc-section:visible').first(); /*function(currentPageId, currentSectionId) {
                   var sections = getPageById(currentPageId).page.section;
                   var currentSection = sections.filter(function(section) {
-                    console.log(4, getId(section));
                     return getId(section) === fc.currentSection;
                   });
 
-                  console.log(3, currentSection, sections);
 
                   sections = sections.sort(function(a, b) {
                     if(typeof a.order === 'undefined')
@@ -9594,7 +9579,6 @@ var formcorp = (function () {
 
                 }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
 
-                console.log(111, $nextSection);
 
                 if($nextSection.length > 0) {
                   var nextSectionId = $nextSection.attr('formcorp-data-id');
@@ -10718,7 +10702,6 @@ var formcorp = (function () {
             useValidation = false;
 
           var firstPageId = (util.isEmpty(pageId))?getFirstPage():pageId;
-          console.log(28, firstPageId);
           var currentPage = getPageById(firstPageId);
           var $currentPage = $('.fc-page-' + firstPageId);
 
@@ -10737,8 +10720,6 @@ var formcorp = (function () {
 
             var invalidFields = validForm($currentPage, false, true);
 
-            console.log(7, invalidFields);
-            console.log(8, sectionFields);
 
             for(var sectionId in sectionFields) {
               if(util.intersectArray(invalidFields, sectionFields[sectionId]).length > 0) {
@@ -10760,7 +10741,6 @@ var formcorp = (function () {
 
           var $currentSection = $('.fc-section-' + currentSectionId)
 
-          console.log('CURRENT SECTION', currentSectionId, $currentSection);
 
           return currentSectionId;
         };
@@ -10770,9 +10750,7 @@ var formcorp = (function () {
             return;
 
           var $sections = $('.fc-section');
-          console.log(3, $sections);
           var $currentSection = $('.fc-section-' + sectionId);
-          console.log(4, $currentSection);
 
           $sections.removeClass('fc-current-section');
 
@@ -11275,7 +11253,6 @@ var formcorp = (function () {
             this.libraryCallbacks = {
               'greenIdVerification': [
                 function () {
-                  console.log('post callback');
                   fc.greenID.initGreenId();
                 }
               ]
@@ -11780,37 +11757,58 @@ var formcorp = (function () {
 
             // Default values
             this.config = {
-              debug: false,
-              useTags: true,
+              activePageOffset: 250,
+              administrativeEdit: false,
               analytics: true,
-              realTimeValidation: true,
-              inlineValidation: true,
-              sessionKeyLength: 40,
-              sessionIdName: 'fcSessionId',
-              eventQueueInterval: eventQueueDefault,
-              saveInRealTime: true,
-              saveInRealTimeInterval: realTimeSaveDefault,
-              showPrevPageButton: true,
-              timeUserOut: false,
-              timeOutWarning: 870, // 14 minutes 30 seconds
-              timeOutAfter: 900, // 15 minutes,
-              cvvImage: null,
-              onePage: false,
-              smoothScroll: false,
-              scrollDuration: 1000,
-              scrollOnSubmitError: false,
-              scrollWait: 500,
-              initialScrollOffset: 0,
-              scrollOffset: 0,
-              conditionalHtmlScrollOffset: {},
+              asterisksOnLabels: true,
+              autoDiscoverLibs: true,
               autoLoadPages: false,
               autoScrollToNextField: false,
-              activePageOffset: 250,
-              creditCardNumberLimits: [16, 16],
-              maxCreditCardCodeLength: 4,
-              descriptionBeforeLabel: true,
+              autoShiftFocusOnEnter: false,
+              buttonInputType: 'submit',
+              colonAfterLabel: true,
+              conditionalHtmlScrollOffset: {},
               creditCardErrorUrlParam: 'creditCardError',
+              creditCardNumberLimits: [16, 16],
+              css: {
+                entityRecordLoadingClass: 'entity-record-loading'
+              },
+              cvvImage: null,
+              datePickerIconOffset: 25,
+              debug: false,
+              deleteSessionOnComplete: true,
+              descriptionBeforeLabel: true,
+              entityPrefix: 'ent:',
+              eventQueueInterval: eventQueueDefault,
+              forceNextPageAutoload: false,
               forceSignatureLib: false,
+              hashPrefix: 'h:',
+              hashSeparator: ',',
+              helpAsModal: false,
+              helpDefaultWhenNoTitleText: true,
+              hideModal: false,
+              initialScrollOffset: 0,
+              inlineValidation: true,
+              maxCreditCardCodeLength: 4,
+              minSizeForMobile: 479,
+              onePage: false,
+              pageAnimations: false,
+              realTimeValidation: true,
+              renderEmptyLabels: false,
+              renderOnlyVertical: true,
+              saveInRealTime: true,
+              saveInRealTimeInterval: realTimeSaveDefault,
+              sectionManagement: false,
+              scrollDuration: 1000,
+              scrollOffset: 0,
+              scrollOnSubmitError: false,
+              scrollWait: 500,
+              sessionIdName: 'fcSessionId',
+              sessionKeyLength: 40,
+              showModalCloseInFooter: true,
+              showModalCloseInHeader: true,
+              showNextSectionButtons: false,
+              showPrevPageButton: true,
               signatureLibCss: [
                 cdnUrl() + 'dist/signaturepad/assets/jquery.signaturepad.css'
               ],
@@ -11820,35 +11818,14 @@ var formcorp = (function () {
                 cdnUrl() + 'dist/signaturepad/assets/json2.min.js'
               ],
               signatureClass: 'sigPad',
-              updateHash: true,
-              deleteSessionOnComplete: true,
-              autoShiftFocusOnEnter: false,
-              minSizeForMobile: 479,
-              asterisksOnLabels: true,
-              colonAfterLabel: true,
-              helpAsModal: false,
+              smoothScroll: false,
               staticHelpModalLink: false,
-              hideModal: false,
-              showModalCloseInFooter: true,
-              showModalCloseInHeader: true,
-              helpDefaultWhenNoTitleText: true,
-              hashPrefix: 'h:',
-              hashSeparator: ',',
-              entityPrefix: 'ent:',
-              css: {
-                entityRecordLoadingClass: 'entity-record-loading'
-              },
-              renderOnlyVertical: true,
-              datePickerIconOffset: 25,
-              autoDiscoverLibs: true,
+              timeOutWarning: 870, // 14 minutes 30 seconds
+              timeOutAfter: 900, // 15 minutes,
+              timeUserOut: false,
+              updateHash: true,
+              useTags: true,
               verificationModal: false,
-              forceNextPageAutoload: false,
-              administrativeEdit: false,
-              buttonInputType: 'submit',
-              pageAnimations: false,
-              renderEmptyLabels: false,
-              showNextSectionButtons: false,
-              sectionManagement: false,
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
