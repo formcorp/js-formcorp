@@ -717,7 +717,7 @@ var formcorp = (function () {
            * @returns {string}
            */
           getSessionId = function () {
-            return $.cookie(this.config.sessionIdName);
+            return this.sessionId;
           },
 
           /**
@@ -3896,7 +3896,7 @@ var formcorp = (function () {
 
             // Render the pay now button
             html += '<div class="fc-submit-payment">';
-            html += '<input class="fc-btn" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.payNow + '"><div class="fc-loading fc-hide"></div>';
+            html += '<input class="fc-btn" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + fc.lang.payNow + '"><div class="fc-loading fc-hide"></div>';
             html += '</div>';
 
             html += '</div>';
@@ -4221,7 +4221,7 @@ var formcorp = (function () {
            */
           registerEmailVerificationListeners = function () {
             // Send an email to the user
-            fc.domContainer.on('click', '.fc-email-verification .fc-send-email input[type=submit]', function () {
+            fc.domContainer.on('click', '.fc-email-verification .fc-send-email input[type='+fc.config.buttonInputType+']', function () {
               var elParent = $(this).parent(),
                 data,
                 fieldId;
@@ -4344,14 +4344,14 @@ var formcorp = (function () {
 
               // Display the verification button text
               if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
-                html += '<div class="fc-verify-email"><input class="fc-btn fc-email-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
+                html += '<div class="fc-verify-email"><input class="fc-btn fc-email-verification-modal" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + verificationButtonText + '"></div>';
               } else {
                 html += '<div class="fc-verify-email-input-code"><input type="text" class="fc-verify-email-input fc-fieldinput" value=""></div>';
-                html += '<div class="fc-verify-email-button"><input class="fc-btn fc-email-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
+                html += '<div class="fc-verify-email-button"><input class="fc-btn fc-email-verification-verify" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + fc.lang.verify + '"></div>';
               }
 
               html += '<div class="fc-send-email">';
-              html += '<input class="fc-btn" type="submit" value="' + buttonText + '"><div class="fc-loading fc-hide"></div>';
+              html += '<input class="fc-btn" type="' + fc.config.buttonInputType + '" value="' + buttonText + '"><div class="fc-loading fc-hide"></div>';
               html += '</div>';
 
               html += '<div class="fc-clear"></div>';
@@ -4424,7 +4424,7 @@ var formcorp = (function () {
            */
           registerSmsVerificationListeners = function () {
             // Send an email to the user
-            fc.domContainer.on('click', '.fc-sms-verification .fc-send-sms input[type=submit]', function () {
+            fc.domContainer.on('click', '.fc-sms-verification .fc-send-sms input[type=' + fc.config.buttonInputType + ']', function () {
               var elParent = $(this).parent(),
                 data,
                 fieldId;
@@ -4548,15 +4548,15 @@ var formcorp = (function () {
 
               // Display the verification button text
               if (getConfig(field, 'renderAsModal', true) && verificationButtonText.length > 0) {
-                html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="submit" value="' + verificationButtonText + '"></div>';
+                html += '<div class="fc-verify-sms"><input class="fc-btn fc-sms-verification-modal" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + verificationButtonText + '"></div>';
               } else {
                 html += '<div class="fc-sms-loader fc-loader"></div>';
                 html += '<div class="fc-verify-sms-input-code"><input type="tel" class="fc-verify-sms-input fc-fieldinput" value=""></div>';
-                html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="submit" value="' + fc.lang.verify + '"></div>';
+                html += '<div class="fc-verify-sms-button"><input class="fc-btn fc-sms-verification-verify" data-for="' + getId(field) + '" type="' + fc.config.buttonInputType + '" value="' + fc.lang.verify + '"></div>';
               }
 
               html += '<div class="fc-send-sms">';
-              html += '<input class="fc-btn" type="submit" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
+              html += '<input class="fc-btn" type="' + fc.config.buttonInputType + '" value="' + fc.lang.sendSms + '"><div class="fc-loading fc-hide"></div>';
 
               if (getConfig(field, 'renderAsModal', false)) {
                 html += '<div class="fc-clear fc-verification-options">';
@@ -9921,6 +9921,7 @@ var formcorp = (function () {
             // Add to html
             html += '<div class="fc-suggest-row" data-suggest="' + encodeURI(JSON.stringify(tokens)) + '" data-id="' + dataId + '"><a href="#">' + summary + '</a></div>';
           }
+          html += '<div><button class="fc-api-enter-manually" fc-belongs-to="' + dataId + '">Enter manually</button></div>';
           html += '</div>';
 
           return html;
@@ -10115,6 +10116,22 @@ var formcorp = (function () {
           if (fc.registeredApiLookup === true) {
             return;
           }
+
+          fc.domContainer.on('click', '.fc-field-apiLookup button.fc-api-enter-manually', function (event) {
+            var $target = $(event.currentTarget);
+            var lookupFieldId = $target.attr('fc-belongs-to');
+            var lookupField = fc.fieldSchema[lookupFieldId];
+            var fields = JSON.parse(lookupField.config.mapResponse);
+
+            for(var tag in fields) {
+              var $field = $('.fc-tag-' + tag);
+              var field = fc.fieldSchema[$field.find('input, select, textarea').attr('formcorp-data-id')];
+              $field.removeClass('fc-hide');
+              field.config.visibility = true;
+            }
+            $('#fc-field-' + lookupFieldId).addClass('fc-hide');
+          });
+
 
           // Trigger an API look up
           fc.domContainer.on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput, .fc-field-apiLookup input[type=tel].fc-fieldinput, .fc-field-apiLookup input[type=number].fc-fieldinput', function (event) {
@@ -11032,7 +11049,7 @@ var formcorp = (function () {
           html += '<div class="fc-section-body">';
           html += '<div class="fc-resume-choice">';
           html += '<p>The progress of filling your application has been saved since your last visit.</p><p>You can resume your application or start a new one by clicking on the buttons below:</p>';
-          html += '<input type="submit" class="fc-btn fc-resume-application-button" onclick="resumeApplication()" value="Resume application">';
+          html += '<input type="' + fc.config.buttonInputType + '" class="fc-btn fc-resume-application-button" onclick="resumeApplication()" value="Resume application">';
           html += '<script>function hardreload() {$.removeCookie("fcSessionId");location.reload(true);}</script>';
           html += '<script>function resumeApplication() {$(".fc-resume-choice").slideUp();$(".fc-resume-application").slideDown();$(".fc-send-sms input").trigger("click");}</script>';
           html += '</div>';
@@ -11060,7 +11077,7 @@ var formcorp = (function () {
 
           html += '</div>'; //!fc-field-smsVerification
           html += '</div>';
-          html += '<input type="submit" class="fc-btn fc-restart-application" onclick="hardreload()" value="Restart application">';
+          html += '<input type="' + fc.config.buttonInputType + '" class="fc-btn fc-restart-application" onclick="hardreload()" value="Restart application">';
           html += '<div class="fc-clear"></div>';
 
           html += '</div>'; //!fc-section-body
@@ -11803,6 +11820,7 @@ var formcorp = (function () {
               scrollOffset: 0,
               scrollOnSubmitError: false,
               scrollWait: 500,
+              sectionManagement: false,
               sessionIdName: 'fcSessionId',
               sessionKeyLength: 40,
               showModalCloseInFooter: true,
@@ -12029,6 +12047,11 @@ var formcorp = (function () {
            * Initialise the existing session, or instantiate a new one.
            */
           initSession: function () {
+            // If the session id has already been set, use it
+            if (typeof this.sessionId === 'string' && this.sessionId.length > 0) {
+              return;
+            }
+
             // If session id set in URL, use it
             if (this.getSetting(this.constants.persistentSessions, false)) {
               var urlSessionId = getHashVar(fc.lang.urlSessionPrefix);
