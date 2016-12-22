@@ -2929,7 +2929,10 @@ var formcorp = (function () {
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
                 if (fc.fields[populateFromId] !== undefined) {
-                  value = fc.fields[populateFromId].slice(0, getConfig(schema, 'maxLength', -1));
+                  value = fc.fields[populateFromId];
+                  if(getConfig(schema, 'maxLength', false)) {
+                    value = value.slice(0, getConfig(schema, 'maxLength', -1));
+                  }
                 }
               }
 
@@ -2937,7 +2940,10 @@ var formcorp = (function () {
               if (value === undefined || value === '') {
                 defaultValue = getConfig(schema, 'default', getConfig(schema, 'defaultValue', ''));
                 if (defaultValue.length > 0) {
-                  value = defaultValue.slice(0, getConfig(schema, 'maxLength', -1));
+                  value = defaultValue;
+                  if(getConfig(schema, 'maxLength', false)) {
+                    value = value.slice(0, getConfig(schema, 'maxLength', -1));
+                  }
                 }
               }
             }
