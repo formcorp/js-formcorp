@@ -6253,7 +6253,7 @@ var formcorp = (function () {
             // Field label - don't show in this position for certain fields
             helpTitle = '';
             if (["creditCard"].indexOf(field.type) === -1) {
-                fieldHtml += '<label for="fc-field-' + field._id.$id + '">';
+                fieldHtml += '<label for="fc-field-' + field._id.$id + '" class="' + ((getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0)?'':'fc-hide') + '">';
               if (getConfig(field, 'showLabel', false) === true && getConfig(field, 'label', '').length > 0) {
                 fieldHtml += tokenise(field.config.label);
                 // Option: show colon after label
