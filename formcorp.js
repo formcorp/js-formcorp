@@ -2882,7 +2882,8 @@ var formcorp = (function () {
             if (valInputs.length > 0) {
               // Input type text
               valInputs.val(value);
-              valInputs.trigger('blur');
+              if(typeof value === 'string' && value.length > 0)
+                valInputs.trigger('blur');
 
               // Range, set the outcome value
               if (valInputs.attr('type') === 'range') {
