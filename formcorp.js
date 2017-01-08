@@ -1898,7 +1898,7 @@ var formcorp = (function () {
            * @param rootElement
            * @returns {boolean}
            */
-          validForm = function (rootElement, showErrors, returnFields) {
+          validForm = function (rootElement, showErrors, returnFields, forceRender) {
             if (fc.config.administrativeEdit) {
               // If in administrative mode, form is always valid
               return true;
@@ -2016,6 +2016,10 @@ var formcorp = (function () {
                 showFieldSuccess(dataId);
               }
             });
+
+            if(forceRender === true)
+              flushVisibility();
+
             return (returnFields)?Object.keys(errors):(Object.keys(errors).length === 0);
           },
 
@@ -4724,9 +4728,45 @@ var formcorp = (function () {
            * @returns {*}
            */
           renderReviewTable = function (fieldId) {
-            var html, stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml, fieldHtml;
 
-            html = '<div class="fc-form-summary fc-review-table">';
+            var html = '', stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml, fieldHtml;
+
+            // var firstPageId = getFirstPageId();
+            // console.log(firstPageId);
+            // var pages = [];
+            // var next = getPageById(firstPageId);
+            // while(next) {
+            //   console.log(next.page.section.length, next.page.section[0].field.length);
+            //   if(next.page.section.length > 0 && next.page.section[0].field.length > 0)
+            //     pages.push(next);
+            //   console.log(21, pages);
+            //   next = nextPage(false, true, getId(next.page));
+            // }
+
+            // pages.map(function(p) {
+            //   return p.page;
+            // }).forEach(function(page) {
+            //   html += '<div>page '+page.label+'</div>';
+            //   page.visibleSections = page.section.filter(function(s) {
+            //     return (typeof s.visibility === 'string' && s.visibility.length > 0)?eval(getBooleanLogic(s.visibility)):true;
+            //   }).filter(function(s, i) {
+            //     s.visibleFields = s.field.filter(function(f) {
+            //       return (typeof f.visibility === 'string' && f.visibility.length > 0)?(eval(getBooleanLogic(f.visibility)) && getValue(getId(f)).length > 0):(getValue(getId(f)).length > 0);
+            //     });
+            //     return s.visibleFields.length > 0;
+            //   }).forEach(function(s) {
+            //     html += '<div>section '+s.label+'</div>';
+            //     s.visibleFields.forEach(function(f) {
+            //       html += '<div>field '+((f.config.label.length > 0)?f.config.label:f.config.placeholder)+' : '+getValue(getId(f))+'</div>';
+            //     });
+            //   });
+
+            //   console.log(22, page.visibleSections);
+            // });
+
+            // console.log(pages);
+
+            html += '<div class="fc-form-summary fc-review-table">';
             html += '<table class="fc-table"><thead><tr><th class="fc-field-col">Field</th><th>Value</th></tr></thead><tbody>';
 
             // Loop through every page, output every field that has a value
