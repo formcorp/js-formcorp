@@ -12419,7 +12419,7 @@ var formcorp = (function () {
          setEntityTokens: setEntityTokens,
 
          // Value changed functions
-	 valueChanged: valueChanged,
+	 // valueChanged: valueChanged,
 	 setValueUpdate: setValueUpdate,
 
          /**
