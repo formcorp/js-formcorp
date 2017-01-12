@@ -7744,7 +7744,7 @@ var formcorp = (function () {
               }
 
               sectionHtml += '<div class="fc-section-end">\
-                <input type="button" value="'+label+'" class="fc-next-section-button">\
+                <span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>\
               </div>';
             }
             sectionHtml += '</div></div>';
