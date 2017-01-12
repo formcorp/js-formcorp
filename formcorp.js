@@ -10766,10 +10766,12 @@ var formcorp = (function () {
             useValidation = false;
 
           var firstPageId = (util.isEmpty(pageId))?getFirstPage():pageId;
+
           var currentPage = getPageById(firstPageId);
           var $currentPage = $('.fc-page-' + firstPageId);
 
-          var pageSections = currentPage.page.section;
+          var pageSections = util.arrayFrom(currentPage.page.section);
+
           var sectionFields = function(sections) {
             var a = {};
             sections.forEach(function(section) {
@@ -10794,7 +10796,7 @@ var formcorp = (function () {
             }
 
           } else {
-            currentSectionId = getId(currentPage.page.section.sort(function(a, b) {
+            currentSectionId = getId(util.arrayFrom(currentPage.page.section).sort(function(a, b) {
               if(typeof a.order === 'undefined')
                 return true;
               if(typeof b.order === 'undefined')
@@ -10822,7 +10824,8 @@ var formcorp = (function () {
           fc.currentSection = sectionId;
 
           if(typeof scrollToSection === 'boolean' && scrollToSection) {
-            $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top + fc.config.scrollOffset}, 400, 'swing');
+            if($currentSection.length > 0)
+              $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top + fc.config.scrollOffset}, 400, 'swing');
           }
 
         }
@@ -11148,6 +11151,19 @@ var formcorp = (function () {
               log('FC Error: ' + data.message);
               return;
             }
+
+            data.stage.map(function(stage) {
+              return stage.page.map(function(page) {
+                if(Array.isArray(page.section))
+                  return page;
+                var a = [];
+                for(key in page.section) {
+                  a.push(page.section[key]);
+                }
+                page.section = a;
+                return page;
+              });
+            });
 
             var key;
             if (data && data.stage) {
