@@ -7023,7 +7023,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" + accept=" ' + fileTypes + ' " />';
 
-          html += '<input class="fc-fieldinput fc-fieldinput-attachButton" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="Attach File(s)" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" />';
+          html += '<span class="fc-fieldinput-attachButton-wrapper"><input class="fc-fieldinput fc-fieldinput-attachButton" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="'+fc.lang.fileUploadCopy+'" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" /></span>';
 
           html += '<div class="fc-file-list"></div>';
           html += '<div class="fc-progress-list" id="fc-progress-list-' +getId(field) + '"></div>'
@@ -12002,6 +12002,7 @@ var formcorp = (function () {
                 helpTitle: 'What is this?',
                 requiredAsterisk: '*',
                 labelColon: ':',
+                fileUploadCopy: 'Attach File(s)',
                 greenID: {
                   options: {
                     driversLicense: {
