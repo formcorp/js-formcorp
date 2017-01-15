@@ -5766,17 +5766,35 @@ var formcorp = (function () {
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
                 this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
+              	
+              	if(fc.config.sectionManagement)
+                	setInterval(this.updateSection.bind(this), 300);
+              },
+              updateSection: function() {
+              	if(!fc.config.sectionManagement)
+              		return;
+              	var curr = this.currentStepNumber -1;
+              	var count = this.stepCount;
+              	var left = curr / (count -1) * 100;
+              	var $currentSection = $('.fc-current-section');
+              	var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
+              	var i = $sections.index($currentSection) +1;
+              	var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
+                left += (100/(count -1)/sections * i);
+                this.$path.css({width:left + '%'});
               },
               $barContainer: null,
               $bar: null,
               $stepCount: null,
               $currentStep: null,
               $stepsBar: null,
+              $path: null,
               renderContainer: function() {
                 this.$stepCount = $('<div class="fc-step-count"></div>');
                 this.$stepsBar = $('<div class="fc-steps-bar"></div>');
                 this.$bar = $('<div class="fc-progress-bar"></div>');
                 this.$progress = $('<div class="fc-progress"></div>');
+                this.$path = $('<div class="fc-complete-path"></div>');
                 this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$stepCount).append(this.$bar.append(this.$stepsBar).append(this.$progress));
 
                 fc.domContainer.prepend(this.$barContainer);
@@ -5795,6 +5813,7 @@ var formcorp = (function () {
                 var left = curr / (count -1) * 100;
                 var translate = left - 100;
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
+                this.updateSection();
               },
               groupLabelAlignment: function(order, count) {
                 if(order < count / 2)
@@ -5803,7 +5822,7 @@ var formcorp = (function () {
               },
               renderProgress: function() {
                 this.$currentStep = $('<div class="progress-bar-group progress-bar-current-group"><span class="progress-bar-label"></span></div>');
-                this.$progress.html(this.$currentStep);
+                this.$progress.html(this.$currentStep).prepend(this.$path);
               },
               groupStatusClasses: function(order, currentOrder) {
                 order++;
@@ -5821,11 +5840,11 @@ var formcorp = (function () {
                 var classList = '';
                 return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
               },
-              updateProgress: function(curr, count, label) {
-                var left = curr / (count -1) * 100;
-                var translate = left - 100;
-                return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
-              }
+              // updateProgress: function(curr, count, label) {
+              //   var left = curr / (count -1) * 100;
+              //   var translate = left - 100;
+              //   return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
+              // }
             }
           };
 
@@ -10792,7 +10811,6 @@ var formcorp = (function () {
 
             var invalidFields = validForm($currentPage, false, true);
 
-
             for(var sectionId in sectionFields) {
               if(util.intersectArray(invalidFields, sectionFields[sectionId]).length > 0) {
                 currentSectionId = sectionId;
@@ -10808,6 +10826,10 @@ var formcorp = (function () {
               if(typeof b.order === 'undefined')
                 return false;
               return b.order - a.order;
+            }).filter(function(sec) {
+            	if(sec.visibility === '')
+            		return true;
+            	return eval(getBooleanLogic(sec.visibility));
             }).pop());
           }
 
