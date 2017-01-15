@@ -9369,6 +9369,12 @@ var formcorp = (function () {
                     }
 
                     // Trigger the newpage event
+                    if(fc.config.pageAnimations) {
+	                    setTimeout(function() {
+	                    	//Forces the page to scroll to the top
+		                  	$('html, body').scrollTop(0);
+	                    }, 10);
+	                  }
                     setTimeout(function() {
                       setCurrentSection(getCurrentSection(fc.pageId), true);
                     }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
