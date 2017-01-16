@@ -5780,7 +5780,13 @@ var formcorp = (function () {
                 var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
                 var i = $sections.index($currentSection) +1;
                 var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
-                left += (100/(count -1)/sections * i);
+
+                if(this.currentStepNumber < this.stepCount)
+                  left += (100/(count -1)/sections * i);
+                else {
+                  left = 100;
+                }
+
                 this.$path.css({width:left + '%'});
               },
               $barContainer: null,
@@ -5811,7 +5817,11 @@ var formcorp = (function () {
               update: function(curr, count, label) {
                 curr--;
                 var left = curr / (count -1) * 100;
-                var translate = left - 100;
+                var translate = function (l) {
+                  if(curr === 0 || curr === count -1)
+                    return -50;
+                  return l;
+                }(left - 100);
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
                 this.updateSection();
               },
@@ -5836,7 +5846,11 @@ var formcorp = (function () {
               },
               renderSteps: function(curr, count, label) {
                 var left = curr / (count -1) * 100;
-                var translate = left - 100;
+                var translate = function (l) {
+                  if(curr === 0 || curr === count -1)
+                    return -50;
+                  return l;
+                }(left - 100);
                 var classList = '';
                 return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
               },
