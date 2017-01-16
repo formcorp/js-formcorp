@@ -9456,20 +9456,24 @@ var formcorp = (function () {
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
-
-                  if(fc.config.pageAnimations) {
-                    $('.fc-page-' + fc.currentPage).css({
-                      animation: fc.config.pageAnimations.next.currentPageAnimation,
-                    });
-                  }
-                  if(fc.config.pageAnimations) {
-                    setTimeout(function() {
-                      $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                    }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
-                  } else {
-                    $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                  }
                 }
+                // if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                //   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
+                //   logEvent(fc.eventTypes.onFormComplete);
+
+                //   if(fc.config.pageAnimations) {
+                //     $('.fc-page-' + fc.currentPage).css({
+                //       animation: fc.config.pageAnimations.next.currentPageAnimation,
+                //     });
+                //   }
+                //   if(fc.config.pageAnimations) {
+                //     setTimeout(function() {
+                //       $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                //     }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                //   } else {
+                //     $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                //   }
+                // }
 
                 if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
                   lastPage = $('.fc-page:last');
