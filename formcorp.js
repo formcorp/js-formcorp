@@ -5766,20 +5766,20 @@ var formcorp = (function () {
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
                 this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
-              	
-              	if(fc.config.sectionManagement)
-                	setInterval(this.updateSection.bind(this), 300);
+
+                if(fc.config.sectionManagement)
+                  setInterval(this.updateSection.bind(this), 300);
               },
               updateSection: function() {
-              	if(!fc.config.sectionManagement)
-              		return;
-              	var curr = this.currentStepNumber -1;
-              	var count = this.stepCount;
-              	var left = curr / (count -1) * 100;
-              	var $currentSection = $('.fc-current-section');
-              	var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
-              	var i = $sections.index($currentSection) +1;
-              	var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
+                if(!fc.config.sectionManagement)
+                  return;
+                var curr = this.currentStepNumber -1;
+                var count = this.stepCount;
+                var left = curr / (count -1) * 100;
+                var $currentSection = $('.fc-current-section');
+                var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
+                var i = $sections.index($currentSection) +1;
+                var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
                 left += (100/(count -1)/sections * i);
                 this.$path.css({width:left + '%'});
               },
@@ -9389,11 +9389,11 @@ var formcorp = (function () {
 
                     // Trigger the newpage event
                     if(fc.config.pageAnimations) {
-	                    setTimeout(function() {
-	                    	//Forces the page to scroll to the top
-		                  	$('html, body').scrollTop(0);
-	                    }, 10);
-	                  }
+                      setTimeout(function() {
+                        //Forces the page to scroll to the top
+                        $('html, body').scrollTop(0);
+                      }, 10);
+                    }
                     setTimeout(function() {
                       setCurrentSection(getCurrentSection(fc.pageId), true);
                     }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
@@ -10827,9 +10827,9 @@ var formcorp = (function () {
                 return false;
               return b.order - a.order;
             }).filter(function(sec) {
-            	if(sec.visibility === '')
-            		return true;
-            	return eval(getBooleanLogic(sec.visibility));
+              if(sec.visibility === '')
+                return true;
+              return eval(getBooleanLogic(sec.visibility));
             }).pop());
           }
 
@@ -12464,8 +12464,8 @@ var formcorp = (function () {
          setEntityTokens: setEntityTokens,
 
          // Value changed functions
-	 // valueChanged: valueChanged,
-	 setValueUpdate: setValueUpdate,
+   // valueChanged: valueChanged,
+   setValueUpdate: setValueUpdate,
 
          /**
           * Tokenisation
