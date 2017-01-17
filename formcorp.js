@@ -5756,6 +5756,9 @@ var formcorp = (function () {
                 this.renderContainer();
                 this.renderProgress();
                 this.setPage(getFirstPage());
+
+                if(fc.config.sectionManagement)
+                  fc.domContainer.on(fc.jsEvents.onSectionChange, this.updateSection.bind(this))
               },
               setPage: function(pageId) {
                 this.currentPage = getPageById(pageId);
@@ -5766,9 +5769,6 @@ var formcorp = (function () {
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
                 this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
-
-                if(fc.config.sectionManagement)
-                  setInterval(this.updateSection.bind(this), 300);
               },
               updateSection: function() {
                 if(!fc.config.sectionManagement)
@@ -7772,7 +7772,7 @@ var formcorp = (function () {
                 label = fc.config.showNextSectionButtons[getId(section)] || 'Next';
               }
 
-              if(typeof fc.config.showNextSectionButtons === 'string') {
+              if(typeof fc.config.showNextSectionButtons === 'string' && fc.config.showNextSectionButtons !== '') {
                 label = fc.config.showNextSectionButtons;
               }
 
@@ -10861,6 +10861,8 @@ var formcorp = (function () {
           if(!fc.config.sectionManagement)
             return;
 
+          var previousSection = fc.currentSection;
+
           var $sections = $('.fc-section');
           var $currentSection = $('.fc-section-' + sectionId);
 
@@ -10873,6 +10875,8 @@ var formcorp = (function () {
             if($currentSection.length > 0)
               $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top + fc.config.scrollOffset}, 400, 'swing');
           }
+
+          fc.domContainer.trigger(fc.jsEvents.onSectionChange, [sectionId, previousSection]);
 
         }
 
@@ -11476,6 +11480,7 @@ var formcorp = (function () {
               onNextPage: 'onNextPage',
               onPageChange: 'onPageChange',
               onPrevPage: 'onPrevPage',
+              onSectionChange: 'onSectionChange',
               onConnectionMade: 'onFCConnectionMade',
               onFinishRender: 'onFinishFormRender',
               onFieldError: 'onFieldError',
