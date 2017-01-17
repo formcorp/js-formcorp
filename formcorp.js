@@ -5757,6 +5757,9 @@ var formcorp = (function () {
                 this.renderContainer();
                 this.renderProgress();
                 this.setPage(getFirstPage());
+
+                if(fc.config.sectionManagement)
+                  fc.domContainer.on(fc.jsEvents.onSectionChange, this.updateSection.bind(this))
               },
               setPage: function(pageId) {
                 this.currentPage = getPageById(pageId);
@@ -5767,21 +5770,24 @@ var formcorp = (function () {
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
                 this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
-              	
-              	if(fc.config.sectionManagement)
-                	setInterval(this.updateSection.bind(this), 300);
               },
               updateSection: function() {
-              	if(!fc.config.sectionManagement)
-              		return;
-              	var curr = this.currentStepNumber -1;
-              	var count = this.stepCount;
-              	var left = curr / (count -1) * 100;
-              	var $currentSection = $('.fc-current-section');
-              	var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
-              	var i = $sections.index($currentSection) +1;
-              	var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
-                left += (100/(count -1)/sections * i);
+                if(!fc.config.sectionManagement)
+                  return;
+                var curr = this.currentStepNumber -1;
+                var count = this.stepCount;
+                var left = curr / (count -1) * 100;
+                var $currentSection = $('.fc-current-section');
+                var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
+                var i = $sections.index($currentSection) +1;
+                var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
+
+                if(this.currentStepNumber < this.stepCount)
+                  left += (100/(count -1)/sections * i);
+                else {
+                  left = 100;
+                }
+
                 this.$path.css({width:left + '%'});
               },
               $barContainer: null,
@@ -5812,7 +5818,11 @@ var formcorp = (function () {
               update: function(curr, count, label) {
                 curr--;
                 var left = curr / (count -1) * 100;
-                var translate = left - 100;
+                var translate = function (l) {
+                  if(curr === 0 || curr === count -1)
+                    return -50;
+                  return l;
+                }(left - 100);
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
                 this.updateSection();
               },
@@ -5837,7 +5847,11 @@ var formcorp = (function () {
               },
               renderSteps: function(curr, count, label) {
                 var left = curr / (count -1) * 100;
-                var translate = left - 100;
+                var translate = function (l) {
+                  if(curr === 0 || curr === count -1)
+                    return -50;
+                  return l;
+                }(left - 100);
                 var classList = '';
                 return '<div style="left:'+left+'%;transform:translateX(' + translate + '%)" class="' + this.groupStatusClasses(curr, this.currentStepNumber) + ' ' + this.groupLabelAlignment(curr, count) + '"><span class="progress-bar-label">' + label + '</span></div>'
               },
@@ -7759,7 +7773,7 @@ var formcorp = (function () {
                 label = fc.config.showNextSectionButtons[getId(section)] || 'Next';
               }
 
-              if(typeof fc.config.showNextSectionButtons === 'string') {
+              if(typeof fc.config.showNextSectionButtons === 'string' && fc.config.showNextSectionButtons !== '') {
                 label = fc.config.showNextSectionButtons;
               }
 
@@ -9390,11 +9404,11 @@ var formcorp = (function () {
 
                     // Trigger the newpage event
                     if(fc.config.pageAnimations) {
-	                    setTimeout(function() {
-	                    	//Forces the page to scroll to the top
-		                  	$('html, body').scrollTop(0);
-	                    }, 10);
-	                  }
+                      setTimeout(function() {
+                        //Forces the page to scroll to the top
+                        $('html, body').scrollTop(0);
+                      }, 10);
+                    }
                     setTimeout(function() {
                       setCurrentSection(getCurrentSection(fc.pageId), true);
                     }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
@@ -9443,20 +9457,24 @@ var formcorp = (function () {
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
-
-                  if(fc.config.pageAnimations) {
-                    $('.fc-page-' + fc.currentPage).css({
-                      animation: fc.config.pageAnimations.next.currentPageAnimation,
-                    });
-                  }
-                  if(fc.config.pageAnimations) {
-                    setTimeout(function() {
-                      $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                    }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
-                  } else {
-                    $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
-                  }
                 }
+                // if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                //   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
+                //   logEvent(fc.eventTypes.onFormComplete);
+
+                //   if(fc.config.pageAnimations) {
+                //     $('.fc-page-' + fc.currentPage).css({
+                //       animation: fc.config.pageAnimations.next.currentPageAnimation,
+                //     });
+                //   }
+                //   if(fc.config.pageAnimations) {
+                //     setTimeout(function() {
+                //       $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                //     }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                //   } else {
+                //     $(fc.jQueryContainer + ' .render').html(fc.lang.formCompleteHtml);
+                //   }
+                // }
 
                 if (fc.nextPageButtonClicked && fc.config.onePage && fc.config.smoothScroll) {
                   lastPage = $('.fc-page:last');
@@ -10828,9 +10846,9 @@ var formcorp = (function () {
                 return false;
               return b.order - a.order;
             }).filter(function(sec) {
-            	if(sec.visibility === '')
-            		return true;
-            	return eval(getBooleanLogic(sec.visibility));
+              if(sec.visibility === '')
+                return true;
+              return eval(getBooleanLogic(sec.visibility));
             }).pop());
           }
 
@@ -10844,6 +10862,8 @@ var formcorp = (function () {
           if(!fc.config.sectionManagement)
             return;
 
+          var previousSection = fc.currentSection;
+
           var $sections = $('.fc-section');
           var $currentSection = $('.fc-section-' + sectionId);
 
@@ -10856,6 +10876,8 @@ var formcorp = (function () {
             if($currentSection.length > 0)
               $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top + fc.config.scrollOffset}, 400, 'swing');
           }
+
+          fc.domContainer.trigger(fc.jsEvents.onSectionChange, [sectionId, previousSection]);
 
         }
 
@@ -11459,6 +11481,7 @@ var formcorp = (function () {
               onNextPage: 'onNextPage',
               onPageChange: 'onPageChange',
               onPrevPage: 'onPrevPage',
+              onSectionChange: 'onSectionChange',
               onConnectionMade: 'onFCConnectionMade',
               onFinishRender: 'onFinishFormRender',
               onFieldError: 'onFieldError',
@@ -12465,8 +12488,8 @@ var formcorp = (function () {
          setEntityTokens: setEntityTokens,
 
          // Value changed functions
-	 // valueChanged: valueChanged,
-	 setValueUpdate: setValueUpdate,
+   // valueChanged: valueChanged,
+   setValueUpdate: setValueUpdate,
 
          /**
           * Tokenisation
