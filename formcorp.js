@@ -1062,6 +1062,7 @@ var formcorp = (function () {
 
               dataId = $(field).attr('formcorp-data-id');
 
+
               if (typeof dataId === 'undefined') {
                 // If not data ID is found, return the dom value
                 return field.val();
@@ -1078,7 +1079,7 @@ var formcorp = (function () {
 
               if (fc.fieldSchema[dataId] !== undefined) {
                 // If read-only, do not record a value
-                return getConfig(fc.fieldSchema[dataId], 'readOnly', false) ? '' : field.val();
+                return field.val();
               }
             }
 
@@ -1133,7 +1134,6 @@ var formcorp = (function () {
                 return fc.renderedSignatures[dataId].getSignatureString();
               }
             }
-
             return '';
           },
 
@@ -2526,9 +2526,9 @@ var formcorp = (function () {
 
             // Build the form data array (for the current page only)
             if (page.length > 0) {
-              var sections = page.find('.fc-section:not(.fc-hide)');
+              var sections = page.find('.fc-section:visible:not(.fc-hide)');
               if (sections.length > 0) {
-                var fields = sections.find('.fc-field:not(.fc-hide) [formcorp-data-id]');
+                var fields = sections.find('.fc-field:visible:not(.fc-hide) [formcorp-data-id]');
 
                 return fields.length === 0 ? false : fields;
               }
@@ -3049,7 +3049,7 @@ var formcorp = (function () {
               maxLength = 'maxlength="' + maxLength + '"';
             }
 
-            html = '<input class="fc-fieldinput" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'disabled ':'') + maxLength + '>';
+            html = '<input class="fc-fieldinput" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'readonly ':'') + maxLength + '>';
 
             return html;
           },
@@ -5500,6 +5500,7 @@ var formcorp = (function () {
            * @param value
            */
           setVirtualValue = function (fieldId, value, obj) {
+
             log('setVirtualValue');
             log(fieldId);
             log(value);
@@ -6258,7 +6259,7 @@ var formcorp = (function () {
 
             savedValue = getValue(fieldId, false);
             if (typeof savedValue === 'boolean' && !savedValue) {
-              var defaultValue = getConfig(field, 'default', false);
+              var defaultValue = getConfig(field, 'defaultValue', false);
               if (typeof defaultValue === 'string' && defaultValue.length > 0) {
                 // Default value has been set for the field, set it accordingly
                 setVirtualValue(fieldId, defaultValue);
@@ -9270,9 +9271,9 @@ var formcorp = (function () {
                   value = getFieldValue(fieldObj);
                   if (fc.fields[dataId] !== value) {
                     setVirtualValue(dataId, value);
-                  }
-
-                  setVirtualValue(dataId, value, formData);
+                  } else {
+                  	setVirtualValue(dataId, value, formData);
+                	}
                 }
               }
             });
