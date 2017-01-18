@@ -8156,7 +8156,7 @@ var formcorp = (function () {
             $(fc.jQueryContainer + ' .render').append(html);
             fc.pageOrders.push(pageId);
             fc.domContainer.find('.fc-pagination').hide();
-            fc.domContainer.find('.fc-pagination:last').show();
+            fc.domContainer.find('.fc-page:visible:last .fc-pagination').show();
           }
 
           fc.domContainer.trigger(fc.jsEvents.onPageRender, [pageId]);
