@@ -1979,7 +1979,6 @@ var formcorp = (function () {
                 if (['grouplet', 'repeatableIterator'].indexOf(field.type) < 0) {
                   showFieldSuccess(dataId);
                 }
-
                 return;
               }
 
@@ -10702,7 +10701,6 @@ var formcorp = (function () {
               if (typeof defaultValue === 'string' && defaultValue.length > 0) {
                 return true;
               }
-
               return false;
             }
           }
