@@ -10219,7 +10219,7 @@ var formcorp = (function () {
               $field.removeClass('fc-hide');
               field.config.visibility = true;
             }
-            $('#fc-field-' + lookupFieldId).addClass('fc-hide');
+            // $('#fc-field-' + lookupFieldId).addClass('fc-hide');
           });
 
 
