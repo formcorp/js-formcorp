@@ -9984,6 +9984,7 @@ var formcorp = (function () {
 
           // Replace the curly braces in the template tokens
           if (templateTokens.length === 0) {
+            console.log('yeah');
             return '';
           }
 
@@ -9998,18 +9999,22 @@ var formcorp = (function () {
           // Format the html
           html = '<div class="fc-auto-suggest" data-id="' + dataId + '">';
           html += '<div class="fc-suggest-close"><a href="#">x</a></div>';
-          for (iterator = 0; iterator < values.length; iterator += 1) {
-            tokens = values[iterator];
+          if(values.length === 0) {
+            html += '<div class="fc-suggest-row"><span>Sorry, no results found.</span></div>';
+          } else {
+            for (iterator = 0; iterator < values.length; iterator += 1) {
+              tokens = values[iterator];
 
-            // Replace the tokens in the summary template
-            summary = summaryTemplate.slice(0);
-            for (counter = 0; counter < templateTokens.length; counter += 1) {
-              re = new RegExp('\{' + templateTokens[counter] + '\}', 'g');
-              summary = summary.replace(re, tokens[templateTokens[counter]] !== undefined ? tokens[templateTokens[counter]] : '');
+              // Replace the tokens in the summary template
+              summary = summaryTemplate.slice(0);
+              for (counter = 0; counter < templateTokens.length; counter += 1) {
+                re = new RegExp('\{' + templateTokens[counter] + '\}', 'g');
+                summary = summary.replace(re, tokens[templateTokens[counter]] !== undefined ? tokens[templateTokens[counter]] : '');
+              }
+
+              // Add to html
+              html += '<div class="fc-suggest-row" data-suggest="' + encodeURI(JSON.stringify(tokens)) + '" data-id="' + dataId + '"><a href="#">' + summary + '</a></div>';
             }
-
-            // Add to html
-            html += '<div class="fc-suggest-row" data-suggest="' + encodeURI(JSON.stringify(tokens)) + '" data-id="' + dataId + '"><a href="#">' + summary + '</a></div>';
           }
           html += '<div><button class="fc-api-enter-manually" fc-belongs-to="' + dataId + '">Enter manually</button></div>';
           html += '</div>';
@@ -10211,15 +10216,31 @@ var formcorp = (function () {
             var $target = $(event.currentTarget);
             var lookupFieldId = $target.attr('fc-belongs-to');
             var lookupField = fc.fieldSchema[lookupFieldId];
+            var $lookupField = $('input[formcorp-data-id='+lookupFieldId+']');
             var fields = JSON.parse(lookupField.config.mapResponse);
+            var str = lookupField.config.responseSummary;
 
             for(var tag in fields) {
-              var $field = $('.fc-tag-' + tag);
-              var field = fc.fieldSchema[$field.find('input, select, textarea').attr('formcorp-data-id')];
-              $field.removeClass('fc-hide');
+              if(fields[tag] === str)
+                continue;
+              var $fieldContainer = $('.fc-tag-' + tag);
+              var $field = $fieldContainer.find('input, select, textarea');
+              var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
+              $fieldContainer.removeClass('fc-hide');
+              $field.off('input').on('input', function(str, $lookupField, fields) {
+                return function() {
+                  var summary = str;
+                  for(var tag in fields) {
+                    if(fields[tag] === str)
+                      continue;
+                    summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').val())
+                  }
+                  $lookupField.val(summary);
+                }
+              }(str, $lookupField, fields)).trigger('input');
               field.config.visibility = true;
             }
-            // $('#fc-field-' + lookupFieldId).addClass('fc-hide');
+
           });
 
 
@@ -10306,9 +10327,9 @@ var formcorp = (function () {
 
             // Success function
             request.success = function (data) {
-              if (data.length === 0) {
-                removeAutoCompleteWidget(fieldId);
-              } else {
+              // if (data.length === 0) {
+              //   removeAutoCompleteWidget(fieldId);
+              // } else {
                 var html = renderAutoCompleteWidget(fieldId, data, summary),
                   existingAutoSuggest = fieldContainer.find('.fc-auto-suggest');
 
@@ -10342,7 +10363,7 @@ var formcorp = (function () {
                 });
 
                 fieldContainer.find('.fc-fieldgroup').append(html);
-              }
+              // }
             };
 
             setTimeout(function () {
