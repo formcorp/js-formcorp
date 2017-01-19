@@ -11419,10 +11419,15 @@ var formcorp = (function () {
                  'lib/featherlight/featherlight.min.js'
                ],
                'greenIdVerification': [
-                 'lib/green-id/lodash.core.min.js',
+                 'lib/global/lodash.core.min.js',
                  isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js',
                  'lib/green-id/green-id.css'
-               ]
+               ],
+               'idmatrix': [
+                 'lib/global/lodash.core.min.js',
+                 isMinified() ? 'lib/id-matrix/js/idmatrix.min.js' : 'lib/id-matrix/js/idmatrix.js',
+                 'lib/id-matrix/css/main.css',
+               ],
             };
 
             // When libraries have finished, run the callback
