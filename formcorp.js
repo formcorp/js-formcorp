@@ -7735,8 +7735,13 @@ var formcorp = (function () {
             prefix = '';
           }
 
+          // Instantiate the IDMatrix module
           var fieldId = prefix + getId(field);
-          var idMatrix = new formcorp.modules.IDMatrix(fieldId, fc);
+          var idMatrix = new formcorp.modules.IDMatrix(
+            fieldId,
+            fc,
+            formcorp.Renderer.IDMatrix.Default
+          );
 
           // Append callback elements
           if (Object.keys(idMatrix.callbacks).length > 0) {
@@ -11447,6 +11452,7 @@ var formcorp = (function () {
                'idmatrix': [
                  'lib/global/lodash.core.min.js',
                  'lib/global/twig.min.js',
+                 'lib/id-matrix/js/default.render.js',
                  isMinified() ? 'lib/id-matrix/js/idmatrix.min.js' : 'lib/id-matrix/js/idmatrix.js',
                  'lib/id-matrix/css/main.css',
                ],
