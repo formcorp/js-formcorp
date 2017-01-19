@@ -7738,6 +7738,19 @@ var formcorp = (function () {
           var fieldId = prefix + getId(field);
           var idMatrix = new formcorp.modules.IDMatrix(fieldId, fc);
 
+          // Append callback elements
+          if (Object.keys(idMatrix.callbacks).length > 0) {
+            for (var name in idMatrix.callbacks) {
+              if (idMatrix.callbacks.hasOwnProperty(name) && typeof idMatrix.callbacks[name] === 'function') {
+                if (typeof fc.callbacks[name] === 'undefined') {
+                  fc.callbacks[name] = [];
+                }
+
+                fc.callbacks[name].push(idMatrix.callbacks[name]);
+              }
+            }
+          }
+
           return idMatrix.init();
         }
 
@@ -8213,6 +8226,10 @@ var formcorp = (function () {
           // Initialise greenID fields
           initGreenIdDOMFields();
 
+          // Execute potential afterRender callback functions
+          for (var i = 0, l = fc.callbacks.afterRender.length; i < l; i++) {
+            fc.callbacks.afterRender[i]();
+          }
         };
 
         /**
@@ -11368,6 +11385,11 @@ var formcorp = (function () {
             this.jQueryContainer = '#' + container;
             this.domContainer = $(this.jQueryContainer);
 
+            // Callbacks
+            this.callbacks = {
+              afterRender: []
+            };
+
             // Temporary placeholders for objects to be populated
             this.fields = {};
             this.fieldSchema = {};
@@ -11424,6 +11446,7 @@ var formcorp = (function () {
                ],
                'idmatrix': [
                  'lib/global/lodash.core.min.js',
+                 'lib/global/twig.min.js',
                  isMinified() ? 'lib/id-matrix/js/idmatrix.min.js' : 'lib/id-matrix/js/idmatrix.js',
                  'lib/id-matrix/css/main.css',
                ],
