@@ -7736,10 +7736,9 @@ var formcorp = (function () {
           }
 
           var fieldId = prefix + getId(field);
-          var value = getValue(fieldId);
-          var idMatrix = new fc.idMatrix.session(fieldId);
+          var idMatrix = new formcorp.modules.IDMatrix(fieldId, fc);
 
-          return idMatrix.begin();
+          return idMatrix.init();
         }
 
         /**
@@ -12783,11 +12782,13 @@ var formcorp = (function () {
   };
 
   return {
+    const: {},
     create: create,
     destroyForm: destroyForm,
     forms: self.forms,
     getForms: getForms,
     getForm: getForm,
+    modules: {},
     validators: validators,
 
     MODE_REVIEW: 'review'
