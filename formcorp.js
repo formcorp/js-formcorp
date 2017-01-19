@@ -7737,7 +7737,7 @@ var formcorp = (function () {
 
           // Instantiate the IDMatrix module
           var fieldId = prefix + getId(field);
-          var idMatrix = new formcorp.modules.IDMatrix(
+          var idMatrix = new formcorp.modules.IDMatrix.Session(
             fieldId,
             fc,
             formcorp.Renderer.IDMatrix.Default
