@@ -5687,6 +5687,7 @@ var formcorp = (function () {
           initGreenIdFieldInDOM,
           greenIdFieldHeader,
           renderGreenIdField,
+          renderIDMatrixField,
           renderNumericSliderField,
           validateMatrixField,
           loadMatrixFieldValues,
@@ -6497,6 +6498,9 @@ var formcorp = (function () {
                 break;
               case 'download':
                 fieldDOMHTML = renderDownloadField(field, prefix);
+                break;
+              case 'idmatrix':
+                fieldDOMHTML = renderIDMatrixField(field, prefix);
                 break;
               default:
                 log('Unknown field type: ' + field.type);
@@ -7715,6 +7719,28 @@ var formcorp = (function () {
 
           return greenId.begin();
         };
+
+        /**
+         * Renders the IDMatrix field.
+         * @param field {obj}
+         * @param prefix {string}
+         * @param bypass {boolean}
+         */
+        renderIDMatrixField = function (field, prefix, bypass) {
+          if (typeof bypass !== 'boolean') {
+            bypass = false;
+          }
+
+          if (typeof prefix !== 'string') {
+            prefix = '';
+          }
+
+          var fieldId = prefix + getId(field);
+          var value = getValue(fieldId);
+          var idMatrix = new fc.idMatrix.session(fieldId);
+
+          return idMatrix.begin();
+        }
 
         /**
          * Render page sections.
@@ -11749,6 +11775,11 @@ var formcorp = (function () {
            */
           renderGreenIdField: renderGreenIdField,
           initGreenIdFieldInDOM: initGreenIdFieldInDOM,
+
+          /**
+           * IDMatrix
+           */
+           renderIDMatrixField: renderIDMatrixField,
 
           /**
            * Expose field tag functionality
