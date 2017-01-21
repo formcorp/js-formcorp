@@ -1863,6 +1863,8 @@ var formcorp = (function () {
               }
             } else if (field.type === 'date') {
               var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;
+            } else if (field.type === 'idmatrix') {
+              errors.push('nope');
             }
 
             // If repeatable and required, check the amount of values
@@ -11454,7 +11456,7 @@ var formcorp = (function () {
                  'lib/global/twig.min.js',
                  'lib/id-matrix/js/default.render.js',
                  isMinified() ? 'lib/id-matrix/js/idmatrix.min.js' : 'lib/id-matrix/js/idmatrix.js',
-                 'lib/id-matrix/css/main.css',
+                 'lib/id-matrix/dist/main.css',
                ],
             };
 
