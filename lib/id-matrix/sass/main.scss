@@ -9,4 +9,8 @@
   @import "components/grid";
   @import "components/alerts";
   @import "components/active_verification";
+
+  .clearfix {
+    clear: both;
+  }
 }
