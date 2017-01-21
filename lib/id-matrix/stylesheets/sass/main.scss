@@ -1,0 +1,30 @@
+.verification-source {
+  padding: 10px 5px;
+  border-top: 1px solid #ddd;
+
+  &:last-of-type {
+    border-bottom: 1px solid #ddd;
+  }
+
+  .options {
+    display: none;
+  }
+
+  &.active {
+    .options {
+      display: block;
+    }
+
+    h4:before {
+      content: "+";
+    }
+}
+
+  h4 {
+    cursor: pointer;
+
+    &:before {
+      content: "-";
+    }
+  }
+}
