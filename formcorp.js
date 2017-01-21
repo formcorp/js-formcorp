@@ -1864,7 +1864,19 @@ var formcorp = (function () {
             } else if (field.type === 'date') {
               var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;
             } else if (field.type === 'idmatrix') {
-              errors.push('nope');
+              value = getValue(fieldId);
+              if (typeof value === 'undefined' || typeof value.status !== 'string') {
+                errors.push('IDMatrix hasn\'t yet been initialised.');
+              } else {
+                // If a status exists, check to see if IDMatrix has been successfully completed
+                switch (value.status) {
+                  case formcorp.const.IDMatrix.State.Consent:
+                  case formcorp.const.IDMatrix.State.Ready:
+                  case formcorp.const.IDMatrix.State.Verification:
+                    errors.push('You must go through electronic verification.');
+                    break
+                }
+              }
             }
 
             // If repeatable and required, check the amount of values
