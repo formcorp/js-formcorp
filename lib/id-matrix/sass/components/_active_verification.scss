@@ -6,7 +6,7 @@ $active-bg-color: #fff;
   padding: 10px 15px;
   border-top: 1px solid #ddd;
   overflow: hidden;
-  transition: background-color 0.35s ease-out;
+  transition: background-color 0.15s ease-out;
 
   &:last-of-type {
     border-bottom: 1px solid #ddd;
@@ -24,7 +24,7 @@ $active-bg-color: #fff;
 
   &.active {
     background: $active-bg-color;
-    transition: background-color 0.35s ease-in;
+    transition: background-color 0.15s ease-in;
 
     .options {
       max-height: 1000px;
@@ -33,6 +33,17 @@ $active-bg-color: #fff;
 
     h4::before {
       content: "-";
+    }
+  }
+
+  &.error {
+    h5 {
+      color: $error-color;
+    }
+
+    input,
+    select {
+      border-color: $error-color !important;
     }
   }
 
@@ -59,5 +70,23 @@ $active-bg-color: #fff;
   h5 {
     font-weight: bold !important;
     padding: 0 0 6px 0;
+  }
+}
+
+.verification-footer {
+  margin: 30px 0;
+
+  button {
+    font-size: 16px;
+    margin: 0 45px 0 0;
+    padding: 10px;
+  }
+
+  .skip {
+    background: none transparent;
+    border: medium none;
+    color: $primary-blue;
+    cursor: pointer;
+    font-weight: bold;
   }
 }
