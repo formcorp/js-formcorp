@@ -1,0 +1,63 @@
+// Active verification
+
+$active-bg-color: #fff;
+
+.verification-source {
+  padding: 10px 15px;
+  border-top: 1px solid #ddd;
+  overflow: hidden;
+  transition: background-color 0.35s ease-out;
+
+  &:last-of-type {
+    border-bottom: 1px solid #ddd;
+  }
+
+  .options {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease-out;
+  }
+
+  .options > div {
+    padding: 15px 15px 15px 20px;
+  }
+
+  &.active {
+    background: $active-bg-color;
+    transition: background-color 0.35s ease-in;
+
+    .options {
+      max-height: 1000px;
+      transition: max-height 0.35s ease-in;
+    }
+
+    h4::before {
+      content: "-";
+    }
+  }
+
+  .option > div {
+    padding: 0 10px 0 0;
+  }
+
+  .option + .option > div {
+    padding: 0 0 0 10px;
+  }
+
+  h4 {
+    cursor: pointer;
+
+    &::before {
+      padding: 10px 10px 10px 0;
+      font-size: 30px;
+      line-height: 42px;
+      color: $primary-blue;
+      content: "+";
+    }
+  }
+
+  h5 {
+    font-weight: bold !important;
+    padding: 0 0 6px 0;
+  }
+}
