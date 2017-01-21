@@ -1386,7 +1386,7 @@ var formcorp = (function () {
               for (x = 0; x < errors.length; x += 1) {
                 msg += errors[x] + '<br>';
               }
-              dataGroup.find('.fc-error-text').html(msg);
+              dataGroup.find('.fc-error-text span').html(msg);
             }
           },
 
@@ -1612,7 +1612,7 @@ var formcorp = (function () {
           removeFieldError = function (dataId) {
             fc.domContainer.find('div[fc-data-group="' + dataId + '"]').removeClass('fc-error');
             var dataGroup = fc.domContainer.find('div[fc-data-group="' + dataId + '"]');
-            dataGroup.find('.fc-error-text').html('');
+            dataGroup.find('.fc-error-text span').html('');
           },
 
           /**
@@ -6529,7 +6529,7 @@ var formcorp = (function () {
             }
 
             // Output error text container
-            fieldHtml += '<div class="fc-error-text"></div>';
+            fieldHtml += '<div class="fc-error-text"><i class="fc-error-icon"></i><span></span></div>';
 
             // Close repeatable tag (if open)
             if (getConfig(field, 'repeatable', false) === true) {
@@ -9973,7 +9973,7 @@ var formcorp = (function () {
           }
 
           // Initialise variables
-          var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]'),
+          var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]').addClass('fc-auto-suggest-open'),
             html,
             iterator,
             counter,
@@ -10028,7 +10028,7 @@ var formcorp = (function () {
          * @returns {boolean}
          */
         removeAutoCompleteWidget = function (dataId) {
-          var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]');
+          var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]').removeClass('fc-auto-suggest-open');
 
           if (fieldContainer.length === 0) {
             return false
