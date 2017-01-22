@@ -1990,7 +1990,7 @@ var formcorp = (function () {
               // If not required, do nothing
               if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
                 // Check matrix field validation
-                if (['grouplet', 'repeatableIterator'].indexOf(field.type) < 0) {
+                if (['grouplet', 'repeatableIterator'].indexOf(field.type) < 0 && showErrors) {
                   showFieldSuccess(dataId);
                 }
                 return;
@@ -2025,8 +2025,8 @@ var formcorp = (function () {
               } else {
                 if (showErrors) {
                   removeFieldError(dataId);
+                  showFieldSuccess(dataId);
                 }
-                showFieldSuccess(dataId);
               }
             });
 
