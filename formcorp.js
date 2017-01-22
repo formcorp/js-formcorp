@@ -1863,6 +1863,20 @@ var formcorp = (function () {
               }
             } else if (field.type === 'date') {
               var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;
+            } else if (field.type === 'idmatrix') {
+              value = getValue(fieldId);
+              if (typeof value === 'undefined' || typeof value.status !== 'string') {
+                errors.push('IDMatrix hasn\'t yet been initialised.');
+              } else {
+                // If a status exists, check to see if IDMatrix has been successfully completed
+                switch (value.status) {
+                  case formcorp.const.IDMatrix.State.Consent:
+                  case formcorp.const.IDMatrix.State.Ready:
+                  case formcorp.const.IDMatrix.State.Verification:
+                    errors.push('You must go through electronic verification.');
+                    break
+                }
+              }
             }
 
             // If repeatable and required, check the amount of values
@@ -5687,6 +5701,7 @@ var formcorp = (function () {
           initGreenIdFieldInDOM,
           greenIdFieldHeader,
           renderGreenIdField,
+          renderIDMatrixField,
           renderNumericSliderField,
           validateMatrixField,
           loadMatrixFieldValues,
@@ -6497,6 +6512,9 @@ var formcorp = (function () {
                 break;
               case 'download':
                 fieldDOMHTML = renderDownloadField(field, prefix);
+                break;
+              case 'idmatrix':
+                fieldDOMHTML = renderIDMatrixField(field, prefix);
                 break;
               default:
                 log('Unknown field type: ' + field.type);
@@ -7717,6 +7735,45 @@ var formcorp = (function () {
         };
 
         /**
+         * Renders the IDMatrix field.
+         * @param field {obj}
+         * @param prefix {string}
+         * @param bypass {boolean}
+         */
+        renderIDMatrixField = function (field, prefix, bypass) {
+          if (typeof bypass !== 'boolean') {
+            bypass = false;
+          }
+
+          if (typeof prefix !== 'string') {
+            prefix = '';
+          }
+
+          // Instantiate the IDMatrix module
+          var fieldId = prefix + getId(field);
+          var idMatrix = new formcorp.modules.IDMatrix.Session(
+            fieldId,
+            fc,
+            formcorp.Renderer.IDMatrix.Default
+          );
+
+          // Append callback elements
+          if (Object.keys(idMatrix.callbacks).length > 0) {
+            for (var name in idMatrix.callbacks) {
+              if (idMatrix.callbacks.hasOwnProperty(name) && typeof idMatrix.callbacks[name] === 'function') {
+                if (typeof fc.callbacks[name] === 'undefined') {
+                  fc.callbacks[name] = [];
+                }
+
+                fc.callbacks[name].push(idMatrix.callbacks[name]);
+              }
+            }
+          }
+
+          return idMatrix.init();
+        }
+
+        /**
          * Render page sections.
          * @param sections
          * @returns {string}
@@ -8188,6 +8245,10 @@ var formcorp = (function () {
           // Initialise greenID fields
           initGreenIdDOMFields();
 
+          // Execute potential afterRender callback functions
+          for (var i = 0, l = fc.callbacks.afterRender.length; i < l; i++) {
+            fc.callbacks.afterRender[i]();
+          }
         };
 
         /**
@@ -11343,6 +11404,11 @@ var formcorp = (function () {
             this.jQueryContainer = '#' + container;
             this.domContainer = $(this.jQueryContainer);
 
+            // Callbacks
+            this.callbacks = {
+              afterRender: []
+            };
+
             // Temporary placeholders for objects to be populated
             this.fields = {};
             this.fieldSchema = {};
@@ -11393,10 +11459,17 @@ var formcorp = (function () {
                  'lib/featherlight/featherlight.min.js'
                ],
                'greenIdVerification': [
-                 'lib/green-id/lodash.core.min.js',
+                 'lib/global/lodash.core.min.js',
                  isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js',
                  'lib/green-id/green-id.css'
-               ]
+               ],
+               'idmatrix': [
+                 'lib/global/lodash.core.min.js',
+                 'lib/global/twig.min.js',
+                 'lib/id-matrix/js/default.render.js',
+                 isMinified() ? 'lib/id-matrix/js/idmatrix.min.js' : 'lib/id-matrix/js/idmatrix.js',
+                 'lib/id-matrix/dist/main.css',
+               ],
             };
 
             // When libraries have finished, run the callback
@@ -11749,6 +11822,11 @@ var formcorp = (function () {
            */
           renderGreenIdField: renderGreenIdField,
           initGreenIdFieldInDOM: initGreenIdFieldInDOM,
+
+          /**
+           * IDMatrix
+           */
+           renderIDMatrixField: renderIDMatrixField,
 
           /**
            * Expose field tag functionality
@@ -12747,11 +12825,13 @@ var formcorp = (function () {
   };
 
   return {
+    const: {},
     create: create,
     destroyForm: destroyForm,
     forms: self.forms,
     getForms: getForms,
     getForm: getForm,
+    modules: {},
     validators: validators,
 
     MODE_REVIEW: 'review'

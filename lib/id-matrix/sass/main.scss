@@ -1,0 +1,16 @@
+/**
+ * IDMatrix module styling
+ * @author Alex Berriman <aberriman@formcorp.com.au>
+ */
+
+@import "variables/colours";
+
+#formcorp-form {
+  @import "components/grid";
+  @import "components/alerts";
+  @import "components/active_verification";
+
+  .clearfix {
+    clear: both;
+  }
+}
