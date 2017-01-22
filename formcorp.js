@@ -11308,6 +11308,8 @@ var formcorp = (function () {
               loadLanguagePack(data.lang);
             }
 
+            fc.domContainer.trigger(fc.jsEvents.onSchemaLoaded);
+
             // If library files aren't marked to be auto discovered, initialise the render
             if (!fc.config.autoDiscoverLibs) {
               if (sessionRequiresVerification(data)) {
@@ -11587,6 +11589,7 @@ var formcorp = (function () {
               onDynamicRowAdded: 'onDynamicRowAdded',
               onDynamicRowRemoved: 'onDynamicRowRemoved',
               onPreValueChange: 'onPreValueChange',
+              onSchemaLoaded: 'onSchemaLoaded',
               onValueChanged: 'onValueChanged',
               onVisibilityChanged: 'onVisibilityChanged',
               onFieldFocus: 'onFieldFocus',
