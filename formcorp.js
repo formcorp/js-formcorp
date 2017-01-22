@@ -4112,7 +4112,7 @@ var formcorp = (function () {
             fc.activeModalField = null;
             fc.modalState = null;
             fc.modalMeta = {};
-            $('.fc-modal.fc-show').removeClass('fc-show');
+            $('.fc-modal.fc-show').get().class = 'fc-show';
           },
 
           /**
@@ -5260,8 +5260,10 @@ var formcorp = (function () {
           showModal = function (config) {
             var defaults = {
                 addButton: true,
+                closeButton: true,
+                className: '',
                 body: '',
-                title: fc.lang.defaultModalTitle,
+                title: fc.lang.defaultModalTitle || false,
                 addButtonText: fc.lang.addModalText,
                 closeButtonText: fc.lang.closeModalText
               },
@@ -5271,30 +5273,40 @@ var formcorp = (function () {
                 closeButton: fc.domContainer.find('.fc-modal .modal-footer .fc-btn-close')
               };
 
+            if(typeof vars.className === 'string' && vars.className.length > 0) {
+              $('.fc-modal').addClass(vars.className);
+            }
+
             // Toggle visibility on the add button
             if (elements.addButton.length > 0) {
               elements.addButton.html(vars.addButtonText);
-              if (vars.addButton === false) {
-                elements.addButton.hide();
-              } else {
-                elements.addButton.show();
-              }
             }
 
             if (elements.closeButton.length > 0) {
               elements.closeButton.html(vars.closeButtonText);
             }
 
+            if (vars.addButton === false) {
+              elements.addButton.hide();
+            }
+
+            if (vars.closeButton === false) {
+              elements.closeButton.hide();
+            } else {
+              elements.closeButton.show();
+            }
+
             // Show the title
             if (vars.title) {
               $('.fc-modal .modal-header h2').text(vars.title);
+            } else {
+              $('.fc-modal .modal-header h2 ').hide();
             }
 
             // Display the modal
             $('.fc-modal .modal-body').html(vars.body);
             $('.fc-modal').addClass('fc-show');
           },
-
 
           /**
            * Initialise all greenID field DOM elements
