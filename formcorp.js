@@ -11098,7 +11098,7 @@ var formcorp = (function () {
 
               // If one page layout, getFirstPage() already rendered
               if (!fc.config.onePage) {
-                render(firstPageId);
+                render(firstPageId, true);
               }
             }
           }
