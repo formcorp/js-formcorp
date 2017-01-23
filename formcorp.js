@@ -10310,7 +10310,7 @@ var formcorp = (function () {
                       continue;
                     summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').val())
                   }
-                  $lookupField.val(summary);
+                  $lookupField.val(summary.replace(/null|undefined/, ''));
                 }
               }(str, $lookupField, fields))
               .trigger('input')
