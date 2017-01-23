@@ -5288,6 +5288,8 @@ var formcorp = (function () {
 
             if (vars.addButton === false) {
               elements.addButton.hide();
+            } else {
+              elements.addButton.show();
             }
 
             if (vars.closeButton === false) {
