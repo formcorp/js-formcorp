@@ -10300,7 +10300,7 @@ var formcorp = (function () {
               var $field = $fieldContainer.find('input, select, textarea');
               var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
               $fieldContainer.removeClass('fc-hide');
-              $field.off('input').on('input', function(str, $lookupField, fields) {
+              $field.val('').off('input').on('input', function(str, $lookupField, fields) {
                 return function() {
                   var summary = str;
                   for(var tag in fields) {
@@ -10313,6 +10313,8 @@ var formcorp = (function () {
               }(str, $lookupField, fields)).trigger('input');
               field.config.visibility = true;
             }
+
+            $lookupField.val('').closest('.fc-field').removeClass('fc-field-success');
 
           });
 
