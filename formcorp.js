@@ -4112,7 +4112,7 @@ var formcorp = (function () {
             fc.activeModalField = null;
             fc.modalState = null;
             fc.modalMeta = {};
-            $('.fc-modal.fc-show').get().class = 'fc-show';
+            $('.fc-modal.fc-show').get(0).className = 'fc-modal';
           },
 
           /**
@@ -5274,7 +5274,7 @@ var formcorp = (function () {
               };
 
             if(typeof vars.className === 'string' && vars.className.length > 0) {
-              $('.fc-modal').addClass(vars.className);
+              $('.fc-modal').get(0).className = 'fc-modal ' + vars.className;
             }
 
             // Toggle visibility on the add button
