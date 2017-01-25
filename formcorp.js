@@ -1891,7 +1891,9 @@ var formcorp = (function () {
               }
             }
 
-            console.log(1, errors);
+            errors = errors.filter(function(elem, index, self) {
+              return index == self.indexOf(elem);
+            });
 
             return errors;
           },
