@@ -1891,6 +1891,8 @@ var formcorp = (function () {
               }
             }
 
+            console.log(1, errors);
+
             return errors;
           },
 
@@ -10318,7 +10320,7 @@ var formcorp = (function () {
               .trigger('input')
               .closest('.fc-field')
               .removeClass('fc-field-success');
-              field.config.visibility = true;
+              // field.config.visibility = true;
             }
 
             $lookupField.val('').closest('.fc-field').removeClass('fc-field-success');
