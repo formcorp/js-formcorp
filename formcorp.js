@@ -5275,7 +5275,7 @@ var formcorp = (function () {
                 closeButton: fc.domContainer.find('.fc-modal .modal-footer .fc-btn-close')
               };
 
-            if(typeof vars.className === 'string' && vars.className.length > 0) {
+            if(typeof vars.className === 'string') {
               $('.fc-modal').get(0).className = 'fc-modal ' + vars.className;
             }
 
@@ -12018,11 +12018,6 @@ var formcorp = (function () {
           },
 
           /**
-           * Retrieve a DOM field value
-           */
-          getFieldValue: getFieldValue,
-
-          /**
            * Retrieve a field schema by ID
            * @param id
            * @returns false|object
@@ -12246,14 +12241,6 @@ var formcorp = (function () {
                       icon: '',
                       dependencies: [
                         'sources.visa'
-                      ]
-                    },
-                    passport: {
-                      title: 'Passport',
-                      body: 'Help confirm your identity using the details on your Australian issued passport.',
-                      icon: '',
-                      dependencies: [
-                        'sources.passport'
                       ]
                     },
                     skip: {
