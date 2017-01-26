@@ -12088,7 +12088,6 @@ var formcorp = (function () {
               scrollOffset: 0,
               scrollOnSubmitError: false,
               scrollWait: 500,
-              sectionManagement: false,
               sessionIdName: 'fcSessionId',
               sessionKeyLength: 40,
               showModalCloseInFooter: true,
