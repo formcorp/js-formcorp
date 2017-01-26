@@ -11960,11 +11960,6 @@ var formcorp = (function () {
           },
 
           /**
-           * Retrieve the CDN URL in a function
-           */
-          getCdnUrl: cdnUrl,
-
-          /**
            * Set the API URL
            * @param url
            */
