@@ -1891,6 +1891,10 @@ var formcorp = (function () {
               }
             }
 
+            errors = errors.filter(function(elem, index, self) {
+              return index == self.indexOf(elem);
+            });
+
             return errors;
           },
 
@@ -4112,7 +4116,7 @@ var formcorp = (function () {
             fc.activeModalField = null;
             fc.modalState = null;
             fc.modalMeta = {};
-            $('.fc-modal.fc-show').get().class = 'fc-show';
+            $('.fc-modal.fc-show').get(0).className = 'fc-modal';
           },
 
           /**
@@ -5269,7 +5273,7 @@ var formcorp = (function () {
               };
 
             if(typeof vars.className === 'string' && vars.className.length > 0) {
-              $('.fc-modal').addClass(vars.className);
+              $('.fc-modal').get(0).className = 'fc-modal ' + vars.className;
             }
 
             // Toggle visibility on the add button
@@ -5283,6 +5287,8 @@ var formcorp = (function () {
 
             if (vars.addButton === false) {
               elements.addButton.hide();
+            } else {
+              elements.addButton.show();
             }
 
             if (vars.closeButton === false) {
@@ -10300,7 +10306,9 @@ var formcorp = (function () {
               var $field = $fieldContainer.find('input, select, textarea');
               var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
               $fieldContainer.removeClass('fc-hide');
-              $field.off('input').on('input', function(str, $lookupField, fields) {
+              $field.val('')
+              .off('input')
+              .on('input', function(str, $lookupField, fields) {
                 return function() {
                   var summary = str;
                   for(var tag in fields) {
@@ -10308,11 +10316,16 @@ var formcorp = (function () {
                       continue;
                     summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').val())
                   }
-                  $lookupField.val(summary);
+                  $lookupField.val(summary.replace(/null|undefined/, ''));
                 }
-              }(str, $lookupField, fields)).trigger('input');
-              field.config.visibility = true;
+              }(str, $lookupField, fields))
+              .trigger('input')
+              .closest('.fc-field')
+              .removeClass('fc-field-success');
+              // field.config.visibility = true;
             }
+
+            $lookupField.val('').closest('.fc-field').removeClass('fc-field-success');
 
           });
 
@@ -11098,7 +11111,7 @@ var formcorp = (function () {
 
               // If one page layout, getFirstPage() already rendered
               if (!fc.config.onePage) {
-                render(firstPageId);
+                render(firstPageId, true);
               }
             }
           }
