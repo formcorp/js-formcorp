@@ -4749,14 +4749,11 @@ var formcorp = (function () {
             var html = '', stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml, fieldHtml;
 
             // var firstPageId = getFirstPageId();
-            // console.log(firstPageId);
             // var pages = [];
             // var next = getPageById(firstPageId);
             // while(next) {
-            //   console.log(next.page.section.length, next.page.section[0].field.length);
             //   if(next.page.section.length > 0 && next.page.section[0].field.length > 0)
             //     pages.push(next);
-            //   console.log(21, pages);
             //   next = nextPage(false, true, getId(next.page));
             // }
 
@@ -4778,10 +4775,8 @@ var formcorp = (function () {
             //     });
             //   });
 
-            //   console.log(22, page.visibleSections);
             // });
 
-            // console.log(pages);
 
             html += '<div class="fc-form-summary fc-review-table">';
             html += '<table class="fc-table"><thead><tr><th class="fc-field-col">Field</th><th>Value</th></tr></thead><tbody>';
@@ -7138,15 +7133,15 @@ var formcorp = (function () {
 
           var multiple = typeof field.config.multiple === 'boolean' ? (field.config.multiple == true ? true : false) : false;
 
-          if (multiple == false) {
-            if (fileList.length > 0) {
-              $('#fileinput-' + fieldId).prop('disabled', true);
-              $('#fileinput-' + fieldId).css('background-color', 'rgb(100,100,100)');
-            } else {
-              $('#fileinput-' + fieldId).prop('disabled', false);
-              $('#fileinput-' + fieldId).css('background-color', '');
-            }
-          }
+          // if (multiple == false) {
+          //   if (fileList.length > 0) {
+          //     $('#fileinput-' + fieldId).prop('disabled', true);
+          //     $('#fileinput-' + fieldId).css('background-color', 'rgb(100,100,100)');
+          //   } else {
+          //     $('#fileinput-' + fieldId).prop('disabled', false);
+          //     $('#fileinput-' + fieldId).css('background-color', '');
+          //   }
+          // }
 
           for (var i = 0; i < fileList.length; i++) {
             var fileErrors = isValidFile(field, fileList[i]);
@@ -8742,7 +8737,7 @@ var formcorp = (function () {
 
         /**
          * When a file is uploaded update the value
-         * @param obj
+         * @param obj (jQuery Object)
          */
         setFileUploadUpdate = function(obj) {
           var id = obj.attr('formcorp-file-id');
@@ -8781,6 +8776,7 @@ var formcorp = (function () {
                         file: valuesArray[j],
                         j: j
                       };
+
 
                       var field = fc.fieldSchema[valuesArray[j].field_id]
                       if(valuesArray[j].size > field.config.maxFileSize * 1024) {
@@ -8823,9 +8819,14 @@ var formcorp = (function () {
                           var field = $('#' + id);
                           var oldValue = field.val();
                           if (oldValue.length > 0) {
-                            var parsed = JSON.parse(oldValue);
-                            $.merge(parsed, uploadData);
-                            var value = JSON.stringify(parsed);
+                            var uploadId =  obj.attr('id').replace(/file-/, '');
+                            if(fc.fieldSchema[uploadId].config.multiple) {
+                              var parsed = JSON.parse(oldValue);
+                              $.merge(parsed, uploadData);
+                              var value = JSON.stringify(parsed);
+                            } else {
+                              var value = JSON.stringify(uploadData);
+                            }
                           } else {
                             var value = JSON.stringify(uploadData);
                           }
@@ -10063,7 +10064,6 @@ var formcorp = (function () {
 
           // Replace the curly braces in the template tokens
           if (templateTokens.length === 0) {
-            console.log('yeah');
             return '';
           }
 
