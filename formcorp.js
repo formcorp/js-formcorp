@@ -10054,8 +10054,13 @@ var formcorp = (function () {
           }
 
           // Initialise variables
-          var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]').addClass('fc-auto-suggest-open'),
-            html,
+          var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]');
+          if (fieldContainer.length === 0) {
+            fieldContainer = fc.domContainer.find('[data-container="' + dataId + '"]');
+          }
+          fieldContainer.addClass('fc-auto-suggest-open');
+
+          var html,
             iterator,
             counter,
             summary,
@@ -10109,6 +10114,11 @@ var formcorp = (function () {
          */
         removeAutoCompleteWidget = function (dataId) {
           var fieldContainer = $('.fc-field[fc-data-group="' + dataId + '"]').removeClass('fc-auto-suggest-open');
+
+          if (fieldContainer.length === 0) {
+            // Look for manually inserted API lookups
+            fieldContainer = fc.domContainer.find('[data-container="' + dataId + '"]').removeClass('fc-auto-suggest-open');
+          }
 
           if (fieldContainer.length === 0) {
             return false
@@ -10267,6 +10277,12 @@ var formcorp = (function () {
             }
           }
 
+          // For manually inserted api fields, set the value
+          var container = fc.domContainer.find('[data-container="' + dataId + '"]');
+          if (container.length > 0) {
+            container.find('input[type="text"].fc-fieldinput').val(object.find('a').text());
+          }
+
           // In some instances, when a value is clicked a request needs to be sent off to a 3rd party URL
           // to indicate a successful transaction. This is for instance, a case with an address lookup, where
           // the merchant needs to be instructed of a successful transaction for billing purposes.
@@ -10333,9 +10349,22 @@ var formcorp = (function () {
 
           // Trigger an API look up
           fc.domContainer.on('input paste', '.fc-field-apiLookup input[type=text].fc-fieldinput, .fc-field-apiLookup input[type=tel].fc-fieldinput, .fc-field-apiLookup input[type=number].fc-fieldinput', function (event) {
-            var fieldId = $(this).attr('formcorp-data-id'),
-              fieldContainer = $('.fc-field[fc-data-group="' + fieldId + '"]'),
-              schema = fc.fieldSchema[fieldId],
+            var obj = $(this);
+            var fieldId = obj.attr('formcorp-data-id');
+            if (typeof fieldId === 'undefined' || typeof fieldId !== 'string' || fieldId.length === 0) {
+              fieldId = obj.attr('data-config');
+            }
+
+            // Fetch the field container
+            var fieldContainer = $('.fc-field[fc-data-group="' + fieldId + '"]');
+            if (fieldContainer.length === 0) {
+              fieldContainer = fc.domContainer.find('[data-container="' + fieldId + '"]');
+              if (fieldContainer.length === 0) {
+                return;
+              }
+            }
+
+            var schema = fc.fieldSchema[fieldId],
               value = $(this).val(),
               apiUrl,
               requestType,
@@ -10434,17 +10463,18 @@ var formcorp = (function () {
                   removeAutoCompleteWidget(fieldId);
                 });
 
+
                 // Register an keydown listener/handler
                 fc.domContainer.off('keydown.' + fieldId);
                 fc.domContainer.on('keydown.' + fieldId, function(event) {
                   if (event.keyCode == 38 || event.keyCode == 40) {
                     moveSelectionAutoCompleteWidget(fieldId, event.keyCode);
-                  } else if (event.keyCode == 13) {
+                  } else if (event.keyCode == 13) { // enter
                     event.preventDefault();
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
-                  } else if(event.keyCode == 9) {
+                  } else if(event.keyCode == 9) { // tab
                     enterSelectionAutoCompleteWidget(fieldId, event.keyCode);
-                  } else if(event.keyCode == 27) {
+                  } else if(event.keyCode == 27) { // escape
                     removeAutoCompleteWidget(fieldId);
                   }
                 });
