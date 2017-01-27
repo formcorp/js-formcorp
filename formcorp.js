@@ -2946,7 +2946,6 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            console.log(fieldId, fc.fieldSchema[fieldId].config.label);
             if (util.isEmpty(value) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
@@ -10890,7 +10889,6 @@ var formcorp = (function () {
           for (dataId in fields) {
             if (fields.hasOwnProperty(dataId)) {
               if (!fieldIsValid(dataId, fields[dataId])) {
-                console.log(dataId, fields[dataId]);
                 return false;
               }
             }
@@ -11047,7 +11045,6 @@ var formcorp = (function () {
               break;
             }
             fc.currentPage = id;
-            console.log(id);
 
             // Update the browser hash when required
             if (fc.config.updateHash) {
@@ -11059,7 +11056,6 @@ var formcorp = (function () {
             fields = pruneNonPageFields(page, fc.fields);
             fields = removeInvisibleSectionFields(page, fields);
             fields = pruneInvisibleFields(fields);
-            console.log(fields);
 
             // If using a one page form structure, output
             if (fc.config.onePage) {
@@ -11084,7 +11080,6 @@ var formcorp = (function () {
               } else {
                 // Continue loading regardless (as in primary data population mode)
                 valid = formFieldsValid(fields);
-                console.log(valid);
                 continueLoading = valid && !isSubmitPage(page.page);
               }
             }
