@@ -2946,7 +2946,8 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            if (/*util.isEmpty(value) && */schema !== undefined) {
+            console.log(fieldId, fc.fieldSchema[fieldId].config.label);
+            if (util.isEmpty(value) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
@@ -6348,7 +6349,7 @@ var formcorp = (function () {
 
             var className = function(value) {
               return (typeof value === 'string' && value.length > 0)?'fc-filled':'fc-pristine';
-            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id) );
+            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id));
 
             fieldHtml += '<div class="fc-fieldcontainer ' + className + '">';
 
@@ -10295,7 +10296,7 @@ var formcorp = (function () {
             var $target = $(event.currentTarget);
             var lookupFieldId = $target.attr('fc-belongs-to');
             var lookupField = fc.fieldSchema[lookupFieldId];
-            var $lookupField = $('input[formcorp-data-id='+lookupFieldId+']');
+            var $lookupField = $('input[formcorp-data-id='+lookupFieldId+']').addClass('fc-hide');
             var fields = JSON.parse(lookupField.config.mapResponse);
             var str = lookupField.config.responseSummary;
 
