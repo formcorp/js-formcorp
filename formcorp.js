@@ -10321,7 +10321,7 @@ var formcorp = (function () {
               var $fieldContainer = $('.fc-tag-' + tag);
               var $field = $fieldContainer.find('input, select, textarea');
               var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
-              $fieldContainer.removeClass('fc-hide');
+              $fieldContainer.removeClass('fc-hide fc-enter-manually-hide');
               $field.val('')
               .off('input')
               .on('input', function(str, $lookupField, fields) {
