@@ -2956,6 +2956,9 @@ var formcorp = (function () {
                   if(getConfig(schema, 'maxLength', false)) {
                     value = value.slice(0, getConfig(schema, 'maxLength', -1));
                   }
+
+                  // Update the value
+                  setVirtualValue(fieldId, value);
                 }
               }
 
@@ -10887,6 +10890,7 @@ var formcorp = (function () {
           for (dataId in fields) {
             if (fields.hasOwnProperty(dataId)) {
               if (!fieldIsValid(dataId, fields[dataId])) {
+                console.log(dataId, fields[dataId]);
                 return false;
               }
             }
@@ -11043,6 +11047,7 @@ var formcorp = (function () {
               break;
             }
             fc.currentPage = id;
+            console.log(id);
 
             // Update the browser hash when required
             if (fc.config.updateHash) {
@@ -11054,6 +11059,7 @@ var formcorp = (function () {
             fields = pruneNonPageFields(page, fc.fields);
             fields = removeInvisibleSectionFields(page, fields);
             fields = pruneInvisibleFields(fields);
+            console.log(fields);
 
             // If using a one page form structure, output
             if (fc.config.onePage) {
@@ -11078,6 +11084,7 @@ var formcorp = (function () {
               } else {
                 // Continue loading regardless (as in primary data population mode)
                 valid = formFieldsValid(fields);
+                console.log(valid);
                 continueLoading = valid && !isSubmitPage(page.page);
               }
             }
