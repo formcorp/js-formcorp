@@ -11453,6 +11453,9 @@ var formcorp = (function () {
                     if (JSON.stringify(fc.saveQueue[key]) === JSON.stringify(temporaryQueue[key])) {
                       delete fc.saveQueue[key];
                     }
+                  } else if (fc.saveQueue[key] === temporaryQueue[key]) {
+                    // Otherwise two objects are identical, delete them
+                    delete fc.saveQueue[key];
                   }
                 }
               }
