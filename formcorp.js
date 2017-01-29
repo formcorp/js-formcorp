@@ -10788,7 +10788,7 @@ var formcorp = (function () {
          * @param value
          * @returns {boolean}
          */
-        fieldIsValid = function (dataId, value) {
+        fieldIsValid = function (dataId, value, checkConfig) {
           var schema,
             customErrors,
             id,
@@ -10798,6 +10798,11 @@ var formcorp = (function () {
             visible,
             defaultValue,
             errors;
+
+          if (typeof checkConfig !== 'boolean') {
+            // By default, don't inspect config for visibility classes
+            checkConfig = false;
+          }
 
           // Can pass through either an id to retrieve the schema, or the schema itself
           try {
@@ -10833,6 +10838,17 @@ var formcorp = (function () {
             }
           }
 
+          if (checkConfig) {
+            // Check the config for various options that would indicate the field should be hidden
+            var classes = getConfig(schema, 'class', '');
+            if (typeof classes === 'string' && classes.length > 0) {
+              var classesArr = classes.split(' ');
+              if (classesArr.indexOf('fc-hide') >= 0) {
+                return true;
+              }
+            }
+          }
+
           // Return false if required and empty
           if (schema.config !== undefined && schema.config.required !== undefined) {
             if (schema.config.required && value === "") {
@@ -10841,6 +10857,7 @@ var formcorp = (function () {
               if (typeof defaultValue === 'string' && defaultValue.length > 0) {
                 return true;
               }
+
               return false;
             }
           }
@@ -10879,16 +10896,20 @@ var formcorp = (function () {
          * @param fields
          * @returns {boolean}
          */
-        formFieldsValid = function (fields) {
+        formFieldsValid = function (fields, checkConfig) {
           if (typeof fields !== "object") {
             return true;
+          }
+
+          if (typeof checkConfig !== 'boolean') {
+            checkConfig = false;
           }
 
           var dataId;
 
           for (dataId in fields) {
             if (fields.hasOwnProperty(dataId)) {
-              if (!fieldIsValid(dataId, fields[dataId])) {
+              if (!fieldIsValid(dataId, fields[dataId], checkConfig)) {
                 return false;
               }
             }
@@ -11079,7 +11100,7 @@ var formcorp = (function () {
                 continueLoading = true;
               } else {
                 // Continue loading regardless (as in primary data population mode)
-                valid = formFieldsValid(fields);
+                valid = formFieldsValid(fields, true);
                 continueLoading = valid && !isSubmitPage(page.page);
               }
             }
@@ -11427,6 +11448,11 @@ var formcorp = (function () {
                 if (temporaryQueue.hasOwnProperty(key)) {
                   if (typeof fc.saveQueue[key] === "string" && fc.saveQueue[key] === temporaryQueue[key]) {
                     delete fc.saveQueue[key];
+                  } else if (typeof fc.saveQueue[key] === 'object' && typeof temporaryQueue[key] === 'object') {
+                    // Objects were provided, compare the json string
+                    if (JSON.stringify(fc.saveQueue[key]) === JSON.stringify(temporaryQueue[key])) {
+                      delete fc.saveQueue[key];
+                    }
                   }
                 }
               }
