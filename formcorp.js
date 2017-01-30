@@ -2958,6 +2958,13 @@ var formcorp = (function () {
 
                   // Update the value
                   setVirtualValue(fieldId, value);
+
+                  // If after pre-populating, it has to populate another value, set
+                  var prePopulate = getConfig(schema, 'prePopulate', []);
+                  if (!$.isArray(prePopulate) || prePopulate.length === 0) {
+                    return;
+                  }
+                  prepopulate(schema, value);
                 }
               }
 
@@ -8414,6 +8421,30 @@ var formcorp = (function () {
         };
 
         /**
+         * Pre-populate other field values for an object with a given value
+         * @param field {obj}
+         * @param value {*}
+         */
+        var prepopulate = function (field, value) {
+          if (typeof field !== 'object' || typeof value === 'undefined') {
+            return;
+          }
+
+          var prePopulate = getConfig(field, 'prePopulate', []);
+          if (!$.isArray(prePopulate) || prePopulate.length === 0) {
+            return;
+          }
+
+          var tmp;
+          for (var iterator = 0, length = prePopulate.length; iterator < length; iterator++) {
+            tmp = prePopulate[iterator]; // The data id to prepopulate
+            if (tmp.length > 0) {
+              setVirtualValue(tmp, value);
+            }
+          }
+        }
+
+        /**
          * Function that is fired when a data value changes.
          * @param dataId
          * @param value
@@ -8464,15 +8495,7 @@ var formcorp = (function () {
 
           // If pre-populating other fields, do so now
           if (typeof value === 'string') {
-            prePopulate = getConfig(fieldSchema, 'prePopulate', []);
-            if ($.isArray(prePopulate) && prePopulate.length > 0) {
-              for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
-                tmp = prePopulate[iterator]; // The data id to prepopulate
-                if (tmp.length > 0) {
-                  setVirtualValue(tmp, value);
-                }
-              }
-            }
+            prepopulate(field, value);
           }
 
           log($.extend({}, fc.fields));
