@@ -5535,11 +5535,15 @@ var formcorp = (function () {
            * @param fieldId
            * @param value
            */
-          setVirtualValue = function (fieldId, value, obj) {
+          setVirtualValue = function (fieldId, value, obj, override) {
 
             log('setVirtualValue');
             log(fieldId);
             log(value);
+
+            if (typeof override !== 'boolean') {
+              override = false;
+            }
 
             if (typeof obj !== 'object') {
               obj = fc.fields;
@@ -5586,6 +5590,16 @@ var formcorp = (function () {
                 }
               }
               save[saveId] = value;
+
+              if (override) {
+                // If override pre-populated values, do so now
+                try {
+                  var schema = fc.fieldSchema[saveId];
+                  if (typeof schema === 'object') {
+                    prepopulate(schema, value);
+                  }
+                } catch (ignore) {}
+              }
             }
           },
 
@@ -8439,7 +8453,7 @@ var formcorp = (function () {
           for (var iterator = 0, length = prePopulate.length; iterator < length; iterator++) {
             tmp = prePopulate[iterator]; // The data id to prepopulate
             if (tmp.length > 0) {
-              setVirtualValue(tmp, value);
+              setVirtualValue(tmp, value, fc.fields, true);
             }
           }
         }
@@ -8512,7 +8526,7 @@ var formcorp = (function () {
           // Store when not a repeatable value
           if (dataId.indexOf(fc.constants.prefixSeparator) == -1 && !fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
-              setVirtualValue(dataId, value);
+              setVirtualValue(dataId, value, fc.fields, true);
             }
 
             // If a grouplet, save the original state of the grouplet
@@ -8528,7 +8542,7 @@ var formcorp = (function () {
 
           // Store against array values when sub field (field_1, field_2) for a repeatable iterator
           if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-            setVirtualValue(dataId, value);
+            setVirtualValue(dataId, value, fc.fields, true);
           }
 
           // Set the active page id to the page that the field belongs to, delete later pages
@@ -8571,7 +8585,7 @@ var formcorp = (function () {
           // Don't perform operations on repeatable fields
           if (!fieldIsRepeatable(dataId)) {
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId) && dataId.indexOf(fc.constants.prefixSeparator) == -1) {
-              setVirtualValue(dataId, value);
+              setVirtualValue(dataId, value, fc.fields, true);
             }
 
             // Flush the field visibility options
@@ -8705,7 +8719,7 @@ var formcorp = (function () {
 
             // Need to update the stored value to ensure proper validation
             if (typeof id === 'string' && id.length > 0 && !$.isNumeric(id)) {
-              setVirtualValue(id, val);
+              setVirtualValue(id, val, fc.fields, true);
             }
 
             return;
