@@ -10316,8 +10316,22 @@ var formcorp = (function () {
             }
           }
 
-          // For manually inserted api fields, set the value
           var container = fc.domContainer.find('[data-container="' + dataId + '"]');
+
+          //
+          if(schema.config.requrieSelectionFromSuggestion) {
+            var $input = domObj.find('input');
+            var $container = $input.closest('.fc-field-element-container');
+
+            $input.attr('disabled', 'disabled').hover(function(e) {
+              var $target = $(e.currentTarget);
+              $container.append($('<span class="fc-reset-api-lookup-field">Click to reset</span>'))
+            }, function(e) {
+              $container.find(".fc-reset-api-lookup-field").remove()
+            });
+          }
+
+          // For manually inserted api fields, set the value
           if (container.length > 0) {
             container.find('input[type="text"].fc-fieldinput').val(object.find('a').text());
           }
