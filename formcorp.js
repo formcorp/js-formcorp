@@ -5815,8 +5815,12 @@ var formcorp = (function () {
               setPage: function(pageId) {
                 this.currentPage = getPageById(pageId);
                 this.currentStep = this.getStep(pageId);
-                if(!this.currentStep)
-                  return;
+                if(!this.currentStep) {
+                  if(fc.config.hideProgressBarIfPageNotInSchema) {
+                    this.$barContainer.hide();
+                  }
+                }
+                this.$barContainer.show();
                 this.currentStepNumber = this.currentStep.step;
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
@@ -7895,6 +7899,7 @@ var formcorp = (function () {
          * @returns {string}
          */
         renderPage = function (page, isNextPage) {
+          console.trace(3, page.page.label, page)
           // Page details
           var animation = function(config) {
             if(!config)
@@ -8232,8 +8237,19 @@ var formcorp = (function () {
 
           // Update the current page on render
           fc.currentPage = pageId;
-          if(progressBar && fc.config.progressBar){
-            progressBar.setPage(pageId);
+
+          if(fc.config.progressBar && typeof progressBar !== 'object') {
+            progressBar = progressBar(fc.config.progressBar);
+            progressBar.init();
+          }
+
+          if(progressBar && fc.config.progressBar) {
+            if(typeof progressBar.setPage === 'function') {
+              console.log('yay');
+              progressBar.setPage(pageId);
+            } else {
+              console.log('nay');
+            }
           }
 
 
@@ -11208,11 +11224,6 @@ var formcorp = (function () {
             fc.schema = orderSchema(data);
             if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
               firstPageId = getFirstPage();
-
-              if(fc.config.progressBar) {
-                progressBar = progressBar(fc.config.progressBar);
-                progressBar.init();
-              }
 
               // If one page layout, getFirstPage() already rendered
               if (!fc.config.onePage) {
