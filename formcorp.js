@@ -5807,7 +5807,7 @@ var formcorp = (function () {
               init: function() {
                 this.renderContainer();
                 this.renderProgress();
-                this.setPage(getFirstPage());
+                this.setPage(getFirstPageId());
 
                 if(fc.config.sectionManagement)
                   fc.domContainer.on(fc.jsEvents.onSectionChange, this.updateSection.bind(this))
@@ -9521,45 +9521,41 @@ var formcorp = (function () {
               if (hasNextPage()) {
                 oldPage = fc.currentPage;
                 if(fc.config.pageAnimations) {
+                  nextPage();
+                  newPage = fc.currentPage;
+
                   $('.fc-page-' + fc.currentPage).css({
                     animation: fc.config.pageAnimations.next.currentPageAnimation,
                   });
-                }
-                if(fc.config.pageAnimations) {
-                  setTimeout(function() {
-                    nextPage();
-                    newPage = fc.currentPage;
 
-                    if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
-                      // There was a page mismatch between the server and the client, throw out a critical error
-                      showSecurityError({
-                        message: 'Next page mismatch between client and server'
-                      });
-                    }
-
-                    // Trigger the newpage event
-                    if(fc.config.pageAnimations) {
-                      setTimeout(function() {
-                        //Forces the page to scroll to the top
-                        $('html, body').scrollTop(0);
-                      }, 10);
-                    }
-                    setTimeout(function() {
-                      setCurrentSection(getCurrentSection(fc.pageId), true);
-                    }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
-
-                    fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
-                    fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
-
-                    logEvent(fc.eventTypes.onNextPageSuccess, {
-                      from: oldPage,
-                      to: newPage,
-                      timeSpent: (Date.now() - fc.nextPageLoadedTimestamp) / 1000
+                  if (typeof nextPageId === 'string' && nextPageId.length > 0 && nextPageId !== newPage) {
+                    // There was a page mismatch between the server and the client, throw out a critical error
+                    showSecurityError({
+                      message: 'Next page mismatch between client and server'
                     });
+                  }
 
-                    fc.nextPageLoadedTimestamp = Date.now();
-
+                  // Trigger the newpage event
+                  if(fc.config.pageAnimations) {
+                    setTimeout(function() {
+                      //Forces the page to scroll to the top
+                      $('html, body').scrollTop(0);
+                    }, 10);
+                  }
+                  setTimeout(function() {
+                    setCurrentSection(getCurrentSection(fc.pageId), true);
                   }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+
+                  fc.domContainer.trigger(fc.jsEvents.onNextPage, [oldPage, newPage]);
+                  fc.domContainer.trigger(fc.jsEvents.onPageChange, [oldPage, newPage]);
+
+                  logEvent(fc.eventTypes.onNextPageSuccess, {
+                    from: oldPage,
+                    to: newPage,
+                    timeSpent: (Date.now() - fc.nextPageLoadedTimestamp) / 1000
+                  });
+
+                  fc.nextPageLoadedTimestamp = Date.now();
                 } else {
                   nextPage();
                   newPage = fc.currentPage;
@@ -9777,12 +9773,11 @@ var formcorp = (function () {
             $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
               var $target = $(e.currentTarget);
 
+              var $currentPage = $target.parents('.fc-page');
               var $currentSection = $target.parents('.fc-section');
-              var currentSectionId = $currentSection.attr('formcorp-data-id');
-
               if(validForm($currentSection)) {
-
-                var $nextSection = $currentSection.nextAll('.fc-section:visible').first(); /*function(currentPageId, currentSectionId) {
+                var $nextSection = $currentSection.nextAll('.fc-section:visible').first();
+                /*function(currentPageId, currentSectionId) {
                   var sections = getPageById(currentPageId).page.section;
                   var currentSection = sections.filter(function(section) {
                     return getId(section) === fc.currentSection;
@@ -9804,13 +9799,20 @@ var formcorp = (function () {
                   return sections[1] || false;
 
                 }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
-
-
+                var $nextSectionId = undefined;
                 if($nextSection.length > 0) {
-                  var nextSectionId = $nextSection.attr('formcorp-data-id');
-                  setCurrentSection(nextSectionId, true);
+                  $nextSectionId = $nextSection.attr('formcorp-data-id');
+                  setCurrentSection($nextSectionId, true);
                 } else {
-                  $('.fc-submit button, .fc-submit input').last().trigger('click');
+                  //get section next page (first section)
+                  var $nextPage = $currentPage.nextAll('.fc-page:visible').first();
+                  $nextSection = $nextPage.children('.fc-section:visible').first();
+                  if($nextSection.length > 0) {
+                    $nextSectionId = $nextSection.attr('formcorp-data-id');
+                    setCurrentSection($nextSectionId, true);
+                  } else {
+                    $('.fc-submit button, .fc-submit input').last().trigger('click');
+                  }
                 }
               } else {
                 var $originalSection = $('.fc-section-' + currentSectionId);

@@ -1,7 +1,1 @@
-test
-/.idea
-node_modules/
-
-*.map
-*.sublime-project
-*.sublime-workspace
+.idea
