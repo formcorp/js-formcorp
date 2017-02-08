@@ -4605,7 +4605,13 @@ var formcorp = (function () {
             // If string, output
             if (typeof value === "string") {
               if(field.config.class) {
-                html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
+                if(field.config.class.includes('fc-input-symbol-dollar')){
+                  html += '<span class="' + field.config.class + '">$ ' + htmlEncode(value) + '</span>';
+                } else if(field.config.class.includes('fc-input-symbol-percent')) {
+                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + ' %</span>';
+                } else {
+                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
+                }
               } else {
                 html += htmlEncode(value);
               }
@@ -4722,14 +4728,15 @@ var formcorp = (function () {
                     field = section.field[fieldIterator];
 
                     // Fetch the field html
-                    fieldHtml = $('<div></div>').append(renderSummaryField(field));
-
-                    // Append page, section and field meta data to the container
-                    if (fieldHtml.find('tr').length > 0) {
-                      fieldHtml.find('tr').attr('data-page', getId(page)).attr('data-section', getId(section)).attr('data-id', getId(field));
+                    if( getConfig(field,'visibility','').length == 0  || (getConfig(field,'visibility','').length > 0 && eval(getBooleanLogic(getConfig(field,'visibility')))) ){
+                      fieldHtml = $('<div></div>').append(renderSummaryField(field));
+                      // Append page, section and field meta data to the container
+                      if (fieldHtml.find('tr').length > 0) {
+                        fieldHtml.find('tr').attr('data-page', getId(page)).attr('data-section', getId(section)).attr('data-id', getId(field));
+                      }
+                      pageHtml += fieldHtml.html();
                     }
 
-                    pageHtml += fieldHtml.html();
                   }
                 }
 
@@ -11460,14 +11467,6 @@ var formcorp = (function () {
                         'sources.driversLicense.tas.dvs',
                         'sources.driversLicense.vic.dvs',
                         'sources.driversLicense.wa.dvs'
-                      ]
-                    },
-                    passport: {
-                      title: 'Passport',
-                      body: 'Help confirm your identity using the details on your Australian issued passport.',
-                      icon: '',
-                      dependencies: [
-                        'sources.passport'
                       ]
                     },
                     visa: {
