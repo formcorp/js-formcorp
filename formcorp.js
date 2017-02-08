@@ -3368,7 +3368,7 @@ var formcorp = (function () {
 
                       if (getConfig(field, 'asButton', false)) {
                         tmpHtml = '<div class="fc-option-buttons ' + cssClass + '">';
-                        tmpHtml += '<button class="fc-fieldinput fc-button" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + value + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
+                        tmpHtml += '<button class="fc-fieldinput fc-button ' + checked + '" id="' + id + '" formcorp-data-id="' + fieldId + '" data-value="' + value + '" data-required="' + required + '"' + checked + '>' + htmlEncode(option[key]) + '</button>';
                         tmpHtml += '</div>';
                       } else {
                         tmpHtml = '<div class="' + cssClass + '">';
