@@ -8571,6 +8571,8 @@ var formcorp = (function () {
                   removeFieldError(dataId);
                   showFieldSuccess(dataId);
                 }
+              } else {
+                removeFieldError(dataId);
               }
 
               // Store the changed value for intermittent saving
@@ -8607,6 +8609,8 @@ var formcorp = (function () {
                 showFieldSuccess(dataId);
                 removeFieldError(dataId);
               }
+            } else {
+              removeFieldError(dataId);
             }
 
             // Store the changed value for intermittent saving
