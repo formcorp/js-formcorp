@@ -10391,16 +10391,16 @@ var formcorp = (function () {
                     summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').val())
                   }
                   $lookupField.val(summary.replace(/null|undefined/, ''));
+                  if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
+                    lookupField.config.prePopulate.forEach(function(dest) {
+                      fc.fields[dest] = $lookupField.val();
+                    });
+                  }
                 }
               }(str, $lookupField, fields))
               .trigger('input')
               .closest('.fc-field')
               .removeClass('fc-field-success');
-              if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
-                lookupField.config.prePopulate.forEach(function(dest) {
-                  fc.fields[dest] = $lookupField.val();
-                });
-              }
               // field.config.visibility = true;
             }
 
