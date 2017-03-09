@@ -10385,7 +10385,6 @@ var formcorp = (function () {
               .off('input')
               .on('input', function(str, $lookupField, fields) {
                 return function() {
-                  console.log(1, str, $lookupField, fields);
                   var summary = str;
                   for(var tag in fields) {
                     if(fields[tag] === str) {
@@ -10393,7 +10392,6 @@ var formcorp = (function () {
                     }
                     summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').first().val())
                   }
-                  console.log(summary);
                   $lookupField.val(summary.replace(/null|undefined/, ''));
                   fc.fields[lookupFieldId] = $lookupField.val();
                   if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
