@@ -10396,6 +10396,11 @@ var formcorp = (function () {
               .trigger('input')
               .closest('.fc-field')
               .removeClass('fc-field-success');
+              if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
+                lookupField.config.prePopulate.forEach(function(dest) {
+                  fc.fields[dest] = fc.fields[lookupFieldId];
+                })
+              }
               // field.config.visibility = true;
             }
 
