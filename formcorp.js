@@ -10381,10 +10381,11 @@ var formcorp = (function () {
               var $field = $fieldContainer.find('input, select, textarea');
               var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
               $fieldContainer.removeClass('fc-hide fc-enter-manually-hide');
-              $field.val('')
+              $field.filter(':visible').val('');
               .off('input')
               .on('input', function(str, $lookupField, fields) {
                 return function() {
+                  console.log(1, str, $lookupField, fields);
                   var summary = str;
                   for(var tag in fields) {
                     if(fields[tag] === str) {
