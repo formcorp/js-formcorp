@@ -10374,8 +10374,8 @@ var formcorp = (function () {
             var str = lookupField.config.responseSummary;
 
             for(var tag in fields) {
-              if(fields[tag] === str)
-                continue;
+              // if(fields[tag] === str)
+              //   continue;
               var $fieldContainer = $('.fc-tag-' + tag);
               var $field = $fieldContainer.find('input, select, textarea');
               var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
@@ -10391,6 +10391,7 @@ var formcorp = (function () {
                     summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').val())
                   }
                   $lookupField.val(summary.replace(/null|undefined/, ''));
+                  fc.fields[lookupFieldId] = $lookupField.val();
                   if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
                     lookupField.config.prePopulate.forEach(function(dest) {
                       fc.fields[dest] = $lookupField.val();
