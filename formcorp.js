@@ -10391,8 +10391,8 @@ var formcorp = (function () {
                       continue;
                     }
                     summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').first().val())
-                    console.log(summary);
                   }
+                  console.log(summary);
                   $lookupField.val(summary.replace(/null|undefined/, ''));
                   fc.fields[lookupFieldId] = $lookupField.val();
                   if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
