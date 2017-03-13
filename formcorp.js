@@ -1354,8 +1354,8 @@ var formcorp = (function () {
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
             } else if (field.type === 'fileUpload') {
-              console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
-              return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value));
+              // console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
+              return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, JSON.parse(value) || ''));
             } else {
               errors = errors.concat(evaluateRequiredLogic(field, value));
 
@@ -2054,7 +2054,7 @@ var formcorp = (function () {
               // }
 
               // If not required, do nothing
-              if (fc.config.realTimeValidation === false && fieldErrors(getId(field)).length < 1) {
+              if (/*fc.config.realTimeValidation === false && */fieldErrors(getId(field)).length < 1) {
                 return;
               }
               // if (evaluateRequiredLogic(field, value).length < 1 || getConfig(field, 'readOnly', false)) {
