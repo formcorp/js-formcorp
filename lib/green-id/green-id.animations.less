@@ -1,0 +1,86 @@
+
+@keyframes fc-green-init-css {
+  0% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(180deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fc-greenid-status-bar-growslidein {
+  0% {
+    transform: translate3d(0,100%,0) rotateX(90deg) scale3d(0.9,0.9,0.9);
+  }
+  15% {
+    transform: translate3d(0,100%,0) rotateX(60deg) scale3d(0.9,0.9,0.9);
+  }
+  75% {
+    transform: translate3d(0,0,0) rotateX(0deg) scale3d(0.95,0.95,0.95);
+  }
+  100% {
+    transform: translate3d(0,0,0) rotateX(0deg) scale3d(1,1,1);
+  }
+}
+
+@keyframes fc-greenid-status-bar-slidein {
+  0% {
+    transform: translate3d(0,100%,0) rotateX(90deg);
+  }
+  15% {
+    transform: translate3d(0,100%,0) rotateX(60deg);
+  }
+  75% {
+    transform: translate3d(0,0,0) rotateX(0deg);
+  }
+  100% {
+    transform: translate3d(0,0,0) rotateX(0deg);
+  }
+}
+
+@keyframes fc-greenid-status-bar-blinkin {
+  0% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.85;
+  }
+  90% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.generate-init-animation(@count, @baseX, @maxY, @maxAngle, @minScale, @i : 1) when (@i <= @count) {
+
+  @scale: (@count - 1) / 2 * @baseX;
+  @ang: 180deg * ((@i - 1) / (@count - 1));
+  @x: cos(@ang) * @scale;
+  @rotation: cos(@ang) * @maxAngle * -1;
+
+  @keyframes ~'fc-green-id-init-@{i}-@{count}' {
+    0% {
+      transform: translate(@x, @maxY) rotate(@rotation) scale(@minScale);
+      opacity: 0;
+    }
+    100% {
+      transform: translate(0, 0) rotate(0) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .generate-init-animation(@count, @baseX, @maxY, @maxAngle, @minScale, (@i + 1));
+}
+
+.generate-init-animation(5, 100%, 500%, 90deg, 0.4);
+.generate-init-animation(4, 100%, 500%, 90deg, 0.4);
+.generate-init-animation(3, 100%, 500%, 90deg, 0.4);
+.generate-init-animation(2, 100%, 500%, 90deg, 0.4);

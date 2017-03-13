@@ -36,9 +36,9 @@
     display: block;
 }
 
-.fc-container input[type=text],
+.fc-container input[type="text"],
 .fc-container input[type="date"],
-.fc-container input[type=password],
+.fc-container input[type="password"],
 .fc-container select,
 .fc-container textarea {
     padding-right: 33px;

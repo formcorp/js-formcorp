@@ -485,9 +485,12 @@ var formcorp = (function () {
              var re = /(?:\.([^.]+))?$/;
              var ext;
              for (var i = 0; i < libs.length; i += 1) {
-               ext = re.exec(libs[i])[1].toLowerCase();
-               if (ext !== 'js') {
-                 delete libs[i];
+               var results = re.exec(libs[i]);
+               if(typeof results[1] !== "undefined"){
+                 ext = results[1].toLowerCase();
+                 if (ext !== 'js') {
+                   delete libs[i];
+                 }
                }
              }
              libs = $.extend([], libs);
@@ -515,7 +518,7 @@ var formcorp = (function () {
                  if (sessionRequiresVerification(data)) {
                    verifySession();
                  } else {
-                   initRender(fc.schemaData);
+                   //initRender(fc.schemaData);
                  }
                }
 
@@ -604,6 +607,19 @@ var formcorp = (function () {
             });
           },
 
+          loadIDMatrix = function(){
+            if (typeof fc.loadedIDMatrix !== 'boolean' || !fc.loadedIDMatrix) {
+              loadJsFile(cdnUrl() + 'lib/global/lodash.core.min.js');
+              loadJsFile(cdnUrl() + 'lib/global/twig.min.js');
+              loadJsFile(cdnUrl() + 'lib/id-matrix/js/default.render.js');
+              loadCssFile(cdnUrl() + 'lib/id-matrix/dist/main.css');
+              loadJsFile(cdnUrl() + 'lib/id-matrix/js/' + (isMinified() ? 'idmatrix.min.js' : 'idmatrix.js'), function () {
+                fc.loadedIDMatrix = true;
+                registerLibLoaded(fc.libs.IDMATRIX);
+              });
+            }
+          },
+
           /**
            * Load a specific library
            * @param lib
@@ -614,6 +630,9 @@ var formcorp = (function () {
                 // Load the material datepicker
                 case fc.libs.MATERIAL_DATEPICKER:
                   loadMaterialDatepicker();
+                  break;
+                case fc.libs.IDMATRIX:
+                  loadIDMatrix();
                   break;
                 default:
                   loadUrlLib(lib);
@@ -1084,7 +1103,7 @@ var formcorp = (function () {
             }
 
             if (field.is('select')) {
-              return $(field).find('option:selected').val();
+              return $(field).val();
             }
 
             // Return the value for rendered buttons
@@ -1335,14 +1354,38 @@ var formcorp = (function () {
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
             } else if (field.type === 'fileUpload') {
-              return validateFileUpload(field, value);
+              console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
+              return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value));
             } else {
-              // Test required data
-              dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
-              if (getConfig(field, 'required', false) && fieldIsEmpty(dataField)) {
-                errors.push(fc.lang.emptyFieldError);
-                return errors;
+              errors = errors.concat(evaluateRequiredLogic(field, value));
+
+              /*var requireDefault = getConfig(field, 'required', false);
+              var requireLogicMessage = undefined;
+              var requireLogics = getConfig(field, 'requiredLogic', []);
+              var requireLogic = function(rules) {
+                return Array.isArray(requireLogics) && requireLogics.length > 1 && typeof requireLogics[i].condition === 'string';
+              }(requireLogics);
+              if(requireLogics.length > 0) {
+                $.each(requireLogics, function(i){
+                  if(eval(getBooleanLogic(requireLogics[i].condition))) {
+                    requireDefault = requireLogics[i].required;
+                    requireLogicMessage = requireLogics[i].message;
+                  }
+                });
               }
+              if (requireDefault) {
+                if(typeof requireLogicMessage === 'string' && requireLogicMessage.length > 0) {
+                  errors.push(requireLogicMessage);
+                } else {
+                  // Test required data
+                  dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
+                  if(fieldIsEmpty(dataField)) {
+                    console.log(util.isEmpty(field.config.emptyErrorMessage));
+                    errors.push(util.isEmpty(field.config.emptyErrorMessage)?fc.lang.emptyFieldError:field.config.emptyErrorMessage);
+                  }
+                }
+                return errors;
+              }*/
             }
 
             // Custom validators
@@ -1819,7 +1862,7 @@ var formcorp = (function () {
               } else {
                 if (fc.renderedSignatures[fieldId].validateForm() === false) {
                   // Attempt to validate the field
-                  errors.push(fc.lang.emptyFieldError);
+                  errors.push(field.config.emptyErrorMessage || fc.lang.emptyFieldError);
                 } else {
                   // Store the value
                   setVirtualValue(fieldId, fc.renderedSignatures[fieldId].getSignatureString());
@@ -1828,16 +1871,16 @@ var formcorp = (function () {
               skipCheck = true;
             } else if (field.type === 'fileUpload') {
               if (typeof value === 'undefined' || value.length === 0) {
-                errors.push(fc.lang.emptyFieldError);
+                errors.push(field.config.emptyErrorMessage || fc.lang.emptyFieldError);
               }
               if (typeof value === 'string') {
                 try {
                   var json = JSON.parse(value);
                   if (json.length == 0) {
-                    errors.push(fc.lang.emptyFieldError);
+                    errors.push(field.config.emptyErrorMessage || fc.lang.emptyFieldError);
                   }
                 } catch (e) {
-                  errors.push(fc.lang.emptyFieldError);
+                  errors.push(field.config.emptyErrorMessage || fc.lang.emptyFieldError);
                 }
               }
             }  else if (field.type === "grouplet") {
@@ -1864,19 +1907,23 @@ var formcorp = (function () {
             } else if (field.type === 'date') {
               var dateRegex = /^(\d{2,4})[\-\.\/]{1}(\d{2,4})[\-\.\/]{1}(\d{2,4})\s{0,1}\d{0,2}[\:]{0,1}(\d{0,2})$/;
             } else if (field.type === 'idmatrix') {
-              value = getValue(fieldId);
-              if (typeof value === 'undefined' || typeof value.status !== 'string') {
-                errors.push('IDMatrix hasn\'t yet been initialised.');
-              } else {
-                // If a status exists, check to see if IDMatrix has been successfully completed
-                switch (value.status) {
-                  case formcorp.const.IDMatrix.State.Consent:
-                  case formcorp.const.IDMatrix.State.Ready:
-                  case formcorp.const.IDMatrix.State.Verification:
-                    errors.push('You must go through electronic verification.');
-                    break
+              if (typeof formcorp.const.IDMatrix === 'undefined')
+                return;
+              var idMatrixLoadInterval = setInterval(function() {
+                value = getValue(fieldId);
+                if (typeof value === 'undefined' || typeof value.status !== 'string') {
+                  errors.push('IDMatrix hasn\'t yet been initialised.');
+                } else {
+                  // If a status exists, check to see if IDMatrix has been successfully completed
+                  switch (value.status) {
+                    case formcorp.const.IDMatrix.State.Consent:
+                    case formcorp.const.IDMatrix.State.Ready:
+                    case formcorp.const.IDMatrix.State.Verification:
+                      errors.push('You must go through electronic verification.');
+                      break
+                  }
                 }
-              }
+              }, 100);
             }
 
             // If repeatable and required, check the amount of values
@@ -1884,7 +1931,7 @@ var formcorp = (function () {
               if (field.config !== undefined && typeof field.config.repeatable === 'boolean' && field.config.repeatable) {
                 required = $(this).attr('data-required');
                 if (required === 'true' && (typeof value !== 'object' || value.length === 0)) {
-                  errors.push(fc.lang.emptyFieldError);
+                  errors.push(field.config.emptyErrorMessage || fc.lang.emptyFieldError);
                 }
               } else {
                 errors = fieldErrors(fieldId);
@@ -1991,14 +2038,34 @@ var formcorp = (function () {
                 prefix = dataId.replace(getId(field), '');
               }
 
+              var requireDefault = getConfig(field, 'required', false);
+              // var requireLogics = getConfig(field, 'requiredLogic', []);
+              // if(requireLogics.length > 0) {
+              //   $.each(requireLogics, function(i){
+              //     if(eval(getBooleanLogic(requireLogics[i].condition))){
+              //       requireDefault = requireLogics[i].required;
+              //     }
+              //   });
+              // }
+
+              // console.log(2, evaluateRequiredLogic(field, value), value, getId(field));
+              // if(evaluateRequiredLogic(field, value).length < 1) {
+              //   return;
+              // }
+
               // If not required, do nothing
-              if (getConfig(field, 'required', false) === false || getConfig(field, 'readOnly', false)) {
-                // Check matrix field validation
-                if (['grouplet', 'repeatableIterator'].indexOf(field.type) < 0 && showErrors) {
-                  showFieldSuccess(dataId);
-                }
+              if (fc.config.realTimeValidation === false && fieldErrors(getId(field)).length < 1) {
                 return;
               }
+              // if (evaluateRequiredLogic(field, value).length < 1 || getConfig(field, 'readOnly', false)) {
+              //   // Check matrix field validation
+              //   if (['grouplet', 'repeatableIterator'].indexOf(field.type) < 0 && showErrors) {
+              //     showFieldSuccess(dataId);
+              //   }
+              //   showFieldSuccess(dataId);
+              //   removeFieldError(dataId);
+              //   return;
+              // }
 
               // Check if the field requires a value
               if (typeof field.type === 'string' && godFields.indexOf(field.type) !== -1) {
@@ -2435,7 +2502,7 @@ var formcorp = (function () {
            * @returns {*}
            */
           replaceTokens = function (layout, tokens, withSpan) {
-            return tokenise(layout);
+            return tokenise(layout, tokens, withSpan);
           },
 
           /**
@@ -2897,7 +2964,7 @@ var formcorp = (function () {
            */
           setDomValue = function (obj, value) {
             var fieldGroup = $(obj).find('.fc-fieldgroup'),
-              valInputs = fieldGroup.find('input[type=text],input[type=tel],input[type=number],textarea,input[type=range],input[type=hidden]'),
+              valInputs = fieldGroup.find('input[type=text],input[type=tel],textarea,input[type=range],input[type=hidden]'),
               selector;
 
             if (valInputs.length > 0) {
@@ -2913,9 +2980,9 @@ var formcorp = (function () {
             } else if (fieldGroup.find('select').length > 0) {
               // Select box
               fieldGroup.find('select').val(value);
-            } else if (fieldGroup.find('input[type=radio]').length > 0) {
+            } else if (fieldGroup.find('input[type=radio]').length > 0 || fieldGroup.find('input[type=checkbox]').length > 0) {
               // Radio options
-              fieldGroup.find('input[value="' + value + '"]').prop('checked', true);
+              fieldGroup.find('input[value="' + encodeURIComponent(value) + '"]').prop('checked', true);
             } else {
               // Set the button
               selector = fieldGroup.find('.fc-fieldinput.fc-button[data-value="' + encodeURIComponent(value) + '"]');
@@ -2958,12 +3025,19 @@ var formcorp = (function () {
 
                   // Update the value
                   setVirtualValue(fieldId, value);
+
+                  // If after pre-populating, it has to populate another value, set
+                  var prePopulate = getConfig(schema, 'prePopulate', []);
+                  if (!$.isArray(prePopulate) || prePopulate.length === 0) {
+                    return;
+                  }
+                  prepopulate(schema, value);
                 }
               }
 
               // Otherwise use the default
               if (value === undefined || value === '') {
-                defaultValue = getConfig(schema, 'default', getConfig(schema, 'defaultValue', ''));
+                defaultValue = getDefaultValue(fieldId);
                 if (defaultValue.length > 0) {
                   value = defaultValue;
                   if(getConfig(schema, 'maxLength', false)) {
@@ -2984,7 +3058,7 @@ var formcorp = (function () {
 
               // If read-only and a default value set, use it
               // if (getConfig(schema, 'readOnly', false)) {
-              //   value = getConfig(schema, 'defaultValue', '');
+              //   value = getConfig(schema, 'default', '');
               // }
 
               if (schema.type === 'grouplet' && !fieldIsRepeatable(fieldId)) {
@@ -3053,6 +3127,7 @@ var formcorp = (function () {
             if (prefix === undefined) {
               prefix = "";
             }
+            var extraClass = '';
 
             var required = typeof field.config.required === 'boolean' ? field.config.required : false,
               fieldId = prefix + getId(field),
@@ -3064,12 +3139,50 @@ var formcorp = (function () {
               type = 'password';
             }
 
+            var displayCharCounter = getConfig(field, 'displayCharCounter', false);
+            var displayWordCounter = getConfig(field, 'displayWordCounter', false);
+            if (displayCharCounter || displayWordCounter) {
+                fc.domContainer.on('keypress', '#fc-field-' + field['_id']['$id'], function (e) {
+                  var chars = 0,
+                    words = 0;
+                  if(displayCharCounter) {
+                    if(typeof this.value === 'string') {
+                      chars = this.value.length;
+                    }
+                  }
+                  if(displayWordCounter) {
+                    if(this.value.match(/\S+/g) != null){
+                      words = this.value.match(/\S+/g).length;
+                    }
+                  }
+                  //Do Something here
+                });
+              fc.domContainer.on('keyup', '#fc-field-' + field['_id']['$id'], function (e) {
+                if(e.keyCode == 8 || e.keyCode == 46) {
+                  // Do something here
+                }
+              });
+            }
+
+            if(getConfig(field, 'isNumeric', false)) {
+              fc.domContainer.on('onFinishFormRender',function(){
+                var acceptedChars = getConfig(field, 'acceptedCharacters', '') + "1234567890";
+                fc.domContainer.find('#fc-field-' + fieldId).unbind('keypress').on('keypress', function (e) {
+                  var chars = acceptedChars.split('');
+                  if(chars.length > 0) {
+                    return chars.indexOf(e.key) >= 0;
+                  }
+                });
+              });
+              extraClass = ' fc-fieldinput-numeric';
+            }
+
             var maxLength = (getConfig(field, 'maxLength', ''));
             if(maxLength.length > 0) {
               maxLength = 'maxlength="' + maxLength + '"';
             }
 
-            html = '<input class="fc-fieldinput" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'readonly ':'') + maxLength + '>';
+            html = '<input class="fc-fieldinput' + extraClass + '" id="fc-field-' + fieldId + '" type="' + type + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" ' + ((field.config.readOnly)?'readonly ':'') + maxLength + '>';
 
             return html;
           },
@@ -3096,7 +3209,7 @@ var formcorp = (function () {
               readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
 
-            if (getConfig(field, 'placeholder', '').length > 0) {
+            if(getConfig(field, 'placeholder', '').length > 0) {
               html += '<option value="" disabled selected>' + htmlEncode(getConfig(field, 'placeholder')) + '</option>';
             }
 
@@ -3142,8 +3255,35 @@ var formcorp = (function () {
               value,
               readonly = (field.config.readOnly)?'readonly':'';
 
+
+
+            var displayCharCounter = getConfig(field, 'displayCharCounter', false);
+            var displayWordCounter = getConfig(field, 'displayWordCounter', false);
+            if (displayCharCounter || displayWordCounter) {
+              fc.domContainer.on('keypress', '#fc-field-' + field['_id']['$id'], function (e) {
+                var chars = 0,
+                  words = 0;
+                if(displayCharCounter) {
+                  if(typeof this.value === 'string') {
+                    chars = this.value.length;
+                  }
+                }
+                if(displayWordCounter) {
+                  if(this.value.match(/\S+/g) != null){
+                    words = this.value.match(/\S+/g).length;
+                  }
+                }
+                //Do Something here
+              });
+              fc.domContainer.on('keyup', '#fc-field-' + field['_id']['$id'], function (e) {
+                if(e.keyCode == 8 || e.keyCode == 46) {
+                  // Do something here
+                }
+              });
+            }
+
             // Default value
-            value = getConfig(field, 'defaultValue', '').length > 0 ? getConfig(field, 'defaultValue') : '';
+            value = getConfig(field, 'default', '').length > 0 ? getConfig(field, 'default') : '';
             html = '<textarea';
 
             // Whether or not the field is read only
@@ -3151,7 +3291,7 @@ var formcorp = (function () {
               html += ' readonly';
             }
 
-            html += ' class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '" ' + readonly + '>' + htmlEncode(value) + '</textarea>';
+            html += ' id="fc-field-' + fieldId + '" class="fc-fieldinput" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '" rows="' + getConfig(field, 'rows', 3) + '" ' + readonly + '>' + htmlEncode(value) + '</textarea>';
             return html;
           },
 
@@ -3592,7 +3732,30 @@ var formcorp = (function () {
               return '';
             }
 
-            var content = replaceTokens(field.config.rich, getFieldTagValues(), true);
+            var content = field.config.rich;
+
+            // Tokens that exist within HTML attributes should ALWAYS be converted without html
+            var raw = content.match(/(<[^/][^>]+)/g);
+            if (typeof raw === 'object' && $.isArray(raw) && raw.length > 0) {
+              var replacement;
+              for (var i = 0, l = raw.length; i < l; i++) {
+                if (raw[i].indexOf('{{') >= 0) {
+                  // The string has tokens within it, perform the replacement
+                  replacement = replaceTokens(raw[i], getFieldTagValues(), false);
+
+                  // Attempt to replace all with regex
+                  content = content.replace(new RegExp(raw[i], 'g'), replacement);
+
+                  // If tokens still exist, just replace single instance
+                  if (content.indexOf('{{') >= 0) {
+                    content = content.replace(raw[i], replacement);
+                  }
+                }
+              }
+            }
+
+            // Replace the remaining html correctly
+            content = replaceTokens(content, getFieldTagValues(), true);
 
             return '<div class="fc-richtext">' + content + '</div>';
           },
@@ -4171,7 +4334,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           verifyEmailAddress = function () {
-            verifyCode($('.fc-email-verification-submit input[type=text], .fc-email-verification-submit input[type=tel], .fc-email-verification-submit input[type=number]').val());
+            verifyCode($('.fc-email-verification-submit input[type=text], .fc-email-verification-submit input[type=tel], .fc-email-verification-submit').val());
           },
 
           /**
@@ -4424,7 +4587,7 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           verifyMobileNumber = function () {
-            verifyCode($('.fc-sms-verification-submit input[type=text], .fc-sms-verification-submit input[type=tel], .fc-sms-verification-submit input[type=number]').val());
+            verifyCode($('.fc-sms-verification-submit input[type=text], .fc-sms-verification-submit input[type=tel], .fc-sms-verification-submit').val());
           },
 
           /**
@@ -4669,7 +4832,13 @@ var formcorp = (function () {
             // If string, output
             if (typeof value === "string") {
               if(field.config.class) {
-                html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
+                if(field.config.class.indexOf('fc-input-symbol-dollar') > -1){
+                  html += '<span class="' + field.config.class + '">$ ' + htmlEncode(value) + '</span>';
+                } else if(field.config.class.indexOf('fc-input-symbol-percent') > -1) {
+                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + ' %</span>';
+                } else {
+                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
+                }
               } else {
                 html += htmlEncode(value);
               }
@@ -4818,14 +4987,15 @@ var formcorp = (function () {
                     field = section.field[fieldIterator];
 
                     // Fetch the field html
-                    fieldHtml = $('<div></div>').append(renderSummaryField(field));
-
-                    // Append page, section and field meta data to the container
-                    if (fieldHtml.find('tr').length > 0) {
-                      fieldHtml.find('tr').attr('data-page', getId(page)).attr('data-section', getId(section)).attr('data-id', getId(field));
+                    if( getConfig(field,'visibility','').length === 0  || (getConfig(field,'visibility','').length > 0 && eval(getBooleanLogic(getConfig(field,'visibility')))) ){
+                      fieldHtml = $('<div></div>').append(renderSummaryField(field));
+                      // Append page, section and field meta data to the container
+                      if (fieldHtml.find('tr').length > 0) {
+                        fieldHtml.find('tr').attr('data-page', getId(page)).attr('data-section', getId(section)).attr('data-id', getId(field));
+                      }
+                      pageHtml += fieldHtml.html();
                     }
 
-                    pageHtml += fieldHtml.html();
                   }
                 }
 
@@ -5384,7 +5554,6 @@ var formcorp = (function () {
               return;
             }
 
-            fc.currentPage = pageId;
             $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
             $('.fc-page').each(function () {
               pageDataId = $(this).attr('data-page-id');
@@ -5528,11 +5697,15 @@ var formcorp = (function () {
            * @param fieldId
            * @param value
            */
-          setVirtualValue = function (fieldId, value, obj) {
+          setVirtualValue = function (fieldId, value, obj, override) {
 
             log('setVirtualValue');
             log(fieldId);
             log(value);
+
+            if (typeof override !== 'boolean') {
+              override = false;
+            }
 
             if (typeof obj !== 'object') {
               obj = fc.fields;
@@ -5579,6 +5752,16 @@ var formcorp = (function () {
                 }
               }
               save[saveId] = value;
+
+              if (override) {
+                // If override pre-populated values, do so now
+                try {
+                  var schema = fc.fieldSchema[saveId];
+                  if (typeof schema === 'object') {
+                    prepopulate(schema, value);
+                  }
+                } catch (ignore) {}
+              }
             }
           },
 
@@ -5726,6 +5909,8 @@ var formcorp = (function () {
           renderMatrixField,
           isValidFile,
           validateFileUpload,
+          evaluateRequiredLogic,
+          getDefaultValue,
           deleteFileUpload,
           renderFileUpload,
           buildFileList,
@@ -5745,11 +5930,16 @@ var formcorp = (function () {
           selectRowAutoCompleteWidget,
           getPagesByTag,
           progressBar,
+          progressBarStickClass,
+          progressBarPristineClass,
+          progressBarUnstickClass,
+          progressBarBodyStickClass,
+          progressBarOffset,
           getCurrentSection,
           setCurrentSection,
           util;
 
-          progressBar = function(schema) {
+          progressBar = function(schema, config) {
             return {
               schema: schema,
               hash: function(schema) {
@@ -5782,20 +5972,55 @@ var formcorp = (function () {
                 }
                 return c;
               }(schema),
+              stickynessTimeout: false,
+              progressBarStick: config.progressBarStick,
+              progressBarStickClass: config.progressBarStickClass,
+              progressBarPristineClass: config.progressBarPristineClass,
+              progressBarUnstickClass: config.progressBarUnstickClass,
+              progressBarBodyStickClass: config.progressBarBodyStickClass,
+              progressBarOffset: config.progressBarOffset,
               scrollInterval: false,
               init: function() {
                 this.renderContainer();
                 this.renderProgress();
-                this.setPage(getFirstPage());
+                this.setPage(getFirstPageId());
 
-                if(fc.config.sectionManagement)
-                  fc.domContainer.on(fc.jsEvents.onSectionChange, this.updateSection.bind(this))
+                if(config.sectionManagement) {
+                  fc.domContainer.on(fc.jsEvents.onSectionChange, this.updateSection.bind(this));
+                }
+
+                if(this.progressBarStick) {
+                  $window.scroll(function() {
+                    if($('.fc-progress-bar-container:visible').length > 0) {
+                      if(this.stickynessTimeout) {
+                        clearTimeout(this.stickynessTimeout);
+                      }
+                      this.stickynessTimeout = setTimeout(function() {
+                        if($window.scrollTop() < this.progressBarOffset || $window.scrollTop() == 0 || $window.scrollTop() > $('#formcorp-form').offset().top + $('#formcorp-form').height()) {
+                          $('.fc-progress-bar-container').removeClass(this.progressBarStickClass + ' ' + this.progressBarPristineClass).addClass(this.progressBarUnstickClass);
+                          $('body').removeClass(this.progressBarBodyStickClass);
+                          return;
+                        }
+
+                        if(!$('.fc-progress-bar-container').hasClass(this.progressBarStickClass) && $window.scrollTop() >= $('.fc-progress-bar-container').offset().top) {
+                          this.progressBarOffset = $('.fc-progress-bar-container').offset().top;
+                          $('.fc-progress-bar-container').addClass(this.progressBarStickClass).removeClass(this.progressBarPristineClass + ' ' + this.progressBarUnstickClass);
+                          $('body').addClass(this.progressBarBodyStickClass);
+                        }
+                      }.bind(this), 10);
+                    }
+                  }.bind(this));
+                }
               },
               setPage: function(pageId) {
                 this.currentPage = getPageById(pageId);
                 this.currentStep = this.getStep(pageId);
-                if(!this.currentStep)
-                  return;
+                this.$barContainer.show();
+                if(!this.currentStep) {
+                  if(fc.config.hideProgressBarIfPageNotInSchema) {
+                    this.$barContainer.hide();
+                  }
+                }
                 this.currentStepNumber = this.currentStep.step;
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
@@ -5854,6 +6079,7 @@ var formcorp = (function () {
                   return l;
                 }(left - 100);
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
+                this.$currentStep.find('.progress-bar-label').html(label);
                 this.updateSection();
               },
               groupLabelAlignment: function(order, count) {
@@ -6303,7 +6529,7 @@ var formcorp = (function () {
 
             savedValue = getValue(fieldId, false);
             if (typeof savedValue === 'boolean' && !savedValue) {
-              var defaultValue = getConfig(field, 'defaultValue', false);
+              var defaultValue = getConfig(field, 'default', false);
               if (typeof defaultValue === 'string' && defaultValue.length > 0) {
                 // Default value has been set for the field, set it accordingly
                 setVirtualValue(fieldId, defaultValue);
@@ -6920,7 +7146,7 @@ var formcorp = (function () {
           html += '<tr>';
           html += '<th style="width:25%;">' + field.config.title + '</th>';
           for (var j = 0; j < headers.length; j++) {
-            html += '<th style="width:' + width + '%;" class="fc-matrix-headerrow">' + headers[j] + '</>';
+            html += '<th style="width:' + width + '%;" class="fc-matrix-headerrow">' + headers[j] + '</th>';
           }
           html += '</tr>';
           for (var i = 0; i < fields.length; i++) {
@@ -7040,6 +7266,52 @@ var formcorp = (function () {
 
           return errors;
         };
+
+        getDefaultValue = function(field) {
+          if (typeof field === 'string') {
+            field = fc.fieldSchema[field];
+          }
+          if(typeof field !== 'object') {
+            return '';
+          }
+
+          return (getConfig(field, 'default', '') === '')?getConfig(field, 'defaultValue', ''):getConfig(field, 'default', '');
+        }
+
+        evaluateRequiredLogic = function(field, value) {
+          if(getId(field) === '584791135acf7081538b47cb') {
+            var a = 'a';
+          }
+          var requiredByDefault = Boolean(getConfig(field, 'required', false));
+          var requiredLogicList = getConfig(field, 'requiredLogic', []);
+          var requiredLogicResult = [];
+          var defaultErrorMessage = (getConfig(field, 'emptyErrorMessage', '').length > 0)?getConfig(field, 'emptyErrorMessage', ''):fc.lang.emptyFieldError;
+          var isEmptyString = function(s) {
+            return (typeof s === 'string' && s.length === 0);
+          };
+          var evaluateLogicStatement = function(statement) {
+            if (eval(getBooleanLogic(statement.condition)) && Boolean(statement.required) || !eval(getBooleanLogic(statement.condition)) && !Boolean(statement.required)) {
+              return (value.length < 1);
+            }
+            return false;
+          }
+          var getErrorMessage = function(fallback) {
+            return function(statement) {
+              if (typeof statement.message === 'string' && statement.message.length > 0) {
+                return statement.message;
+              }
+              return fallback;
+            }
+          }
+          // console.log(field.config.label, field.config);
+          if(Array.isArray(requiredLogicList) && requiredLogicList.length > 0) {
+            requiredLogicResult = requiredLogicList.filter(evaluateLogicStatement).map(getErrorMessage(defaultErrorMessage));
+            return requiredLogicResult;
+          } else if(requiredByDefault && value.length < 1) {
+            return defaultErrorMessage;
+          }
+          return [];
+        }
 
         /**
          * Validate a file upload field
@@ -7794,7 +8066,7 @@ var formcorp = (function () {
          * @param sections
          * @returns {string}
          */
-        renderPageSections = function (sections) {
+        renderPageSections = function (sections, page, nextPageObj) {
           var html = '',
             x,
             section,
@@ -7804,7 +8076,8 @@ var formcorp = (function () {
 
           for (x = 0; x < sections.length; x += 1) {
             section = sections[x];
-            sectionHtml = '<div class="fc-section fc-section-' + getId(section) + '" formcorp-data-id="' + getId(section) + '" data-form-state="' + fc.formState + '">';
+            var customClass = (typeof section.class !== "undefined" && section.class.length > 0) ? ' ' + section.class: '';
+            sectionHtml = '<div class="fc-section fc-section-' + getId(section) + customClass + '" formcorp-data-id="' + getId(section) + '" data-form-state="' + fc.formState + '">';
             sectionHtml += '<div class="fc-section-container"><div class="fc-section-header">';
 
             if (typeof section.label === 'string' && section.label.length > 0) {
@@ -7849,9 +8122,22 @@ var formcorp = (function () {
                 label = fc.config.showNextSectionButtons;
               }
 
-              sectionHtml += '<div class="fc-section-end">\
-                <span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>\
-              </div>';
+              var lastSection = false;
+              if(fc.config.hideLastNextSectionButton){
+
+                if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
+                  // If the next stage is a completion page, alter the submission text
+                  if ((isSubmitPage(page) === false && nextPageObj === false) || (typeof nextPageObj.page === 'object' && isSubmitPage(nextPageObj.page))) {
+                    lastSection = true;
+                  }
+                }
+              }
+
+              if(!lastSection){
+                sectionHtml += '<div class="fc-section-end">\
+                  <span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>\
+                </div>';
+              }
             }
             sectionHtml += '</div></div>';
             html += sectionHtml;
@@ -7880,8 +8166,8 @@ var formcorp = (function () {
               return '';
             return (isNextPage)?config.next.nextPageAnimation:config.prev.nextPageAnimation;
           }(fc.config.pageAnimations);
-
-          var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '" style="animation:' + animation + '"">',
+          var customClass = (typeof page.page.class !== "undefined" && page.page.class.length > 0) ? ' ' + page.page.class: '';
+          var pageDiv = '<div class="fc-page fc-page-' + getId(page.page) + customClass + '" data-page-id="' + getId(page.page) + '" data-form-state="' + fc.formState + '" style="animation:' + animation + '">',
             submitText = fc.lang.submitText,
             nextPageObj,
             submitClasses = ['fc-submit'];
@@ -7901,7 +8187,7 @@ var formcorp = (function () {
 
           // Render page sections
           if (page.section.length > 0) {
-            pageDiv += renderPageSections(orderObject(page.section));
+            pageDiv += renderPageSections(orderObject(page.section), page, nextPageObj);
           }
 
           nextPageObj = nextPage(false, true);
@@ -8209,16 +8495,24 @@ var formcorp = (function () {
             fc.prevPages[pageId] = getPageById(fc.currentPage);
           }
 
-          // Update the current page on render
-          fc.currentPage = pageId;
-          if(progressBar && fc.config.progressBar){
-            progressBar.setPage(pageId);
+          if(fc.config.progressBar && typeof progressBar !== 'object') {
+            progressBar = progressBar(fc.config.progressBar, fc.config);
+            progressBar.init();
           }
 
+          if(progressBar && fc.config.progressBar) {
+            if(typeof progressBar.setPage === 'function') {
+              progressBar.setPage(pageId);
+            } else {
+            }
+          }
 
           // Store field schema locally
           updateFieldSchema(page.stage);
           html += renderPage(page, isNextPage);
+
+          // Update the current page on render
+          fc.currentPage = pageId;
 
           if (!fc.config.onePage || isSubmitPage(page.page)) {
             // Show form in stages (if not one page, or if the submission page)
@@ -8265,6 +8559,8 @@ var formcorp = (function () {
           for (var i = 0, l = fc.callbacks.afterRender.length; i < l; i++) {
             fc.callbacks.afterRender[i]();
           }
+
+          fc.isRendered = true;
         };
 
         /**
@@ -8309,6 +8605,9 @@ var formcorp = (function () {
               if (currentPage.page.toCondition.hasOwnProperty(id)) {
                 condition = currentPage.page.toCondition[id];
                 if (eval(getBooleanLogic(condition))) {
+                  if(returnPage) {
+                    fc.currentPage = id;
+                  }
                   if (shouldRender) {
                     render(id, true);
                   }
@@ -8316,6 +8615,17 @@ var formcorp = (function () {
                 }
               }
             }
+          }
+
+          //@todo: last case of the workflow next page. default next page if the logic return false
+          if(typeof currentPage.page.nextPageDefault === "string" && currentPage.page.nextPageDefault.length > 0){
+            if(returnPage) {
+              fc.currentPage = currentPage.page.nextPageDefault;
+            }
+            if (shouldRender) {
+              render(currentPage.page.nextPageDefault, true);
+            }
+            return returnPage ? getPageById(currentPage.page.nextPageDefault) : true;
           }
 
           // Render the next page by default (first page in next stage)
@@ -8382,6 +8692,10 @@ var formcorp = (function () {
 
           if (typeof pageToRender === 'object') {
             // If found a page, render/return it
+            /*if(returnPage) {
+              fc.currentPage =  pageToRender._id.$id;
+            }*/
+
             if (shouldRender) {
               render(getId(pageToRender), true, !fc.config.onePage);
             }
@@ -8405,13 +8719,53 @@ var formcorp = (function () {
           }
 
           // If a next page exists and the current page is valid, load the next page
-          if (hasNextPage() && validForm('[data-page-id="' + fc.currentPage + '"]', false)) {
+          if (hasNextPage() && validForm(currentPage, false)) {
             fc.functions.loadNextPage(false);
             return true;
           }
 
           return false;
         };
+
+        /**
+         * Pre-populate other field values for an object with a given value
+         * @param field {obj}
+         * @param value {*}
+         */
+        var prepopulate = function (field, value) {
+          if (typeof field !== 'object' || typeof value === 'undefined') {
+            return;
+          }
+
+          var prePopulate = getConfig(field, 'prePopulate', []);
+          if (!$.isArray(prePopulate) || prePopulate.length === 0) {
+            return;
+          }
+
+          var fieldTmpId, fieldTmp;
+          for (var iterator = 0, length = prePopulate.length; iterator < length; iterator++) {
+            fieldTmpId = prePopulate[iterator]; // The data id to prepopulate
+            fieldTmp = fc.fieldSchema[fieldTmpId];
+            if (fieldTmpId.length > 0 && typeof fieldTmp !== "undefined") {
+              var val = getValue(fieldTmpId, '');
+              if (val === '' || val === getConfig(fieldTmpId, 'default', '') || getConfig(field, 'forcePrePopulate', false)) {
+                setVirtualValue(fieldTmpId, value, fc.fields, true);
+                var target = fc.domContainer.find('div[fc-data-group="' + fieldTmpId + '"]');
+                if (target.length > 0) {
+                  setDomValue(target, value);
+                  var errors = getFieldErrors(fieldTmpId, value, '');
+                  if (errors !== undefined && errors.length > 0) {
+                    removeFieldSuccess(fieldTmpId);
+                    showFieldError(fieldTmpId, errors);
+                  } else {
+                    removeFieldError(fieldTmpId);
+                    showFieldSuccess(fieldTmpId);
+                  }
+                }
+              }
+            }
+          }
+        }
 
         /**
          * Function that is fired when a data value changes.
@@ -8464,15 +8818,7 @@ var formcorp = (function () {
 
           // If pre-populating other fields, do so now
           if (typeof value === 'string') {
-            prePopulate = getConfig(fieldSchema, 'prePopulate', []);
-            if ($.isArray(prePopulate) && prePopulate.length > 0) {
-              for (iterator = 0; iterator < prePopulate.length; iterator += 1) {
-                tmp = prePopulate[iterator]; // The data id to prepopulate
-                if (tmp.length > 0) {
-                  setVirtualValue(tmp, value);
-                }
-              }
-            }
+            prepopulate(fieldSchema, value);
           }
 
           log($.extend({}, fc.fields));
@@ -8489,7 +8835,7 @@ var formcorp = (function () {
           // Store when not a repeatable value
           if (dataId.indexOf(fc.constants.prefixSeparator) == -1 && !fieldIsRepeatable(dataId) && !fieldParentIsRepeatable(dataId)) {
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId)) {
-              setVirtualValue(dataId, value);
+              setVirtualValue(dataId, value, fc.fields, true);
             }
 
             // If a grouplet, save the original state of the grouplet
@@ -8505,7 +8851,7 @@ var formcorp = (function () {
 
           // Store against array values when sub field (field_1, field_2) for a repeatable iterator
           if (dataId.indexOf(fc.constants.prefixSeparator) > -1) {
-            setVirtualValue(dataId, value);
+            setVirtualValue(dataId, value, fc.fields, true);
           }
 
           // Set the active page id to the page that the field belongs to, delete later pages
@@ -8520,6 +8866,7 @@ var formcorp = (function () {
             if (parentField !== undefined && getConfig(parentField, 'repeatable', false) === true) {
               errors = fieldErrors(dataId);
               if (fc.config.realTimeValidation === true) {
+                validForm(fc.domContainer, true);
                 if (errors !== undefined && errors.length > 0) {
                   // Log the error event
                   logEvent(fc.eventTypes.onFieldError, {
@@ -8534,6 +8881,8 @@ var formcorp = (function () {
                   removeFieldError(dataId);
                   showFieldSuccess(dataId);
                 }
+              } else {
+                removeFieldError(dataId);
               }
 
               // Store the changed value for intermittent saving
@@ -8548,7 +8897,7 @@ var formcorp = (function () {
           // Don't perform operations on repeatable fields
           if (!fieldIsRepeatable(dataId)) {
             if (typeof dataId === 'string' && dataId.length > 0 && !$.isNumeric(dataId) && dataId.indexOf(fc.constants.prefixSeparator) == -1) {
-              setVirtualValue(dataId, value);
+              setVirtualValue(dataId, value, fc.fields, true);
             }
 
             // Flush the field visibility options
@@ -8557,6 +8906,12 @@ var formcorp = (function () {
             // Check real time validation
             errors = fieldErrors(dataId);
             if (fc.config.realTimeValidation === true) {
+              var $field = $('.fc-field[fc-data-group="' + dataId + '"]');
+              var $fields = $field.addBack($field.prevAll('.fc-field'));
+              var $section = $field.closest('.fc-section').filter($fields);
+              // console.log('field', $field, validForm($field), false, true);
+              validForm($section, true);
+              // validForm(fc.domContainer, true);
               if (errors !== undefined && errors.length > 0) {
                 // Log the error event
                 logEvent(fc.eventTypes.onFieldError, {
@@ -8570,6 +8925,8 @@ var formcorp = (function () {
                 showFieldSuccess(dataId);
                 removeFieldError(dataId);
               }
+            } else {
+              removeFieldError(dataId);
             }
 
             // Store the changed value for intermittent saving
@@ -8682,7 +9039,7 @@ var formcorp = (function () {
 
             // Need to update the stored value to ensure proper validation
             if (typeof id === 'string' && id.length > 0 && !$.isNumeric(id)) {
-              setVirtualValue(id, val);
+              setVirtualValue(id, val, fc.fields, true);
             }
 
             return;
@@ -8867,7 +9224,7 @@ var formcorp = (function () {
         registerValueChangedListeners = function () {
           // On enter pressed, opt to shift focus
           if (fc.config.autoShiftFocusOnEnter) {
-            fc.domContainer.on('keypress', 'input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput, input[type=number].fc-fieldinput', function (e) {
+            fc.domContainer.on('keypress', 'input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput', function (e) {
               if (e.which === fc.constants.enterKey) {
                 var dataId = $(this).attr('formcorp-data-id'),
                   nextField = nextVisibleField(dataId, false),
@@ -8883,7 +9240,7 @@ var formcorp = (function () {
 
                 // If the next field is a text box, shift focus to it
                 if (nextField && nextField.length > 0) {
-                  nextFieldEl = $('.fc-fieldinput[type=text][formcorp-data-id="' + nextField + '"], .fc-fieldinput[type=tel][formcorp-data-id="' + nextField + '"], .fc-fieldinput[type=number][formcorp-data-id="' + nextField + '"]');
+                  nextFieldEl = $('.fc-fieldinput[type=text][formcorp-data-id="' + nextField + '"], .fc-fieldinput[type=tel][formcorp-data-id="' + nextField + '"]');
                   if (nextFieldEl.length > 0) {
                     nextFieldEl.focus();
                     changedFocus = true;
@@ -8910,7 +9267,7 @@ var formcorp = (function () {
           }
 
           // Input types text changed
-          fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput, input[type=number].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
+          fc.domContainer.on('change', 'textarea.fc-fieldinput, input[type=text].fc-fieldinput, input[type=tel].fc-fieldinput, input[type=radio].fc-fieldinput, input[type=range].fc-fieldinput', function () {
             setValueUpdate($(this));
           });
 
@@ -8919,7 +9276,7 @@ var formcorp = (function () {
           });
 
           // Register the focus event
-          fc.domContainer.on('focus', 'input[type=text].fc-fieldinput,input[type=tel].fc-fieldinput,input[type=number].fc-fieldinput,textarea.fc-fieldinput', function () {
+          fc.domContainer.on('focus', 'input[type=text].fc-fieldinput,input[type=tel].fc-fieldinput,textarea.fc-fieldinput', function () {
             var obj = $(this),
               val = obj.val(),
               id = obj.attr('formcorp-data-id');
@@ -8933,7 +9290,7 @@ var formcorp = (function () {
           });
 
           // On change/paste/blur, update the form field
-          fc.domContainer.on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput, .fc-field-text input[type=tel].fc-fieldinput, .fc-field-text input[type=number].fc-fieldinput', function () {
+          fc.domContainer.on('change paste blur', '.fc-field-text input[type=text].fc-fieldinput, .fc-field-text input[type=tel].fc-fieldinput', function () {
             var obj = $(this),
               val = obj.val(),
               id = obj.attr('formcorp-data-id');
@@ -9390,7 +9747,9 @@ var formcorp = (function () {
             form_values: formData
           };
           // Determine whether the application should be marked as complete
+          var id = fc.currentPage;
           page = nextPage(false, true);
+          fc.currentPage = id;
 
           if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
             data.complete = true;
@@ -9467,12 +9826,12 @@ var formcorp = (function () {
               // Render the next page if available
               if (hasNextPage()) {
                 oldPage = fc.currentPage;
-                if(fc.config.pageAnimations) {
-                  $('.fc-page-' + fc.currentPage).css({
-                    animation: fc.config.pageAnimations.next.currentPageAnimation,
-                  });
+                if (fc.config.pageAnimations) {
                 }
                 if(fc.config.pageAnimations) {
+                  $('.fc-page-' + fc.currentPage).css({
+                    animation: fc.config.pageAnimations.next.currentPageAnimation
+                  });
                   setTimeout(function() {
                     nextPage();
                     newPage = fc.currentPage;
@@ -9505,8 +9864,7 @@ var formcorp = (function () {
                     });
 
                     fc.nextPageLoadedTimestamp = Date.now();
-
-                  }, (fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
+                  },(fc.config.pageAnimations)?fc.config.pageAnimations.next.delay:0);
                 } else {
                   nextPage();
                   newPage = fc.currentPage;
@@ -9537,6 +9895,9 @@ var formcorp = (function () {
 
                 // If the application is complete, raise completion event
                 if (typeof page.page === "object" && isSubmitPage(page.page)) {
+                  if(fc.config.hideLastNextSectionButton) {
+                    fc.domContainer.find('.fc-page:visible:last .fc-section:visible:last .fc-section-end').hide();
+                  }
                   fc.domContainer.trigger(fc.jsEvents.onFormComplete);
                   logEvent(fc.eventTypes.onFormComplete);
                 }
@@ -9682,6 +10043,14 @@ var formcorp = (function () {
          */
         registerEventListeners = function () {
 
+          if(fc.config.realTimeValidation === false) {
+            fc.domContainer.on('focus', '.fc-field input', function(e) {
+              var $target = $(e.currentTarget);
+              var fieldId = $target.attr('formcorp-data-id');
+              removeFieldError(fieldId);
+            })
+          }
+
           if(fc.config.flagFocusedCurrentSection) {
             $(window).scroll(function(e) {
               if(fc.scrollInterval !== false)
@@ -9724,12 +10093,14 @@ var formcorp = (function () {
             $('#formcorp-form').on('click', '.fc-next-section-button', function(e) {
               var $target = $(e.currentTarget);
 
+              var $currentPage = $target.parents('.fc-page');
               var $currentSection = $target.parents('.fc-section');
               var currentSectionId = $currentSection.attr('formcorp-data-id');
-
-              if(validForm($currentSection)) {
-
-                var $nextSection = $currentSection.nextAll('.fc-section:visible').first(); /*function(currentPageId, currentSectionId) {
+              var $currentAndPreviousSections = $currentSection.add($currentSection.prevAll('.fc-section:visible'));
+              // console.log(validForm($('.fc-page-' + fc.pageId), true, true), '.fc-page-' + fc.pageId);
+              if(validForm($currentAndPreviousSections, true)) {
+                var $nextSection = $currentSection.nextAll('.fc-section:visible').first();
+                /*function(currentPageId, currentSectionId) {
                   var sections = getPageById(currentPageId).page.section;
                   var currentSection = sections.filter(function(section) {
                     return getId(section) === fc.currentSection;
@@ -9751,17 +10122,26 @@ var formcorp = (function () {
                   return sections[1] || false;
 
                 }(fc.currentPage, $currentSection.attr('formcorp-data-id'));*/
-
-
+                var $nextSectionId = undefined;
                 if($nextSection.length > 0) {
-                  var nextSectionId = $nextSection.attr('formcorp-data-id');
-                  setCurrentSection(nextSectionId, true);
+                  $nextSectionId = $nextSection.attr('formcorp-data-id');
+                  setCurrentSection($nextSectionId, true);
                 } else {
-                  $('.fc-submit button, .fc-submit input').last().trigger('click');
+                  //get section next page (first section)
+                  var $nextPage = $currentPage.nextAll('.fc-page:visible').first();
+                  $nextSection = $nextPage.children('.fc-section:visible').first();
+                  if($nextSection.length > 0) {
+                    $nextSectionId = $nextSection.attr('formcorp-data-id');
+                    setCurrentSection($nextSectionId, true);
+                  } else {
+                    $('.fc-submit button, .fc-submit input').last().trigger('click');
+                  }
                 }
               } else {
-                var $originalSection = $('.fc-section-' + currentSectionId);
-                $('html, body').stop(true, true).animate({scrollTop: $originalSection.offset().top + fc.config.scrollOffset}, 'fast');
+                var $errorSection = $currentAndPreviousSections.find('.fc-field.fc-error').first().closest('.fc-section');
+                // $('html, body').stop(true, true);
+                // scrollToFirstError();
+                $('html, body').stop(true, true).animate({scrollTop: $errorSection.offset().top + fc.config.scrollOffset});
               }
             });
           }
@@ -10051,6 +10431,7 @@ var formcorp = (function () {
          * @returns {string}
          */
         renderAutoCompleteWidget = function (dataId, values, summaryTemplate) {
+          var field = fc.fieldSchema[dataId];
           if (!$.isArray(values)) {
             return '';
           }
@@ -10103,7 +10484,9 @@ var formcorp = (function () {
               html += '<div class="fc-suggest-row" data-suggest="' + encodeURI(JSON.stringify(tokens)) + '" data-id="' + dataId + '"><a href="#">' + summary + '</a></div>';
             }
           }
-          html += '<div><button class="fc-api-enter-manually" fc-belongs-to="' + dataId + '">Enter manually</button></div>';
+          if(typeof field !== "undefined" && getConfig(field, 'enableEnterManually',false)){
+            html += '<div><button class="fc-api-enter-manually" fc-belongs-to="' + dataId + '">Enter manually</button></div>';
+          }
           html += '</div>';
 
           return html;
@@ -10279,8 +10662,22 @@ var formcorp = (function () {
             }
           }
 
-          // For manually inserted api fields, set the value
           var container = fc.domContainer.find('[data-container="' + dataId + '"]');
+
+          //
+          if(schema.config.requrieSelectionFromSuggestion) {
+            var $input = domObj.find('input');
+            var $container = $input.closest('.fc-field-element-container');
+
+            $input.attr('disabled', 'disabled').hover(function(e) {
+              var $target = $(e.currentTarget);
+              $container.append($('<span class="fc-reset-api-lookup-field">Click to reset</span>'))
+            }, function(e) {
+              $container.find(".fc-reset-api-lookup-field").remove()
+            });
+          }
+
+          // For manually inserted api fields, set the value
           if (container.length > 0) {
             container.find('input[type="text"].fc-fieldinput').val(object.find('a').text());
           }
@@ -10319,23 +10716,30 @@ var formcorp = (function () {
             var str = lookupField.config.responseSummary;
 
             for(var tag in fields) {
-              if(fields[tag] === str)
+              if(fields[tag] === str) {
                 continue;
+              }
               var $fieldContainer = $('.fc-tag-' + tag);
               var $field = $fieldContainer.find('input, select, textarea');
               var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
               $fieldContainer.removeClass('fc-hide fc-enter-manually-hide');
-              $field.val('')
-              .off('input')
+              $field.off('input')
               .on('input', function(str, $lookupField, fields) {
                 return function() {
                   var summary = str;
                   for(var tag in fields) {
-                    if(fields[tag] === str)
+                    if(fields[tag] === str) {
                       continue;
-                    summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').val())
+                    }
+                    summary = summary.replace(fields[tag], $('.fc-tag-' + tag).find('input, select, textarea').first().val())
                   }
                   $lookupField.val(summary.replace(/null|undefined/, ''));
+                  fc.fields[lookupFieldId] = $lookupField.val();
+                  if(lookupField.config.prePopulate && lookupField.config.prePopulate.length > 0) {
+                    lookupField.config.prePopulate.forEach(function(dest) {
+                      fc.fields[dest] = $lookupField.val();
+                    });
+                  }
                 }
               }(str, $lookupField, fields))
               .trigger('input')
@@ -10788,7 +11192,7 @@ var formcorp = (function () {
          * @param value
          * @returns {boolean}
          */
-        fieldIsValid = function (dataId, value) {
+        fieldIsValid = function (dataId, value, checkConfig) {
           var schema,
             customErrors,
             id,
@@ -10798,6 +11202,11 @@ var formcorp = (function () {
             visible,
             defaultValue,
             errors;
+
+          if (typeof checkConfig !== 'boolean') {
+            // By default, don't inspect config for visibility classes
+            checkConfig = false;
+          }
 
           // Can pass through either an id to retrieve the schema, or the schema itself
           try {
@@ -10833,14 +11242,26 @@ var formcorp = (function () {
             }
           }
 
+          if (checkConfig) {
+            // Check the config for various options that would indicate the field should be hidden
+            var classes = getConfig(schema, 'class', '');
+            if (typeof classes === 'string' && classes.length > 0) {
+              var classesArr = classes.split(' ');
+              if (classesArr.indexOf('fc-hide') >= 0) {
+                return true;
+              }
+            }
+          }
+
           // Return false if required and empty
           if (schema.config !== undefined && schema.config.required !== undefined) {
             if (schema.config.required && value === "") {
               // Check for a default value - if set, mark as true, since a default indicates true regardless
-              defaultValue = getConfig(schema, 'defaultValue', '');
+              defaultValue = getDefaultValue(schema);
               if (typeof defaultValue === 'string' && defaultValue.length > 0) {
                 return true;
               }
+
               return false;
             }
           }
@@ -10879,16 +11300,20 @@ var formcorp = (function () {
          * @param fields
          * @returns {boolean}
          */
-        formFieldsValid = function (fields) {
+        formFieldsValid = function (fields, checkConfig) {
           if (typeof fields !== "object") {
             return true;
+          }
+
+          if (typeof checkConfig !== 'boolean') {
+            checkConfig = false;
           }
 
           var dataId;
 
           for (dataId in fields) {
             if (fields.hasOwnProperty(dataId)) {
-              if (!fieldIsValid(dataId, fields[dataId])) {
+              if (!fieldIsValid(dataId, fields[dataId], checkConfig)) {
                 return false;
               }
             }
@@ -11032,6 +11457,8 @@ var formcorp = (function () {
             allowAutoLoad,
             continueLoading = false,
             checkedFields = [];
+          // Initial page
+          fc.currentPage = id;
 
           // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
           do {
@@ -11044,7 +11471,6 @@ var formcorp = (function () {
             if (typeof page.stage !== 'object') {
               break;
             }
-            fc.currentPage = id;
 
             // Update the browser hash when required
             if (fc.config.updateHash) {
@@ -11079,7 +11505,7 @@ var formcorp = (function () {
                 continueLoading = true;
               } else {
                 // Continue loading regardless (as in primary data population mode)
-                valid = formFieldsValid(fields);
+                valid = formFieldsValid(fields, true);
                 continueLoading = valid && !isSubmitPage(page.page);
               }
             }
@@ -11096,11 +11522,11 @@ var formcorp = (function () {
 
                 // If next page is a submit page, do not render it
                 if (isSubmitPage(nextPageObj.page) === true) {
-                  valid = false;
+                  continueLoading = false;
                   break;
                 }
               } else {
-                valid = false;
+                continueLoading = false;
                 break;
               }
             }
@@ -11131,19 +11557,16 @@ var formcorp = (function () {
 
           var firstPageId;
 
+          fc.isRendered = false;
+
           // Render the opening page for the form
           if (data.stage !== undefined) {
             fc.schema = orderSchema(data);
             if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
               firstPageId = getFirstPage();
-
-              if(fc.config.progressBar) {
-                progressBar = progressBar(fc.config.progressBar);
-                progressBar.init();
-              }
-
               // If one page layout, getFirstPage() already rendered
               if (!fc.config.onePage) {
+                fc.currentPage = getFirstPageId();
                 render(firstPageId, true);
               }
             }
@@ -11155,7 +11578,7 @@ var formcorp = (function () {
 
           fc.domContainer.trigger(fc.jsEvents.onConnectionMade);
 
-          var currentSectionId = getCurrentSection()
+          var currentSectionId = getCurrentSection(firstPageId, true);
           var $currentSection = $('.fc-section-' + currentSectionId);
           setTimeout(function() {
             setCurrentSection(currentSectionId, true);
@@ -11216,6 +11639,11 @@ var formcorp = (function () {
           // If no libs need to be loaded, render the form
           if (!libsLoaded) {
             checkAllLibsLoaded(data);
+          } else {
+            if (sessionRequiresVerification(data)) {
+              verifySession();
+              return;
+            }
           }
         };
 
@@ -11262,7 +11690,7 @@ var formcorp = (function () {
               };
 
               // Initialise proper render
-              initRender(fc.schemaData);
+              //initRender(fc.schemaData);
             }
           });
         };
@@ -11378,6 +11806,13 @@ var formcorp = (function () {
               initRender(data);
             } else {
               autoLoadLibs(data);
+              var whileLoadingLibs = setInterval(function() {
+                if (fc.libs2Load.length < fc.libsLoaded.length) {
+                  return;
+                }
+                initRender(fc.schemaData);
+                clearInterval(whileLoadingLibs);
+              }, 50);
             }
           });
         };
@@ -11427,6 +11862,14 @@ var formcorp = (function () {
                 if (temporaryQueue.hasOwnProperty(key)) {
                   if (typeof fc.saveQueue[key] === "string" && fc.saveQueue[key] === temporaryQueue[key]) {
                     delete fc.saveQueue[key];
+                  } else if (typeof fc.saveQueue[key] === 'object' && typeof temporaryQueue[key] === 'object') {
+                    // Objects were provided, compare the json string
+                    if (JSON.stringify(fc.saveQueue[key]) === JSON.stringify(temporaryQueue[key])) {
+                      delete fc.saveQueue[key];
+                    }
+                  } else if (fc.saveQueue[key] === temporaryQueue[key]) {
+                    // Otherwise two objects are identical, delete them
+                    delete fc.saveQueue[key];
                   }
                 }
               }
@@ -11442,7 +11885,8 @@ var formcorp = (function () {
            * Different library files
            */
           libs: {
-            MATERIAL_DATEPICKER: 'materialDatepicker'
+            MATERIAL_DATEPICKER: 'materialDatepicker',
+            IDMATRIX: 'idmatrix'
           },
 
           /**
@@ -11523,13 +11967,7 @@ var formcorp = (function () {
                  isMinified() ? 'lib/green-id.min.js' : 'lib/green-id.js',
                  'lib/green-id/green-id.css'
                ],
-               'idmatrix': [
-                 'lib/global/lodash.core.min.js',
-                 'lib/global/twig.min.js',
-                 'lib/id-matrix/js/default.render.js',
-                 isMinified() ? 'lib/id-matrix/js/idmatrix.min.js' : 'lib/id-matrix/js/idmatrix.js',
-                 'lib/id-matrix/dist/main.css',
-               ],
+               'idmatrix': [this.libs.IDMATRIX],
             };
 
             // When libraries have finished, run the callback
@@ -11884,6 +12322,9 @@ var formcorp = (function () {
           renderGreenIdField: renderGreenIdField,
           initGreenIdFieldInDOM: initGreenIdFieldInDOM,
 
+          // Load JS
+          loadMaterialDatepicker: loadMaterialDatepicker,
+
           /**
            * IDMatrix
            */
@@ -12073,6 +12514,12 @@ var formcorp = (function () {
               minSizeForMobile: 479,
               onePage: false,
               pageAnimations: false,
+              progressBarStick: false,
+              progressBarStickClass: 'sticky',
+              progressBarPristineClass: 'pristine',
+              progressBarUnstickClass: 'unsticky',
+              progressBarBodyStickClass: 'stick-progress-bar',
+              progressBarOffset: 0,
               realTimeValidation: true,
               renderEmptyLabels: false,
               renderOnlyVertical: true,
@@ -12088,6 +12535,7 @@ var formcorp = (function () {
               showModalCloseInFooter: true,
               showModalCloseInHeader: true,
               showNextSectionButtons: false,
+              hideLastNextSectionButton: false,
               showPrevPageButton: true,
               signatureLibCss: [
                 cdnUrl() + 'dist/signaturepad/assets/jquery.signaturepad.css'
