@@ -1357,7 +1357,7 @@ var formcorp = (function () {
               // console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
               return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, JSON.parse(value) || ''));
             } else {
-              errors = errors.concat(evaluateRequiredLogic(field, value));
+              return evaluateRequiredLogic(field, value);
 
               /*var requireDefault = getConfig(field, 'required', false);
               var requireLogicMessage = undefined;
@@ -1389,7 +1389,7 @@ var formcorp = (function () {
             }
 
             // Custom validators
-            errors = errors.concat(getCustomErrors(field, value));
+            errors = getCustomErrors(field, value);
 
             return errors;
           },
@@ -1984,8 +1984,15 @@ var formcorp = (function () {
               showErrors = true;
             }
 
+            var $fields;
+            var $rootElement = (typeof rootElement === 'string')?$(rootElement):rootElement;
             // Test if required fields have a value
-            $(rootElement).find('.fc-field[fc-data-group]').each(function () {
+            if($rootElement.find('.fc-field[fc-data-group]').length > 0) {
+              $fields = $rootElement.find('.fc-field[fc-data-group]');
+            } else {
+              $fields = $rootElement.filter('.fc-field[fc-data-group]');
+            }
+            $fields.each(function () {
               var obj = $(this),
                 dataId = obj.attr('fc-data-group'),
                 section = obj.parent(),
@@ -2054,7 +2061,7 @@ var formcorp = (function () {
               // }
 
               // If not required, do nothing
-              if (/*fc.config.realTimeValidation === false && */fieldErrors(getId(field)).length < 1) {
+              if (!requireDefault && fc.util.isEmpty(getConfig(field, 'requiredLogic', []))) {
                 return;
               }
               // if (evaluateRequiredLogic(field, value).length < 1 || getConfig(field, 'readOnly', false)) {
@@ -3013,7 +3020,7 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            if (util.isEmpty(value) && schema !== undefined) {
+            if (util.isEmpty(value.trim()) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
@@ -5697,11 +5704,15 @@ var formcorp = (function () {
            * @param fieldId
            * @param value
            */
-          setVirtualValue = function (fieldId, value, obj, override) {
+          setVirtualValue = function (fieldId, value, obj, override, triggersValidation) {
 
             log('setVirtualValue');
             log(fieldId);
             log(value);
+
+            if (typeof triggersValidation === 'undefined') {
+              triggersValidation = fc.config.realTimeValidation;
+            }
 
             if (typeof override !== 'boolean') {
               override = false;
@@ -5736,7 +5747,12 @@ var formcorp = (function () {
                     }
                   }
 
+                  //Assign the value to fc.fields
                   save = save[id];
+
+                  if(triggersValidation) {
+                    validForm($('.fc-field[fc-data-group="'+id+'"]'));
+                  }
                 }
 
                 saveId = parts[parts.length - 1];
@@ -5752,6 +5768,10 @@ var formcorp = (function () {
                 }
               }
               save[saveId] = value;
+
+              if(triggersValidation) {
+                validForm($('.fc-field[fc-data-group="'+saveId+'"]'));
+              }
 
               if (override) {
                 // If override pre-populated values, do so now
@@ -6166,12 +6186,12 @@ var formcorp = (function () {
               return a;
             },
             isEmpty: function(value) {
-              if(typeof value === 'undefined')
+              if(typeof value === 'undefined') {
                 return true;
-
-              if(typeof value === 'string')
+              }
+              if(typeof value === 'string') {
                 return value.length === 0;
-
+              }
               if(typeof value === 'object') {
                 if(value === null)
                   return true;
@@ -6181,10 +6201,18 @@ var formcorp = (function () {
                   return Object.keys(value).length === 0;
               }
 
-              if(typeof value === 'boolean' || typeof value === 'number')
-                return false;
+              if(typeof value === 'boolean') {
+                return value;
+              }
+
+              if(typeof value === 'number') {
+                return !isNaN(value);
+              }
 
               return (!value);
+            },
+            isNotEmpty: function(value) {
+              return !this.isEmpty(value);
             },
             intersectArray: function(arr1, arr2) {
               return arr1.filter(function(value1) {
@@ -6577,7 +6605,7 @@ var formcorp = (function () {
 
             var className = function(value) {
               return (typeof value === 'string' && value.length > 0)?'fc-filled':'fc-pristine';
-            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id));
+            }( (util.isEmpty(getValue(field._id.$id).trim()))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id));
 
             fieldHtml += '<div class="fc-fieldcontainer ' + className + '">';
 
@@ -7275,7 +7303,18 @@ var formcorp = (function () {
             return '';
           }
 
-          return (getConfig(field, 'default', '') === '')?getConfig(field, 'defaultValue', ''):getConfig(field, 'default', '');
+          var defaultValue = '';
+          var hasDefaultValueKey = field.config.hasOwnProperty('defaultValue');
+
+          if (hasDefaultValueKey) {
+            defaultValue = getConfig(field, 'defaultValue', '');
+          }
+
+          if(fc.util.isNotEmpty(getConfig(field, 'value', ''))) {
+            defaultValue = getConfig(field, 'value', '');
+          }
+
+          return defaultValue;
         }
 
         evaluateRequiredLogic = function(field, value) {
@@ -7308,7 +7347,7 @@ var formcorp = (function () {
             requiredLogicResult = requiredLogicList.filter(evaluateLogicStatement).map(getErrorMessage(defaultErrorMessage));
             return requiredLogicResult;
           } else if(requiredByDefault && value.length < 1) {
-            return defaultErrorMessage;
+            return [defaultErrorMessage];
           }
           return [];
         }
