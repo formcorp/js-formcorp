@@ -1305,7 +1305,6 @@ var formcorp = (function () {
               value = domValue;
             } else if (mappedValue !== undefined && mappedValue !== '') {
               value = mappedValue;
-            }
             } else if (typeof prepopulateFrom === 'string') {
               value = fc.fields[prepopulateFrom];
             } else {
