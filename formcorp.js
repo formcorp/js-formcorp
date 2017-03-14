@@ -1357,7 +1357,7 @@ var formcorp = (function () {
               // console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
               return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, JSON.parse(value) || ''));
             } else {
-              return evaluateRequiredLogic(field, value);
+              errors = evaluateRequiredLogic(field, value);
 
               /*var requireDefault = getConfig(field, 'required', false);
               var requireLogicMessage = undefined;
@@ -1389,7 +1389,9 @@ var formcorp = (function () {
             }
 
             // Custom validators
-            errors = getCustomErrors(field, value);
+            if (fc.util.isEmpty(errors)) {
+              errors = getCustomErrors(field, value);
+            }
 
             return errors;
           },
