@@ -6613,7 +6613,7 @@ var formcorp = (function () {
 
             var className = function(value) {
               return (typeof value === 'string' && value.length > 0)?'fc-filled':'fc-pristine';
-            }( (util.isEmpty(getValue(field._id.$id).trim()))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id));
+            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id) );
 
             fieldHtml += '<div class="fc-fieldcontainer ' + className + '">';
 
