@@ -6188,7 +6188,7 @@ var formcorp = (function () {
               return a;
             },
             trim: function(value) {
-              if (typeof value !== string) {
+              if (typeof value !== 'string') {
                 return value;
               }
               return value.trim();
