@@ -3022,7 +3022,7 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            if (util.isEmpty(value.trim()) && schema !== undefined) {
+            if (util.isEmpty(util.trim(value)) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
@@ -6186,6 +6186,12 @@ var formcorp = (function () {
                 a.push(obj[key]);
               }
               return a;
+            },
+            trim: function(value) {
+              if (typeof value !== string) {
+                return value;
+              }
+              return value.trim();
             },
             isEmpty: function(value) {
               if(typeof value === 'undefined') {
