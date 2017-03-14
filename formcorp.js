@@ -1296,13 +1296,20 @@ var formcorp = (function () {
               mappedValue = fc.fields[dataId];
             }
 
+            var prepopulateFrom = getConfig(field, 'populateFrom', '');
+
             // Fetch the value on the DOM
             domValue = getFieldValue(fieldSelector.find('.fc-fieldinput'));
             // Give higher priority to the value in the dom
-            if (domValue !== undefined) {
+            if (domValue !== undefined && domValue !== '') {
               value = domValue;
-            } else {
+            } else if (mappedValue !== undefined && mappedValue !== '') {
               value = mappedValue;
+            }
+            } else if (typeof prepopulateFrom === 'string') {
+              value = fc.fields[prepopulateFrom];
+            } else {
+              value = '';
             }
 
             // Default value to empty string if unable to retrieve a value
