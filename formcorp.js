@@ -2621,6 +2621,7 @@ var formcorp = (function () {
               return false;
             }
 
+
             // Build the form data array (for the current page only)
             if (page.length > 0) {
               var sections = page.find('.fc-section:visible:not(.fc-hide)');
@@ -3038,6 +3039,19 @@ var formcorp = (function () {
 
                   // Update the value
                   setVirtualValue(fieldId, value);
+                  // update DOM for display the value
+                  var target = fc.domContainer.find('div[fc-data-group="' + fieldId + '"]');
+                  if (target.length > 0) {
+                    setDomValue(target, value);
+                    var errors = getFieldErrors(fieldId, value, '');
+                    if (errors !== undefined && errors.length > 0) {
+                      removeFieldSuccess(fieldId);
+                      showFieldError(fieldId, errors);
+                    } else {
+                      removeFieldError(fieldId);
+                      showFieldSuccess(fieldId);
+                    }
+                  }
 
                   // If after pre-populating, it has to populate another value, set
                   var prePopulate = getConfig(schema, 'prePopulate', []);
@@ -5566,6 +5580,7 @@ var formcorp = (function () {
             if (typeof pageId !== 'string' || pageId.length === 0 || pageId.indexOf(fc.constants.prefixSeparator) > -1) {
               return;
             }
+            fc.currentPage = pageId;
 
             $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
             $('.fc-page').each(function () {
@@ -8790,7 +8805,15 @@ var formcorp = (function () {
          * @param field {obj}
          * @param value {*}
          */
-        var prepopulate = function (field, value) {
+        var prepopulate = function (field, value, obj) {
+          if (typeof obj !== 'object') {
+            obj = fc.fields;
+          }
+
+          if (typeof field === 'string') {
+            field = fc.fieldSchema[field];
+          }
+
           if (typeof field !== 'object' || typeof value === 'undefined') {
             return;
           }
@@ -8806,8 +8829,8 @@ var formcorp = (function () {
             fieldTmp = fc.fieldSchema[fieldTmpId];
             if (fieldTmpId.length > 0 && typeof fieldTmp !== "undefined") {
               var val = getValue(fieldTmpId, '');
-              if (val === '' || val === getConfig(fieldTmpId, 'default', '') || getConfig(field, 'forcePrePopulate', false)) {
-                setVirtualValue(fieldTmpId, value, fc.fields, true);
+              if (getConfig(field, 'forcePrePopulate', false) || val === '' || val === getDefaultValue(fieldTmpId)) {
+                setVirtualValue(fieldTmpId, value, obj, true);
                 var target = fc.domContainer.find('div[fc-data-group="' + fieldTmpId + '"]');
                 if (target.length > 0) {
                   setDomValue(target, value);
@@ -8820,9 +8843,11 @@ var formcorp = (function () {
                     showFieldSuccess(fieldTmpId);
                   }
                 }
+                return [fieldTmpId, value] || false;
               }
             }
           }
+          return false;
         }
 
         /**
@@ -9784,15 +9809,16 @@ var formcorp = (function () {
                     setVirtualValue(dataId, value);
                   } else {
                   	setVirtualValue(dataId, value, formData);
-                	}
+                  }
                 }
+                prepopulate(dataId, value);
               }
             });
           }
 
           // Merge form data with the save queue
           if (Object.keys(fc.saveQueue).length) {
-            $.extend(formData, getSaveQueue(true));
+            $.extend(formData, fc.saveQueue);
 
             // Clear the save queue
             fc.saveQueue = {};
@@ -9808,6 +9834,10 @@ var formcorp = (function () {
           var id = fc.currentPage;
           page = nextPage(false, true);
           fc.currentPage = id;
+
+          if (!validForm(fc.domContainer, true)) {
+            return false;
+          }
 
           if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
             data.complete = true;
