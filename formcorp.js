@@ -8805,7 +8805,11 @@ var formcorp = (function () {
          * @param field {obj}
          * @param value {*}
          */
-        var prepopulate = function (field, value) {
+        var prepopulate = function (field, value, obj) {
+          if (typeof obj !== 'object') {
+            obj = fc.fields;
+          }
+
           if (typeof field === 'string') {
             field = fc.fieldSchema[field];
           }
@@ -8825,8 +8829,8 @@ var formcorp = (function () {
             fieldTmp = fc.fieldSchema[fieldTmpId];
             if (fieldTmpId.length > 0 && typeof fieldTmp !== "undefined") {
               var val = getValue(fieldTmpId, '');
-              if (val === '' || val === getConfig(fieldTmpId, 'default', '') || getConfig(field, 'forcePrePopulate', false)) {
-                setVirtualValue(fieldTmpId, value, fc.fields, true);
+              if (getConfig(field, 'forcePrePopulate', false) || val === '' || val === getDefaultValue(fieldTmpId)) {
+                setVirtualValue(fieldTmpId, value, obj, true);
                 var target = fc.domContainer.find('div[fc-data-group="' + fieldTmpId + '"]');
                 if (target.length > 0) {
                   setDomValue(target, value);
@@ -8839,9 +8843,11 @@ var formcorp = (function () {
                     showFieldSuccess(fieldTmpId);
                   }
                 }
+                return [fieldTmpId, value] || false;
               }
             }
           }
+          return false;
         }
 
         /**
@@ -9801,18 +9807,18 @@ var formcorp = (function () {
                   value = getFieldValue(fieldObj);
                   if (fc.fields[dataId] !== value) {
                     setVirtualValue(dataId, value);
-                    prepopulate(dataId, value);
                   } else {
                   	setVirtualValue(dataId, value, formData);
-                	}
+                  }
                 }
+                prepopulate(dataId, value);
               }
             });
           }
 
           // Merge form data with the save queue
           if (Object.keys(fc.saveQueue).length) {
-            $.extend(formData, getSaveQueue(true));
+            $.extend(formData, fc.saveQueue);
 
             // Clear the save queue
             fc.saveQueue = {};
@@ -9828,6 +9834,10 @@ var formcorp = (function () {
           var id = fc.currentPage;
           page = nextPage(false, true);
           fc.currentPage = id;
+
+          if (!validForm(fc.domContainer, true)) {
+            return false;
+          }
 
           if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
             data.complete = true;
