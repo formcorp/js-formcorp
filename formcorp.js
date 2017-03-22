@@ -2621,6 +2621,7 @@ var formcorp = (function () {
               return false;
             }
 
+
             // Build the form data array (for the current page only)
             if (page.length > 0) {
               var sections = page.find('.fc-section:visible:not(.fc-hide)');
@@ -3038,6 +3039,19 @@ var formcorp = (function () {
 
                   // Update the value
                   setVirtualValue(fieldId, value);
+                  // update DOM for display the value
+                  var target = fc.domContainer.find('div[fc-data-group="' + fieldId + '"]');
+                  if (target.length > 0) {
+                    setDomValue(target, value);
+                    var errors = getFieldErrors(fieldId, value, '');
+                    if (errors !== undefined && errors.length > 0) {
+                      removeFieldSuccess(fieldId);
+                      showFieldError(fieldId, errors);
+                    } else {
+                      removeFieldError(fieldId);
+                      showFieldSuccess(fieldId);
+                    }
+                  }
 
                   // If after pre-populating, it has to populate another value, set
                   var prePopulate = getConfig(schema, 'prePopulate', []);
@@ -5566,6 +5580,7 @@ var formcorp = (function () {
             if (typeof pageId !== 'string' || pageId.length === 0 || pageId.indexOf(fc.constants.prefixSeparator) > -1) {
               return;
             }
+            fc.currentPage = pageId;
 
             $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
             $('.fc-page').each(function () {
@@ -8791,6 +8806,10 @@ var formcorp = (function () {
          * @param value {*}
          */
         var prepopulate = function (field, value) {
+          if (typeof field === 'string') {
+            field = fc.fieldSchema[field];
+          }
+
           if (typeof field !== 'object' || typeof value === 'undefined') {
             return;
           }
@@ -9782,6 +9801,7 @@ var formcorp = (function () {
                   value = getFieldValue(fieldObj);
                   if (fc.fields[dataId] !== value) {
                     setVirtualValue(dataId, value);
+                    prepopulate(dataId, value);
                   } else {
                   	setVirtualValue(dataId, value, formData);
                 	}
