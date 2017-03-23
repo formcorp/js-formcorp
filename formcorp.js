@@ -1913,21 +1913,19 @@ var formcorp = (function () {
             } else if (field.type === 'idmatrix') {
               if (typeof formcorp.const.IDMatrix === 'undefined')
                 return;
-              var idMatrixLoadInterval = setInterval(function() {
-                value = getValue(fieldId);
-                if (typeof value === 'undefined' || typeof value.status !== 'string') {
-                  errors.push('IDMatrix hasn\'t yet been initialised.');
-                } else {
-                  // If a status exists, check to see if IDMatrix has been successfully completed
-                  switch (value.status) {
-                    case formcorp.const.IDMatrix.State.Consent:
-                    case formcorp.const.IDMatrix.State.Ready:
-                    case formcorp.const.IDMatrix.State.Verification:
-                      errors.push('You must go through electronic verification.');
-                      break
-                  }
+              value = getValue(fieldId);
+              if (typeof value === 'undefined' || typeof value.status !== 'string') {
+                errors.push('IDMatrix hasn\'t yet been initialised.');
+              } else {
+                // If a status exists, check to see if IDMatrix has been successfully completed
+                switch (value.status) {
+                  case formcorp.const.IDMatrix.State.Consent:
+                  case formcorp.const.IDMatrix.State.Ready:
+                  case formcorp.const.IDMatrix.State.Verification:
+                    errors.push('You must go through electronic verification.');
+                    break
                 }
-              }, 100);
+              }
             }
 
             // If repeatable and required, check the amount of values
