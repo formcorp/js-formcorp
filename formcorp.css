@@ -12,40 +12,40 @@
 }
 
 .fc-container {
-    position: relative;
+  position: relative;
 }
 
 .fc-container .fc-loading-screen {
-    position: absolute;
-    left: 0;
-    top: 0;
-    z-index: 9;
-    background: #000;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    margin: 0;
-    border-radius: 9px;
-    opacity: 0.4;
-    display: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 9;
+  background: #000;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border-radius: 9px;
+  opacity: 0.4;
+  display: none;
 }
 
 .fc-container .fc-loading-screen.show {
-    display: block;
+  display: block;
 }
 
 .fc-container .fc-loading-screen .fc-loading-halo {
-    width: 128px;
-    height: 128px;
-    background: #fff url(img/load.gif) 50% 50% no-repeat;
-    left: calc(50% - 64px);
-    top: calc(50% - 64px);
-    position: absolute;
-    border-radius: 64px;
+  width: 128px;
+  height: 128px;
+  background: #fff url(img/load.gif) 50% 50% no-repeat;
+  left: calc(50% - 64px);
+  top: calc(50% - 64px);
+  position: absolute;
+  border-radius: 64px;
 }
 
 .fc-form .field label {
-    display: block;
+  display: block;
 }
 
 .fc-container input[type="text"],
@@ -53,615 +53,615 @@
 .fc-container input[type="password"],
 .fc-container select,
 .fc-container textarea {
-    padding-right: 33px;
-    padding-left: 12px;
-    font-size: 14px;
-    font-weight: normal;
-    color: #333;
-    background-color: #fff;
-    border: 1px solid #e5e5e5;
-    box-shadow: none;
-    transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
-    display: block;
-    width: 100%;
-    height: 34px;
-    padding: 6px 12px;
-    line-height: 1.42857143;
-    background-image: none;
-    border-radius: 4px;
+  padding-right: 33px;
+  padding-left: 12px;
+  font-size: 14px;
+  font-weight: normal;
+  color: #333;
+  background-color: #fff;
+  border: 1px solid #e5e5e5;
+  box-shadow: none;
+  transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+  display: block;
+  width: 100%;
+  height: 34px;
+  padding: 6px 12px;
+  line-height: 1.42857143;
+  background-image: none;
+  border-radius: 4px;
 }
 
 .fc-container textarea {
-    height: auto;
+  height: auto;
 }
 
 .fc-container .fc-error input, .fc-container .fc-error textarea {
-    border: 1px solid #ebccd1;
-    -webkit-box-shadow: none;
-    box-shadow: none;
+  border: 1px solid #ebccd1;
+  -webkit-box-shadow: none;
+  box-shadow: none;
 }
 
 .fc-container .fc-error > label {
-    color: #a94442;
+  color: #a94442;
 }
 
 .fc-btn {
-    border-width: 0;
-    padding: 7px 14px;
-    font-size: 14px;
-    outline: none;
-    background-image: none;
-    filter: none;
-    box-shadow: none;
-    text-shadow: none;
-    display: inline-block;
-    margin-bottom: 0;
-    font-weight: 400;
-    line-height: 1.42857143;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: middle;
-    touch-action: manipulation;
-    cursor: pointer;
-    -webkit-user-select: none;
-    border: 1px solid transparent;
-    border-radius: 4px;
+  border-width: 0;
+  padding: 7px 14px;
+  font-size: 14px;
+  outline: none;
+  background-image: none;
+  filter: none;
+  box-shadow: none;
+  text-shadow: none;
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: 400;
+  line-height: 1.42857143;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  touch-action: manipulation;
+  cursor: pointer;
+  -webkit-user-select: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
 }
 
 .fc-fieldgroup label {
-    font-weight: normal;
+  font-weight: normal;
 }
 
 .fc-inline {
-    display: inline;
+  display: inline;
 }
 
 .fc-field-radioList .fc-inline, .fc-field-checkboxList .fc-inline {
-    padding-right: 10px;
+  padding-right: 10px;
 }
 
 .fc-field-hidden {
-    display: none;
+  display: none;
 }
 
 .fc-hide {
-    display: none;
+  display: none;
 }
 
 .fc-clear {
-    display: block;
-    clear: both;
+  display: block;
+  clear: both;
 }
 
 .fc-table-row {
-    display: table-row;
+  display: table-row;
 }
 
 .fc-table-col {
-    display: table-cell;
+  display: table-cell;
 }
 
 .fc-table {
-    display: table;
+  display: table;
 }
 
 .fc-error-text {
-    display: none;
+  display: none;
 }
 
 .fc-error .fc-error-text {
-    display: block;
-    padding-top: 4px;
-    font-size: 12px;
-    color: #d05128;
-    clear: both;
+  display: block;
+  padding-top: 4px;
+  font-size: 12px;
+  color: #d05128;
+  clear: both;
 }
 
 /* Hide fields on repeatable */
 .fc-field .fc-repeatable .fc-fieldgroup .fc-field,
 .fc-field .fc-repeatable .fc-fieldgroup .fc-fieldinput {
-    display: none;
+  display: none;
 }
 
 /* Show repeatable fields outputted to DOM by default */
 .fc-field .fc-repeatable.fc-repeatable-predetermined .fc-fieldgroup .fc-fieldinput,
 .fc-field .fc-repeatable.fc-repeatable-in-dom .fc-fieldgroup .fc-fieldinput {
-    display: block;
+  display: block;
 }
 
 .fc-modal .fc-repeatable .fc-link {
-    display: none;
+  display: none;
 }
 
 .fc-field .fc-repeatable-container .fc-fieldcontainer > label {
-    padding-bottom: 0;
+  padding-bottom: 0;
 }
 
 .fc-modal:before {
-    content: "";
-    display: none;
-    background: rgba(0, 0, 0, 0.6);
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
+  content: "";
+  display: none;
+  background: rgba(0, 0, 0, 0.6);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
 }
 
 .fc-modal.fc-show:before {
-    display: block;
+  display: block;
 }
 
 .fc-modal:target:before {
-    display: block;
+  display: block;
 }
 
 .fc-modal:target .modal-dialog {
-    -webkit-transform: translate(0, 0);
-    -ms-transform: translate(0, 0);
-    transform: translate(0, 0);
-    top: 20%;
+  -webkit-transform: translate(0, 0);
+  -ms-transform: translate(0, 0);
+  transform: translate(0, 0);
+  top: 20%;
 }
 
 .fc-break {
-    clear: both;
+  clear: both;
 }
 
 .fc-payment > div {
-    margin-bottom: 15px;
-    display: inline-block;
-    width: 49%;
-    margin-right: 2%;
+  margin-bottom: 15px;
+  display: inline-block;
+  width: 49%;
+  margin-right: 2%;
 }
 
 .fc-payment > div:nth-child(even) {
-    margin-right: 0;
+  margin-right: 0;
 }
 
 .fc-payment label {
-    display: block;
-    margin-bottom: 15px;
+  display: block;
+  margin-bottom: 15px;
 }
 
 .fc-payment .fc-cc-expirydate-month, .fc-payment .fc-cc-expirydate-year {
-    display: inline-block;
-    width: 49%;
-    margin-right: 2%;
+  display: inline-block;
+  width: 49%;
+  margin-right: 2%;
 }
 
 .fc-payment .fc-cc-expirydate-year {
-    margin-right: 0;
+  margin-right: 0;
 }
 
 .fc-payment .fc-cc-ccv {
-    position: relative;
+  position: relative;
 }
 
 .fc-payment .fc-cc-ccv .fc-fieldinput {
-    width: 80%;
+  width: 80%;
 }
 
 .fc-payment .fc-cc-ccv img {
-    max-height: 40px;
-    position: absolute;
-    right: 0;
-    top: 35px;
+  max-height: 40px;
+  position: absolute;
+  right: 0;
+  top: 35px;
 }
 
 .fc-page {
-    clear: both;
+  clear: both;
 }
 
 .fc-send-email .fc-btn {
-    float: left;
+  float: left;
 }
 
 .fc-send-email .fc-loading,
 .fc-modal .modal-footer .fc-loading,
 .fc-loading {
-    float: left;
-    background: #fff url(img/loading-small.gif) no-repeat center center;
-    height: 36px;
-    width: 36px;
-    border-radius: 18px;
-    margin-left: 10px;
+  float: left;
+  background: #fff url(img/loading-small.gif) no-repeat center center;
+  height: 36px;
+  width: 36px;
+  border-radius: 18px;
+  margin-left: 10px;
 }
 
 .fc-modal .modal-footer .fc-error {
-    float: left;
-    font-size: 11px;
-    color: #F62459;
-    width: 300px;
-    text-align: left;
+  float: left;
+  font-size: 11px;
+  color: #F62459;
+  width: 300px;
+  text-align: left;
 }
 
 .fc-field-emailVerification .fc-success,
 .fc-field-smsVerification .fc-success {
-    display: none;
+  display: none;
 }
 
 .fc-field-emailVerification.fc-verified .fc-success,
 .fc-field-smsVerification.fc-verified .fc-success {
-    display: block;
+  display: block;
 }
 
 .fc-field-emailVerification.fc-verified .fc-email-verification,
 .fc-field-smsVerification.fc-verified .fc-sms-verification {
-    display: none;
+  display: none;
 }
 
 .fc-success p {
-    color: #82B32C;
+  color: #82B32C;
 }
 
 .fc-force-show {
-    display: block!important;
+  display: block!important;
 }
 
 .fc-verified .fc-error-text {
-    display: none;
+  display: none;
 }
 
 .fc-field-creditCard .fc-error {
-    padding: 0 0 18px 0;
+  padding: 0 0 18px 0;
 }
 
 .fc-text-right {
-    text-align: right;
+  text-align: right;
 }
 
 .fc-right {
-    float: right;
+  float: right;
 }
 
 .fc-list {
-    list-style-type: none;
+  list-style-type: none;
 }
 
 .fc-container .sig {
-    display: block;
-    height: 80px;
-    width: 405px;
+  display: block;
+  height: 80px;
+  width: 405px;
 }
 
 .fc-container .sigPad {
-    width: 405px;
+  width: 405px;
 }
 
 .fc-container .clearButton, .fc-container .sigNav {
-    display: block;
+  display: block;
 }
 
 .fc-container .sigNav a, .fc-container .sigNav {
-    line-height: 1.25em;
-    max-height: 1.25em;
+  line-height: 1.25em;
+  max-height: 1.25em;
 }
 
 .fc-field-signature {
-    margin-top: 0;
-    padding-top: 0;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .fc-button,
 .fc-field-grouplet.fc-repeatable-container .fc-link a {
-    text-align: center;
-    text-decoration: none;
-    display: inline-block;
-    cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
 }
 
 .fc-content-radio-item {
-    float: left;
-    border: 1px solid #aeaeae;
-    background: #fff;
-    margin: 0 1% 15px 0;
-    text-align: center;
-    border-radius: 5px;
-    min-height: 220px;
+  float: left;
+  border: 1px solid #aeaeae;
+  background: #fff;
+  margin: 0 1% 15px 0;
+  text-align: center;
+  border-radius: 5px;
+  min-height: 220px;
 }
 
 .fc-content-radio-item .fc-content-title {
-    background: #EFEBEF;
-    padding: 15px 0;
-    text-align: center;
-    font-size: 14px;
-    font-weight: 700;
-    border-radius: 6px 6px 0 0;
+  background: #EFEBEF;
+  padding: 15px 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 6px 6px 0 0;
 }
 
 .fc-content-radio-item .fc-content-desc {
-    height: 60px;
+  height: 60px;
 }
 
 .fc-content-radio-item .fc-content-icon {
-    font-size: 48px;
-    margin-bottom: 15px;
-    color: #666;
+  font-size: 48px;
+  margin-bottom: 15px;
+  color: #666;
 }
 
 .fc-content-radio-item .fc-content-content {
-    padding: 15px;
+  padding: 15px;
 }
 
 .fc-field-contentRadioList .fc-empty {
-    clear: both;
+  clear: both;
 }
 
 .fc-content-radio-item .fc-button {
-    width: 90%;
+  width: 90%;
 }
 
 .fc-field-abnVerification input.fc-fieldinput {
-    width: 80%;
-    float: left;
+  width: 80%;
+  float: left;
 }
 
 .fc-field-abnVerification a.fc-button {
-    float: left;
-    margin-left: 10px;
+  float: left;
+  margin-left: 10px;
 }
 
 .fc-field-abnVerification .fc-fieldgroup {
-    position: relative;
+  position: relative;
 }
 
 .fc-field-abnVerification .fc-empty {
-    clear: both;
+  clear: both;
 }
 
 .fc-container input[type=checkbox] {
-    width: auto;
-    display: inline;
+  width: auto;
+  display: inline;
 }
 
 .fc-fieldcontainer .fc-matrixtable  {
-    width: 100%;
-    box-shadow: none;
+  width: 100%;
+  box-shadow: none;
 }
 
 .fc-fieldcontainer .fc-matrixtable .fc-matrix-headerrow {
-    text-align:center;
+  text-align:center;
 }
 
 .fc-fieldcontainer .fc-matrixtable .fc-matrix-fieldcolumn {
-    vertical-align:middle;
+  vertical-align:middle;
 }
 
 .fc-fieldcontainer .fc-matrixtable .fc-matrix-field .fc-fieldinput {
-    padding: 12px 10px;
-    text-align:center;
+  padding: 12px 10px;
+  text-align:center;
 }
 
 .fc-fieldcontainer .fc-matrixtable .fc-matrix-field .fc-headerstotal {
-    font-weight:800;
+  font-weight:800;
 }
 
 .fc-field-matrix .fc-error-text {
-    position:relative;
+  position:relative;
 }
 
 .fc-field-fileUpload .fc-error-text {
-    position:relative;
+  position:relative;
 }
 
 .fc-field-apiLookup .fc-fieldgroup {
-    position: relative;
+  position: relative;
 }
 
 .fc-field-apiLookup .fc-auto-suggest {
-    position: absolute;
-    z-index: 9;
-    width: 100%;
-    border: 1px solid #e5e5e5;
-    margin-top: 2px;
-    background: #fff;
+  position: absolute;
+  z-index: 9;
+  width: 100%;
+  border: 1px solid #e5e5e5;
+  margin-top: 2px;
+  background: #fff;
 }
 
 .fc-field-apiLookup .fc-auto-suggest a {
-    display: block;
-    line-height: 30px;
-    background: #fff;
-    padding: 0 10px;
+  display: block;
+  line-height: 30px;
+  background: #fff;
+  padding: 0 10px;
 }
 
 .fc-field-apiLookup .fc-auto-suggest .fc-suggest-row a:hover {
-    background: #F6F6F6;
+  background: #F6F6F6;
 }
 
 .fc-suggest-close {
-    position: absolute;
-    right: 0;
-    top: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .fc-suggest-close a {
-    padding: 4px;
+  padding: 4px;
 }
 
 /**
- * FormCorp Loader
- */
+* FormCorp Loader
+*/
 
 .fc-loader-content {
-    padding-top: 130px;
+  padding-top: 130px;
 }
 
 .chromeframe {
-    margin: 0.2em 0;
-    background: #ccc;
-    color: #000;
-    padding: 0.2em 0;
+  margin: 0.2em 0;
+  background: #ccc;
+  color: #000;
+  padding: 0.2em 0;
 }
 
 .fc-loader-wrapper {
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
 }
 
 .fc-loader {
-    display: block;
-    position: relative;
-    left: 50%;
-    top: 35%;
-    width: 100px;
-    height: 100px;
-    margin: -50px 0 0 -50px;
-    border-radius: 50%;
-    border: 3px solid transparent;
-    border-top-color: #3498db;
-    -webkit-animation: spin 2s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
-    animation: spin 2s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
-    z-index: 1001;
+  display: block;
+  position: relative;
+  left: 50%;
+  top: 35%;
+  width: 100px;
+  height: 100px;
+  margin: -50px 0 0 -50px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #3498db;
+  -webkit-animation: spin 2s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
+  animation: spin 2s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
+  z-index: 1001;
 }
 
 .fc-loader-bg {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    background: #000;
-    opacity: 0.3;
-    border-radius: 9px;
-    box-sizing: content-box;
-    padding: 11px;
-    left: -12px;
-    top: -12px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background: #000;
+  opacity: 0.3;
+  border-radius: 9px;
+  box-sizing: content-box;
+  padding: 11px;
+  left: -12px;
+  top: -12px;
 }
 
 .fc-loader:before {
-    content: "";
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    right: 5px;
-    bottom: 5px;
-    border-radius: 50%;
-    border: 3px solid transparent;
-    border-top-color: #e74c3c;
-    -webkit-animation: spin 3s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
-    animation: spin 3s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #e74c3c;
+  -webkit-animation: spin 3s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
+  animation: spin 3s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
 }
 
 .fc-loader:after {
-    content: "";
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    right: 15px;
-    bottom: 15px;
-    border-radius: 50%;
-    border: 3px solid transparent;
-    border-top-color: #f9c922;
-    -webkit-animation: spin 1.5s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
-    animation: spin 1.5s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #f9c922;
+  -webkit-animation: spin 1.5s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
+  animation: spin 1.5s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
 }
 
 @-webkit-keyframes spin {
-    0% {
-        -webkit-transform: rotate(0deg); /* Chrome, Opera 15+, Safari 3.1+ */
-        -ms-transform: rotate(0deg); /* IE 9 */
-        transform: rotate(0deg); /* Firefox 16+, IE 10+, Opera */
-    }
-    100% {
-        -webkit-transform: rotate(360deg); /* Chrome, Opera 15+, Safari 3.1+ */
-        -ms-transform: rotate(360deg); /* IE 9 */
-        transform: rotate(360deg); /* Firefox 16+, IE 10+, Opera */
-    }
+  0% {
+    -webkit-transform: rotate(0deg); /* Chrome, Opera 15+, Safari 3.1+ */
+    -ms-transform: rotate(0deg); /* IE 9 */
+    transform: rotate(0deg); /* Firefox 16+, IE 10+, Opera */
+  }
+  100% {
+    -webkit-transform: rotate(360deg); /* Chrome, Opera 15+, Safari 3.1+ */
+    -ms-transform: rotate(360deg); /* IE 9 */
+    transform: rotate(360deg); /* Firefox 16+, IE 10+, Opera */
+  }
 }
 
 @keyframes spin {
-    0% {
-        -webkit-transform: rotate(0deg); /* Chrome, Opera 15+, Safari 3.1+ */
-        -ms-transform: rotate(0deg); /* IE 9 */
-        transform: rotate(0deg); /* Firefox 16+, IE 10+, Opera */
-    }
-    100% {
-        -webkit-transform: rotate(360deg); /* Chrome, Opera 15+, Safari 3.1+ */
-        -ms-transform: rotate(360deg); /* IE 9 */
-        transform: rotate(360deg); /* Firefox 16+, IE 10+, Opera */
-    }
+  0% {
+    -webkit-transform: rotate(0deg); /* Chrome, Opera 15+, Safari 3.1+ */
+    -ms-transform: rotate(0deg); /* IE 9 */
+    transform: rotate(0deg); /* Firefox 16+, IE 10+, Opera */
+  }
+  100% {
+    -webkit-transform: rotate(360deg); /* Chrome, Opera 15+, Safari 3.1+ */
+    -ms-transform: rotate(360deg); /* IE 9 */
+    transform: rotate(360deg); /* Firefox 16+, IE 10+, Opera */
+  }
 }
 
 .fc-loader-container {
-    opacity: 1;
-    -webkit-transition: all 1s ease-out;
-    -moz-transition: all 1s ease-out;
-    -o-transition: all 1s ease-out;
-    -ms-transition: all 1s ease-out;
-    transition: all 1s ease-out;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
+  opacity: 1;
+  -webkit-transition: all 1s ease-out;
+  -moz-transition: all 1s ease-out;
+  -o-transition: all 1s ease-out;
+  -ms-transition: all 1s ease-out;
+  transition: all 1s ease-out;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .fc-loader-wrapper .loader-section {
-    top: 0;
-    width: 51%;
-    height: 100%;
-    /*background: #e5e5e5;*/
-    z-index: 10;
-    -webkit-transform: translateX(0); /* Chrome, Opera 15+, Safari 3.1+ */
-    -ms-transform: translateX(0); /* IE 9 */
-    transform: translateX(0); /* Firefox 16+, IE 10+, Opera */
+  top: 0;
+  width: 51%;
+  height: 100%;
+  /*background: #e5e5e5;*/
+  z-index: 10;
+  -webkit-transform: translateX(0); /* Chrome, Opera 15+, Safari 3.1+ */
+  -ms-transform: translateX(0); /* IE 9 */
+  transform: translateX(0); /* Firefox 16+, IE 10+, Opera */
 }
 
 .fc-loader-wrapper .loader-section.section-left {
-    left: 0;
+  left: 0;
 }
 
 .fc-loader-wrapper .loader-section.section-right {
-    right: 0;
+  right: 0;
 }
 
 /**
- * Style range input
- */
+* Style range input
+*/
 .fc-field input[type=range] {
-    -webkit-appearance: none;
-    width: 90%;
-    display: inline-block;
+  -webkit-appearance: none;
+  width: 90%;
+  display: inline-block;
 }
 
 .fc-email-verification .fc-empty {
-    clear: both;
+  clear: both;
 }
 
 .fc-success-box {
-    display: none;
+  display: none;
 }
 
 .fc-error-box {
-    display: none;
+  display: none;
 }
 
 .fc-dev-status {
-    background: #444;
-    border-bottom-left-radius: 2px;
-    color: #eee;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 4px 10px 4px 0;
-    position: absolute;
-    right: 0;
-    text-transform: uppercase;
-    top: 0;
-    z-index: 10;
+  background: #444;
+  border-bottom-left-radius: 2px;
+  color: #eee;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 4px 10px 4px 0;
+  position: absolute;
+  right: 0;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 10;
 }
 .fc-dev-status::before {
-    background: orange;
-    border-radius: 50%;
-    content: '';
-    display: inline-block;
-    height: 5px;
-    margin: 7px 5px 0 10px;
-    vertical-align: top;
-    width: 5px;
-    animation: formStatus 6s infinite;
+  background: orange;
+  border-radius: 50%;
+  content: '';
+  display: inline-block;
+  height: 5px;
+  margin: 7px 5px 0 10px;
+  vertical-align: top;
+  width: 5px;
+  animation: formStatus 6s infinite;
 }
 
 @-webkit-keyframes formStatus {
@@ -682,11 +682,11 @@
 }
 
 [data-form-state="loadingEntityRecord"] {
-    display: none;
+  display: none;
 }
 
 .fc-container input[type="date"]::-webkit-calendar-picker-indicator {
-    visibility: hidden;
+  visibility: hidden;
 }
 
 .fc-container input[type="date"]::after,
