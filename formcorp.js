@@ -1299,10 +1299,12 @@ var formcorp = (function () {
             // Fetch the value on the DOM
             domValue = getFieldValue(fieldSelector.find('.fc-fieldinput'));
             // Give higher priority to the value in the dom
-            if (domValue !== undefined) {
+            if (domValue !== undefined && domValue !== '') {
               value = domValue;
-            } else {
+            } else if (mappedValue !== undefined && mappedValue !== '') {
               value = mappedValue;
+            } else {
+              value = '';
             }
 
             // Default value to empty string if unable to retrieve a value
@@ -1354,10 +1356,10 @@ var formcorp = (function () {
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
             } else if (field.type === 'fileUpload') {
-              console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
-              return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value));
+              // console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
+              return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, JSON.parse(value) || ''));
             } else {
-              errors = errors.concat(evaluateRequiredLogic(field, value));
+              errors = evaluateRequiredLogic(field, value);
 
               /*var requireDefault = getConfig(field, 'required', false);
               var requireLogicMessage = undefined;
@@ -1389,7 +1391,9 @@ var formcorp = (function () {
             }
 
             // Custom validators
-            errors = errors.concat(getCustomErrors(field, value));
+            if (fc.util.isEmpty(errors)) {
+              errors = getCustomErrors(field, value);
+            }
 
             return errors;
           },
@@ -1909,21 +1913,19 @@ var formcorp = (function () {
             } else if (field.type === 'idmatrix') {
               if (typeof formcorp.const.IDMatrix === 'undefined')
                 return;
-              var idMatrixLoadInterval = setInterval(function() {
-                value = getValue(fieldId);
-                if (typeof value === 'undefined' || typeof value.status !== 'string') {
-                  errors.push('IDMatrix hasn\'t yet been initialised.');
-                } else {
-                  // If a status exists, check to see if IDMatrix has been successfully completed
-                  switch (value.status) {
-                    case formcorp.const.IDMatrix.State.Consent:
-                    case formcorp.const.IDMatrix.State.Ready:
-                    case formcorp.const.IDMatrix.State.Verification:
-                      errors.push('You must go through electronic verification.');
-                      break
-                  }
+              value = getValue(fieldId);
+              if (typeof value === 'undefined' || typeof value.status !== 'string') {
+                errors.push('IDMatrix hasn\'t yet been initialised.');
+              } else {
+                // If a status exists, check to see if IDMatrix has been successfully completed
+                switch (value.status) {
+                  case formcorp.const.IDMatrix.State.Consent:
+                  case formcorp.const.IDMatrix.State.Ready:
+                  case formcorp.const.IDMatrix.State.Verification:
+                    errors.push('You must go through electronic verification.');
+                    break
                 }
-              }, 100);
+              }
             }
 
             // If repeatable and required, check the amount of values
@@ -1984,8 +1986,15 @@ var formcorp = (function () {
               showErrors = true;
             }
 
+            var $fields;
+            var $rootElement = (typeof rootElement === 'string')?$(rootElement):rootElement;
             // Test if required fields have a value
-            $(rootElement).find('.fc-field[fc-data-group]').each(function () {
+            if($rootElement.find('.fc-field[fc-data-group]').length > 0) {
+              $fields = $rootElement.find('.fc-field[fc-data-group]');
+            } else {
+              $fields = $rootElement.filter('.fc-field[fc-data-group]');
+            }
+            $fields.each(function () {
               var obj = $(this),
                 dataId = obj.attr('fc-data-group'),
                 section = obj.parent(),
@@ -2054,7 +2063,7 @@ var formcorp = (function () {
               // }
 
               // If not required, do nothing
-              if (fc.config.realTimeValidation === false && fieldErrors(getId(field)).length < 1) {
+              if (!requireDefault && fc.util.isEmpty(getConfig(field, 'requiredLogic', []))) {
                 return;
               }
               // if (evaluateRequiredLogic(field, value).length < 1 || getConfig(field, 'readOnly', false)) {
@@ -2598,15 +2607,18 @@ var formcorp = (function () {
            * @return bool|mixed
            */
           getPageVisibleFieldsFromDom = function (pageId) {
-            if (typeof pageId === 'undefined') {
-              pageId = fc.currentPage;
-            }
+            var page;
 
-            var page = fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]');
+            if (typeof pageId === 'undefined') {
+              page = fc.domContainer;
+            } else {
+              page = fc.domContainer.find('.fc-page[data-page-id="' + pageId + '"]');
+            }
 
             if (page.length === 0) {
               return false;
             }
+
 
             // Build the form data array (for the current page only)
             if (page.length > 0) {
@@ -3013,7 +3025,7 @@ var formcorp = (function () {
             // If no value found, try and use default
             value = getValue(fieldId);
 
-            if (util.isEmpty(value) && schema !== undefined) {
+            if (util.isEmpty(util.trim(value)) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
@@ -3025,6 +3037,19 @@ var formcorp = (function () {
 
                   // Update the value
                   setVirtualValue(fieldId, value);
+                  // update DOM for display the value
+                  var target = fc.domContainer.find('div[fc-data-group="' + fieldId + '"]');
+                  if (target.length > 0) {
+                    setDomValue(target, value);
+                    var errors = getFieldErrors(fieldId, value, '');
+                    if (errors !== undefined && errors.length > 0) {
+                      removeFieldSuccess(fieldId);
+                      showFieldError(fieldId, errors);
+                    } else {
+                      removeFieldError(fieldId);
+                      showFieldSuccess(fieldId);
+                    }
+                  }
 
                   // If after pre-populating, it has to populate another value, set
                   var prePopulate = getConfig(schema, 'prePopulate', []);
@@ -5553,6 +5578,7 @@ var formcorp = (function () {
             if (typeof pageId !== 'string' || pageId.length === 0 || pageId.indexOf(fc.constants.prefixSeparator) > -1) {
               return;
             }
+            fc.currentPage = pageId;
 
             $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
             $('.fc-page').each(function () {
@@ -5697,11 +5723,15 @@ var formcorp = (function () {
            * @param fieldId
            * @param value
            */
-          setVirtualValue = function (fieldId, value, obj, override) {
+          setVirtualValue = function (fieldId, value, obj, override, triggersValidation) {
 
             log('setVirtualValue');
             log(fieldId);
             log(value);
+
+            if (typeof triggersValidation === 'undefined') {
+              triggersValidation = fc.config.realTimeValidation;
+            }
 
             if (typeof override !== 'boolean') {
               override = false;
@@ -5736,7 +5766,12 @@ var formcorp = (function () {
                     }
                   }
 
+                  //Assign the value to fc.fields
                   save = save[id];
+
+                  if(triggersValidation) {
+                    validForm($('.fc-field[fc-data-group="'+id+'"]'));
+                  }
                 }
 
                 saveId = parts[parts.length - 1];
@@ -5752,6 +5787,10 @@ var formcorp = (function () {
                 }
               }
               save[saveId] = value;
+
+              if(triggersValidation) {
+                validForm($('.fc-field[fc-data-group="'+saveId+'"]'));
+              }
 
               if (override) {
                 // If override pre-populated values, do so now
@@ -5930,6 +5969,7 @@ var formcorp = (function () {
           selectRowAutoCompleteWidget,
           getPagesByTag,
           progressBar,
+          progressBarFactory,
           progressBarStickClass,
           progressBarPristineClass,
           progressBarUnstickClass,
@@ -5939,7 +5979,7 @@ var formcorp = (function () {
           setCurrentSection,
           util;
 
-          progressBar = function(schema, config) {
+          progressBarFactory = function(schema, config) {
             return {
               schema: schema,
               hash: function(schema) {
@@ -5980,13 +6020,18 @@ var formcorp = (function () {
               progressBarBodyStickClass: config.progressBarBodyStickClass,
               progressBarOffset: config.progressBarOffset,
               scrollInterval: false,
+              sectionChangeEventHandler: false,
+              destroy: function() {
+                fc.domContainer.off(fc.jsEvents.onSectionChange, this.updateSection.bind(this));
+                this.$barContainer.remove();
+              },
               init: function() {
                 this.renderContainer();
                 this.renderProgress();
                 this.setPage(getFirstPageId());
 
                 if(config.sectionManagement) {
-                  fc.domContainer.on(fc.jsEvents.onSectionChange, this.updateSection.bind(this));
+                  fc.domContainer.on(fc.jsEvents.onSectionChange, function() {fc.progressBar.updateSection()});
                 }
 
                 if(this.progressBarStick) {
@@ -6165,13 +6210,19 @@ var formcorp = (function () {
               }
               return a;
             },
+            trim: function(value) {
+              if (typeof value !== 'string') {
+                return value;
+              }
+              return value.trim();
+            },
             isEmpty: function(value) {
-              if(typeof value === 'undefined')
+              if(typeof value === 'undefined') {
                 return true;
-
-              if(typeof value === 'string')
+              }
+              if(typeof value === 'string') {
                 return value.length === 0;
-
+              }
               if(typeof value === 'object') {
                 if(value === null)
                   return true;
@@ -6181,10 +6232,18 @@ var formcorp = (function () {
                   return Object.keys(value).length === 0;
               }
 
-              if(typeof value === 'boolean' || typeof value === 'number')
-                return false;
+              if(typeof value === 'boolean') {
+                return value;
+              }
+
+              if(typeof value === 'number') {
+                return !isNaN(value);
+              }
 
               return (!value);
+            },
+            isNotEmpty: function(value) {
+              return !this.isEmpty(value);
             },
             intersectArray: function(arr1, arr2) {
               return arr1.filter(function(value1) {
@@ -6577,7 +6636,7 @@ var formcorp = (function () {
 
             var className = function(value) {
               return (typeof value === 'string' && value.length > 0)?'fc-filled':'fc-pristine';
-            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id));
+            }( (util.isEmpty(getValue(field._id.$id)))?getValue(getConfig(field, 'populateFrom', '')):getValue(field._id.$id) );
 
             fieldHtml += '<div class="fc-fieldcontainer ' + className + '">';
 
@@ -7275,7 +7334,18 @@ var formcorp = (function () {
             return '';
           }
 
-          return (getConfig(field, 'default', '') === '')?getConfig(field, 'defaultValue', ''):getConfig(field, 'default', '');
+          var defaultValue = '';
+          var hasDefaultValueKey = field.config.hasOwnProperty('defaultValue');
+
+          if (hasDefaultValueKey) {
+            defaultValue = getConfig(field, 'defaultValue', '');
+          }
+
+          if(fc.util.isNotEmpty(getConfig(field, 'value', ''))) {
+            defaultValue = getConfig(field, 'value', '');
+          }
+
+          return defaultValue;
         }
 
         evaluateRequiredLogic = function(field, value) {
@@ -7308,7 +7378,7 @@ var formcorp = (function () {
             requiredLogicResult = requiredLogicList.filter(evaluateLogicStatement).map(getErrorMessage(defaultErrorMessage));
             return requiredLogicResult;
           } else if(requiredByDefault && value.length < 1) {
-            return defaultErrorMessage;
+            return [defaultErrorMessage];
           }
           return [];
         }
@@ -8495,24 +8565,25 @@ var formcorp = (function () {
             fc.prevPages[pageId] = getPageById(fc.currentPage);
           }
 
-          if(fc.config.progressBar && typeof progressBar !== 'object') {
-            progressBar = progressBar(fc.config.progressBar, fc.config);
-            progressBar.init();
+          if(fc.config.progressBar && typeof fc.progressBar !== 'object') {
+            fc.progressBar = progressBarFactory(fc.config.progressBar, fc.config);
+            fc.progressBar.init();
           }
 
-          if(progressBar && fc.config.progressBar) {
-            if(typeof progressBar.setPage === 'function') {
-              progressBar.setPage(pageId);
+          if(fc.progressBar && fc.config.progressBar) {
+            if(typeof fc.progressBar.setPage === 'function') {
+              fc.progressBar.setPage(pageId);
             } else {
             }
           }
 
           // Store field schema locally
           updateFieldSchema(page.stage);
-          html += renderPage(page, isNextPage);
 
           // Update the current page on render
           fc.currentPage = pageId;
+
+          html += renderPage(page, isNextPage);
 
           if (!fc.config.onePage || isSubmitPage(page.page)) {
             // Show form in stages (if not one page, or if the submission page)
@@ -8605,9 +8676,9 @@ var formcorp = (function () {
               if (currentPage.page.toCondition.hasOwnProperty(id)) {
                 condition = currentPage.page.toCondition[id];
                 if (eval(getBooleanLogic(condition))) {
-                  if(returnPage) {
+                  /*if(returnPage) {
                     fc.currentPage = id;
-                  }
+                  }*/
                   if (shouldRender) {
                     render(id, true);
                   }
@@ -8619,9 +8690,9 @@ var formcorp = (function () {
 
           //@todo: last case of the workflow next page. default next page if the logic return false
           if(typeof currentPage.page.nextPageDefault === "string" && currentPage.page.nextPageDefault.length > 0){
-            if(returnPage) {
+            /*if(returnPage) {
               fc.currentPage = currentPage.page.nextPageDefault;
-            }
+            }*/
             if (shouldRender) {
               render(currentPage.page.nextPageDefault, true);
             }
@@ -8732,7 +8803,15 @@ var formcorp = (function () {
          * @param field {obj}
          * @param value {*}
          */
-        var prepopulate = function (field, value) {
+        var prepopulate = function (field, value, obj) {
+          if (typeof obj !== 'object') {
+            obj = fc.fields;
+          }
+
+          if (typeof field === 'string') {
+            field = fc.fieldSchema[field];
+          }
+
           if (typeof field !== 'object' || typeof value === 'undefined') {
             return;
           }
@@ -8748,8 +8827,8 @@ var formcorp = (function () {
             fieldTmp = fc.fieldSchema[fieldTmpId];
             if (fieldTmpId.length > 0 && typeof fieldTmp !== "undefined") {
               var val = getValue(fieldTmpId, '');
-              if (val === '' || val === getConfig(fieldTmpId, 'default', '') || getConfig(field, 'forcePrePopulate', false)) {
-                setVirtualValue(fieldTmpId, value, fc.fields, true);
+              if (getConfig(field, 'forcePrePopulate', false) || val === '' || val === getDefaultValue(fieldTmpId)) {
+                setVirtualValue(fieldTmpId, value, obj, true);
                 var target = fc.domContainer.find('div[fc-data-group="' + fieldTmpId + '"]');
                 if (target.length > 0) {
                   setDomValue(target, value);
@@ -8762,9 +8841,11 @@ var formcorp = (function () {
                     showFieldSuccess(fieldTmpId);
                   }
                 }
+                return [fieldTmpId, value] || false;
               }
             }
           }
+          return false;
         }
 
         /**
@@ -9686,7 +9767,7 @@ var formcorp = (function () {
             return;
           }
 
-          if (!validForm(currentPage, showError)) {
+          if (!validForm(undefined, showError)) {
             logEvent(fc.eventTypes.onNextPageError);
 
             // Scroll to first error
@@ -9705,7 +9786,7 @@ var formcorp = (function () {
             dataId,
             oldPage,
             newPage,
-            fields = getPageVisibleFieldsFromDom(fc.currentPage);
+            fields = getPageVisibleFieldsFromDom();
 
           if (fields !== false) {
             fields.each(function () {
@@ -9726,15 +9807,16 @@ var formcorp = (function () {
                     setVirtualValue(dataId, value);
                   } else {
                   	setVirtualValue(dataId, value, formData);
-                	}
+                  }
                 }
+                prepopulate(dataId, value);
               }
             });
           }
 
           // Merge form data with the save queue
           if (Object.keys(fc.saveQueue).length) {
-            $.extend(formData, getSaveQueue(true));
+            $.extend(formData, fc.saveQueue);
 
             // Clear the save queue
             fc.saveQueue = {};
@@ -9750,6 +9832,10 @@ var formcorp = (function () {
           var id = fc.currentPage;
           page = nextPage(false, true);
           fc.currentPage = id;
+
+          if (!validForm(fc.domContainer, true)) {
+            return false;
+          }
 
           if ((page && typeof page.page === "object" && isSubmitPage(page.page)) || page === false) {
             data.complete = true;
@@ -9826,8 +9912,6 @@ var formcorp = (function () {
               // Render the next page if available
               if (hasNextPage()) {
                 oldPage = fc.currentPage;
-                if (fc.config.pageAnimations) {
-                }
                 if(fc.config.pageAnimations) {
                   $('.fc-page-' + fc.currentPage).css({
                     animation: fc.config.pageAnimations.next.currentPageAnimation
@@ -10567,6 +10651,9 @@ var formcorp = (function () {
          * @returns {boolean}
          */
         selectRowAutoCompleteWidget = function (object) {
+          if(typeof object.attr('data-suggest') === "undefined") {
+            return false;
+          }
           var json = JSON.parse(decodeURI(object.attr('data-suggest'))),
               dataId = getDataId(object.attr('data-id')),
               schema = fc.fieldSchema[dataId],
@@ -11457,11 +11544,12 @@ var formcorp = (function () {
             allowAutoLoad,
             continueLoading = false,
             checkedFields = [];
-          // Initial page
-          fc.currentPage = id;
 
           // Iterate through the pages until we come to one that isn't valid (meaning this is where our progress was)
           do {
+            // Initial page
+            fc.currentPage = id;
+
             page = getPageById(id);
             if (page === undefined) {
               break;
@@ -11946,7 +12034,8 @@ var formcorp = (function () {
             this.util = util;
             this.scrollInterval = false;
 
-            this.progressBar = progressBar;
+            this.progressBar = false;
+            this.progressBarFactory  = progressBarFactory;
 
             // This allows the users/apps to override core functions within the SDK
             this.functions = {
