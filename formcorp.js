@@ -7432,7 +7432,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" + accept=" ' + fileTypes + ' " />';
 
-          html += '<span class="fc-fieldinput-attachButton-wrapper"><input class="fc-fieldinput fc-fieldinput-attachButton" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="'+fc.lang.fileUploadCopy+'" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" /></span>';
+          html += '<span class="fc-fieldinput-attachButton-wrapper"><input class="fc-fieldinput fc-fieldinput-attachButton fc-btn" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="'+fc.lang.fileUploadCopy+'" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" /></span>';
 
           html += '<div class="fc-file-list"></div>';
           html += '<div class="fc-progress-list" id="fc-progress-list-' +getId(field) + '"></div>'
@@ -8790,7 +8790,7 @@ var formcorp = (function () {
           }
 
           // If a next page exists and the current page is valid, load the next page
-          if (hasNextPage() && validForm(currentPage, false)) {
+          if (hasNextPage() && validForm(fc.currentPage, false)) {
             fc.functions.loadNextPage(false);
             return true;
           }
