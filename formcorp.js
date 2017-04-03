@@ -3035,7 +3035,7 @@ var formcorp = (function () {
             if (util.isEmpty(util.trim(value)) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
-              if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
+              if (populateFromId.length > 0 && !$.isNumeric(populateFromId) && schema.type !== 'grouplet') {
                 if (fc.fields[populateFromId] !== undefined) {
                   value = fc.fields[populateFromId];
                   if(getConfig(schema, 'maxLength', false)) {
