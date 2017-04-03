@@ -4950,8 +4950,7 @@ var formcorp = (function () {
            * @param fieldId
            * @returns {*}
            */
-          renderReviewTable = function (fieldId) {
-
+          renderReviewTable = function (fieldId, callback) {
             var html = '', stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml, fieldHtml;
 
             // var firstPageId = getFirstPageId();
@@ -5021,7 +5020,21 @@ var formcorp = (function () {
                     field = section.field[fieldIterator];
 
                     // Fetch the field html
-                    if( getConfig(field,'visibility','').length === 0  || (getConfig(field,'visibility','').length > 0 && eval(getBooleanLogic(getConfig(field,'visibility')))) ){
+                    var visible = function(visibilityLogic) {
+                      var parsedLogic;
+                      if (util.isEmpty(visibilityLogic)) {
+                        return true;
+                      }
+                      try {
+                        parsedLogic = JSON.parse(visibilityLogic);
+                      } catch(ignore) {}
+                      if (typeof parsedLogic !== 'undefined' && util.isEmpty(parsedLogic)) {
+                        return true;
+                      }
+                      return eval(getBooleanLogic(visibilityLogic));
+                    }(getConfig(field, 'visibility', ''));
+
+                    if (visible) {
                       fieldHtml = $('<div></div>').append(renderSummaryField(field));
                       // Append page, section and field meta data to the container
                       if (fieldHtml.find('tr').length > 0) {
@@ -6332,6 +6345,7 @@ var formcorp = (function () {
          * @returns {*}
          */
         renderReviewTableGrouplet = function (field, value, label, index) {
+          console.log(1, field, value, label, index);
           var html = "", key;
           // var label = util.isEmpty(getShortLabel(field)) ? label : getShortLabel(field);
 
@@ -6348,7 +6362,7 @@ var formcorp = (function () {
             }
           }
 
-          return html;
+          return (typeof field === 'object') ? html + '<tr><th colspan="2" class="fc-end-of-grouplet"></th></tr>' : html;
         };
 
         /**
