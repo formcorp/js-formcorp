@@ -2357,7 +2357,7 @@ var formcorp = (function () {
                 // Convert page to conditions to JS boolean logic
                 if (typeof page.toCondition === 'object' && Object.keys(page.toCondition).length > 0) {
                   for (key in page.toCondition) {
-                    if (page.toCondition.hasOwnProperty(key)) {
+                    if (getPageById(key) && page.toCondition.hasOwnProperty(key)) {
                       try {
                         page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
                       } catch (ignore) {
@@ -2974,7 +2974,10 @@ var formcorp = (function () {
            * @param obj
            * @param value
            */
-          setDomValue = function (obj, value) {
+          setDomValue = function (obj, value, validate) {
+            if (typeof validate === 'undefined') {
+              validate = true;
+            }
             var fieldGroup = $(obj).find('.fc-fieldgroup'),
               valInputs = fieldGroup.find('input[type=text],input[type=tel],textarea,input[type=range],input[type=hidden]'),
               selector;
@@ -2982,7 +2985,7 @@ var formcorp = (function () {
             if (valInputs.length > 0) {
               // Input type text
               valInputs.val(value);
-              if(typeof value === 'string' && value.length > 0)
+              if(typeof value === 'string' && value.length > 0 && validate)
                 valInputs.trigger('blur');
 
               // Range, set the outcome value
@@ -3009,7 +3012,7 @@ var formcorp = (function () {
            * @param obj
            * @param fieldId
            */
-          setFieldValue = function (obj, fieldId) {
+          setFieldValue = function (obj, fieldId, validate) {
             log('setFieldValue');
             log(obj);
             log(fieldId);
@@ -3021,6 +3024,10 @@ var formcorp = (function () {
               populateFromId,
               populateValue,
               unrestorableFieldTypes = ['emailVerification', 'smsVerification'];
+
+            if (typeof validate === 'undefined') {
+              validate = true;
+            }
 
             // If no value found, try and use default
             value = getValue(fieldId);
@@ -3036,18 +3043,20 @@ var formcorp = (function () {
                   }
 
                   // Update the value
-                  setVirtualValue(fieldId, value);
+                  setVirtualValue(fieldId, value, fc.fields, false, false);
                   // update DOM for display the value
                   var target = fc.domContainer.find('div[fc-data-group="' + fieldId + '"]');
                   if (target.length > 0) {
-                    setDomValue(target, value);
-                    var errors = getFieldErrors(fieldId, value, '');
-                    if (errors !== undefined && errors.length > 0) {
-                      removeFieldSuccess(fieldId);
-                      showFieldError(fieldId, errors);
-                    } else {
-                      removeFieldError(fieldId);
-                      showFieldSuccess(fieldId);
+                    setDomValue(target, value, validate);
+                    if (validate) {
+                      var errors = getFieldErrors(fieldId, value, '');
+                      if (errors !== undefined && errors.length > 0) {
+                        removeFieldSuccess(fieldId);
+                        showFieldError(fieldId, errors);
+                      } else {
+                        removeFieldError(fieldId);
+                        showFieldSuccess(fieldId);
+                      }
                     }
                   }
 
@@ -3056,7 +3065,7 @@ var formcorp = (function () {
                   if (!$.isArray(prePopulate) || prePopulate.length === 0) {
                     return;
                   }
-                  prepopulate(schema, value);
+                  prepopulate(schema, value, validate);
                 }
               }
 
@@ -3112,14 +3121,14 @@ var formcorp = (function () {
               } else if (schema.type === 'matrix') {
                 loadMatrixFieldValues(fieldId, value);
               } else if (schema.type === 'fileUpload') {
-                setDomValue(obj, value);
+                setDomValue(obj, value, validate);
                 if (value.length > 2) {
                   buildFileList(fieldId, value);
                 }
               }
               else {
                 // Otherwise set standard value in the DOM
-                setDomValue(obj, value);
+                setDomValue(obj, value, validate);
               }
             }
           },
@@ -3139,7 +3148,7 @@ var formcorp = (function () {
             // Iterate through each field and set a value
             rootElement.find('div[fc-data-group]').each(function () {
               fieldId = $(this).attr('fc-data-group');
-              setFieldValue(this, fieldId);
+              setFieldValue(this, fieldId, false);
             });
           },
 
@@ -5769,7 +5778,7 @@ var formcorp = (function () {
                   //Assign the value to fc.fields
                   save = save[id];
 
-                  if(triggersValidation) {
+                  if(triggersValidation && !getConfig(parentField, 'repeatable', false)) {
                     validForm($('.fc-field[fc-data-group="'+id+'"]'));
                   }
                 }
@@ -6322,13 +6331,20 @@ var formcorp = (function () {
          * @param value
          * @returns {*}
          */
-        renderReviewTableGrouplet = function (field, value) {
+        renderReviewTableGrouplet = function (field, value, label, index) {
           var html = "", key;
+          // var label = util.isEmpty(getShortLabel(field)) ? label : getShortLabel(field);
 
           // Grouplet, need to recursively output
+          if (!isNaN(parseInt(index))) {
+            index++;
+            if (typeof label === 'string') {
+              html += "<tr><th colspan='2'>" + label.replace(/ ?grouplet ?$/i, '') + ' ' + index + "</th></tr>";
+            }
+          }
           for (key in value) {
             if (value.hasOwnProperty(key)) {
-              html += renderSummaryField(fc.fieldSchema[key], value[key]);
+              html += renderSummaryField(fc.fieldSchema[key], value[key], label, key);
             }
           }
 
@@ -6341,7 +6357,7 @@ var formcorp = (function () {
          * @param value
          * @returns {string}
          */
-        renderSummaryField = function (field, value) {
+        renderSummaryField = function (field, value, label, index) {
           var html = '', id, isValidObject, isValidString;
 
           // Retrieve the id of the field and its value
@@ -6364,10 +6380,13 @@ var formcorp = (function () {
               if (isValidString) {
                 html += renderReviewTableString(field, value);
               } else if (isValidObject) {
-                if ($.isArray(value)) {
+                if ($.isArray(value) && field.type !== 'grouplet') {
                   html += renderReviewTableArray(field, value);
                 } else {
-                  html += renderReviewTableGrouplet(field, value);
+                  if (typeof field === 'object') {
+                    label = getShortLabel(field);
+                  }
+                  html += renderReviewTableGrouplet(field, value, label, index);
                 }
               }
             }
@@ -8673,7 +8692,7 @@ var formcorp = (function () {
           // If have custom rules determining the page to navigate to, attempt to process them
           if (typeof currentPage.page.toCondition === 'object' && Object.keys(currentPage.page.toCondition).length > 0) {
             for (id in currentPage.page.toCondition) {
-              if (currentPage.page.toCondition.hasOwnProperty(id)) {
+              if (getPageById(id) && currentPage.page.toCondition.hasOwnProperty(id)) {
                 condition = currentPage.page.toCondition[id];
                 if (eval(getBooleanLogic(condition))) {
                   /*if(returnPage) {
@@ -8803,7 +8822,11 @@ var formcorp = (function () {
          * @param field {obj}
          * @param value {*}
          */
-        var prepopulate = function (field, value, obj) {
+        var prepopulate = function (field, value, obj, validate) {
+          if (typeof validate === 'undefined') {
+            validate = true;
+          }
+
           if (typeof obj !== 'object') {
             obj = fc.fields;
           }
@@ -8831,14 +8854,16 @@ var formcorp = (function () {
                 setVirtualValue(fieldTmpId, value, obj, true);
                 var target = fc.domContainer.find('div[fc-data-group="' + fieldTmpId + '"]');
                 if (target.length > 0) {
-                  setDomValue(target, value);
-                  var errors = getFieldErrors(fieldTmpId, value, '');
-                  if (errors !== undefined && errors.length > 0) {
-                    removeFieldSuccess(fieldTmpId);
-                    showFieldError(fieldTmpId, errors);
-                  } else {
-                    removeFieldError(fieldTmpId);
-                    showFieldSuccess(fieldTmpId);
+                  setDomValue(target, value, validate);
+                  if(validate) {
+                    var errors = getFieldErrors(fieldTmpId, value, '');
+                    if (errors !== undefined && errors.length > 0) {
+                      removeFieldSuccess(fieldTmpId);
+                      showFieldError(fieldTmpId, errors);
+                    } else {
+                      removeFieldError(fieldTmpId);
+                      showFieldSuccess(fieldTmpId);
+                    }
                   }
                 }
                 return [fieldTmpId, value] || false;
@@ -10028,7 +10053,7 @@ var formcorp = (function () {
                 }
 
                 fc.preventNextPageLoad = false;
-                if (fc.config.forceNextPageAutoload) {
+                if (fc.config.forceNextPageAutoload && !isSubmitPage(page.page)) {
                   var currentPage = getPageById(fc.currentPage);
                   var formNextPage = nextPage(false, true);
                   if (!isSubmitPage(currentPage) && !isSubmitPage(formNextPage.page) && hasNextPage()) {
