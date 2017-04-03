@@ -1356,7 +1356,6 @@ var formcorp = (function () {
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
             } else if (field.type === 'fileUpload') {
-              // console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
               return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, JSON.parse(value) || ''));
             } else {
               errors = evaluateRequiredLogic(field, value);
@@ -1382,7 +1381,6 @@ var formcorp = (function () {
                   // Test required data
                   dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
                   if(fieldIsEmpty(dataField)) {
-                    console.log(util.isEmpty(field.config.emptyErrorMessage));
                     errors.push(util.isEmpty(field.config.emptyErrorMessage)?fc.lang.emptyFieldError:field.config.emptyErrorMessage);
                   }
                 }
@@ -2057,7 +2055,6 @@ var formcorp = (function () {
               //   });
               // }
 
-              // console.log(2, evaluateRequiredLogic(field, value), value, getId(field));
               // if(evaluateRequiredLogic(field, value).length < 1) {
               //   return;
               // }
@@ -6345,7 +6342,6 @@ var formcorp = (function () {
          * @returns {*}
          */
         renderReviewTableGrouplet = function (field, value, label, index) {
-          console.log(1, field, value, label, index);
           var html = "", key;
           // var label = util.isEmpty(getShortLabel(field)) ? label : getShortLabel(field);
 
@@ -7406,7 +7402,6 @@ var formcorp = (function () {
               return fallback;
             }
           }
-          // console.log(field.config.label, field.config);
           if(Array.isArray(requiredLogicList) && requiredLogicList.length > 0) {
             requiredLogicResult = requiredLogicList.filter(evaluateLogicStatement).map(getErrorMessage(defaultErrorMessage));
             return requiredLogicResult;
@@ -9029,7 +9024,6 @@ var formcorp = (function () {
               var $field = $('.fc-field[fc-data-group="' + dataId + '"]');
               var $fields = $field.addBack($field.prevAll('.fc-field'));
               var $section = $field.closest('.fc-section').filter($fields);
-              // console.log('field', $field, validForm($field), false, true);
               validForm($section, true);
               // validForm(fc.domContainer, true);
               if (errors !== undefined && errors.length > 0) {
@@ -10220,7 +10214,6 @@ var formcorp = (function () {
               var $currentSection = $target.parents('.fc-section');
               var currentSectionId = $currentSection.attr('formcorp-data-id');
               var $currentAndPreviousSections = $currentSection.add($currentSection.prevAll('.fc-section:visible'));
-              // console.log(validForm($('.fc-page-' + fc.pageId), true, true), '.fc-page-' + fc.pageId);
               if(validForm($currentAndPreviousSections, true)) {
                 var $nextSection = $currentSection.nextAll('.fc-section:visible').first();
                 /*function(currentPageId, currentSectionId) {
