@@ -12023,8 +12023,14 @@ var formcorp = (function () {
            * @param container
            */
           init: function (publicKey, container) {
-            this.publicKey = publicKey;
-            this.container = container;
+            if (typeof publicKey === 'string' && publicKey.length > 0) {
+              this.publicKey = publicKey;
+            }
+
+            if (typeof container === 'string' && container.length > 0) {
+              this.container = container;
+            }
+
             this.jQueryContainer = '#' + container;
             this.domContainer = $(this.jQueryContainer);
 
@@ -12553,6 +12559,26 @@ var formcorp = (function () {
            */
           setChannel: function (channel) {
             this.channel = channel;
+          },
+
+          /**
+           * Set public key.
+           * @param publicKey
+           */
+          setPublicKey: function (publicKey) {
+            if (typeof publicKey === 'string') {
+              this.publicKey = publicKey;
+            }
+          },
+
+          /**
+           * Set the container
+           * @param container
+           */
+          setContainer: function (container) {
+            if (typeof container === 'string') {
+              this.container = container;
+            }
           },
 
           /**
