@@ -12031,7 +12031,7 @@ var formcorp = (function () {
               this.container = container;
             }
 
-            this.jQueryContainer = '#' + container;
+            this.jQueryContainer = '#' + this.container;
             this.domContainer = $(this.jQueryContainer);
 
             // Callbacks
