@@ -820,6 +820,29 @@ var formcorp = (function () {
            * @param errorCallback
            */
           api = function (uri, data, type, callback, errorCallback, xhr) {
+            // If manual endpoints were provided, hit them
+            if (typeof fc.config.endpoints[uri] !== 'undefined') {
+              if (typeof fc.config.endpoints[uri] === 'object') {
+                callback(fc.config.endpoints[uri]);
+              } else if (typeof fc.config.endpoints[uri] === 'string') {
+                $.ajax({
+                  url: fc.config.endpoints[uri],
+                  success: function (data) {
+                    callback(data);
+                    if (typeof fc.config.endpointCallbacks[uri] === 'function') {
+                      // If a callback function was supplied, hit it
+                      fc.config.endpointCallbacks[uri](data);
+                    }
+                  }
+                });
+              }
+            }
+
+            if (!fc.config.formaticConnectivity) {
+              // There should be no connectivity to formatic servers
+              return;
+            }
+
             if (type === undefined || typeof type !== 'string' || ['GET', 'POST', 'PUT'].indexOf(type.toUpperCase()) === -1) {
               type = 'GET';
             }
@@ -11941,6 +11964,11 @@ var formcorp = (function () {
          * Process the save queue
          */
         processSaveQueue = function () {
+          if (typeof fc.functions.processSaveQueue === 'function') {
+            // Save queue has been overridden
+            return fc.functions.processSaveQueue();
+          }
+
           if (fc.mode === formcorp.MODE_REVIEW) {
             // When in review mode, nothing should be updated
             return;
@@ -12070,11 +12098,11 @@ var formcorp = (function () {
             this.progressBarFactory  = progressBarFactory;
 
             // This allows the users/apps to override core functions within the SDK
-            this.functions = {
+            this.functions = $.extend({
               loadNextPage: loadNextPage,
               loadPrevPage: loadPrevPage,
               afterRender: afterRender
-            };
+            }, typeof fc.config.functions === 'object' ? fc.config.functions : {});
 
             // Fields that require library fieldPages
             this.requiredFieldLibraries = {
@@ -12438,6 +12466,11 @@ var formcorp = (function () {
           getId: getId,
 
           /**
+           * Set schema data
+           */
+          setSchemaData: setSchemaData,
+
+          /**
            * greenID: make the following functions/properties visible to the greenID component
            */
           renderGreenIdField: renderGreenIdField,
@@ -12620,8 +12653,11 @@ var formcorp = (function () {
               debug: false,
               deleteSessionOnComplete: true,
               descriptionBeforeLabel: true,
+              endpointCallbacks: {},
+              endpoints: {},
               entityPrefix: 'ent:',
               eventQueueInterval: eventQueueDefault,
+              formaticConnectivity: true,
               forceNextPageAutoload: false,
               forceSignatureLib: false,
               hashPrefix: 'h:',
