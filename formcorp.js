@@ -5377,6 +5377,10 @@ var formcorp = (function () {
            * @return boolean
            */
           stringHasTokens = function (str) {
+            if (typeof str !== 'string') {
+              return false;
+            }
+
             var tokens = str.match(/\{\{[a-zA-Z\_\-0-9\.]+\}\}/g);
 
             return typeof tokens === 'object' && $.isArray(tokens) && tokens.length > 0;
