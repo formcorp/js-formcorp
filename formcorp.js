@@ -6129,8 +6129,6 @@ var formcorp = (function () {
                 else {
                   left = 100;
                 }
-
-                this.$path.css({width:left + '%'});
               },
               $barContainer: null,
               $bar: null,
@@ -6168,6 +6166,7 @@ var formcorp = (function () {
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
                 this.$currentStep.find('.progress-bar-label').html(label);
                 this.updateSection();
+                this.$path.css({width:left + '%'});
               },
               groupLabelAlignment: function(order, count) {
                 if(order < count / 2)
