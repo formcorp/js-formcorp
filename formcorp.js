@@ -12472,6 +12472,7 @@ var formcorp = (function () {
            * Set schema data
            */
           setSchemaData: setSchemaData,
+          replaceTokensInDom: replaceTokensInDom,
 
           /**
            * greenID: make the following functions/properties visible to the greenID component
