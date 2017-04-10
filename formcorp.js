@@ -4900,40 +4900,49 @@ var formcorp = (function () {
             for (iterator = 0; iterator < value.length; iterator += 1) {
               if (typeof value[iterator] === "object") {
                 html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + "</th></tr>";
-
+                var keysOrdered = [];
                 for (key in value[iterator]) {
-                  if (value[iterator].hasOwnProperty(key) && Array.isArray(value[iterator][key])) {
-                    if (value[iterator][key].length > 0) {
-                      if (key.indexOf(fc.constants.prefixSeparator) > -1) {
-                        parts = key.split(fc.constants.prefixSeparator);
-                        fieldId = parts[parts.length - 1];
-                      } else {
-                        fieldId = key;
-                      }
-
-                      var schema = fc.fieldSchema[fieldId];
-                      if (typeof schema === 'undefined' && typeof field === 'object' && typeof field.config === 'object' && typeof field.config.grouplet === 'undefined') {
-                        // Unable to find the schema directly, iterate through the object and map
-                        for (var groupletKey in field.config.grouplet.field) {
-                          if (field.config.grouplet.field.hasOwnProperty(groupletKey)) {
-                            var fieldObj = field.config.grouplet.field[groupletKey];
-                            var fieldObjId = getId(fieldObj);
-                            if (typeof fc.fieldSchema[fieldObjId] === 'undefined') {
-                              fc.fieldSchema[fieldObjId] = fieldObj;
-                            }
+                  if (value[iterator].hasOwnProperty(key)) {
+                    if (key.indexOf(fc.constants.prefixSeparator) > -1) {
+                      parts = key.split(fc.constants.prefixSeparator);
+                      fieldId = parts[parts.length - 1];
+                    } else {
+                      fieldId = key;
+                    }
+                    schema = fc.fieldSchema[fieldId];
+                    if (typeof schema === 'undefined' && typeof field === 'object' && typeof field.config === 'object' && typeof field.config.grouplet !== 'undefined') {
+                      // Unable to find the schema directly, iterate through the object and map
+                      for (var groupletKey in field.config.grouplet.field) {
+                        if (field.config.grouplet.field.hasOwnProperty(groupletKey)) {
+                          var fieldObj = field.config.grouplet.field[groupletKey];
+                          var fieldObjId = getId(fieldObj);
+                          if (typeof fc.fieldSchema[fieldObjId] === 'undefined') {
+                            fc.fieldSchema[fieldObjId] = fieldObj;
                           }
                         }
                       }
-                      schema = fc.fieldSchema[fieldId];
+                    }
+                    schema = fc.fieldSchema[fieldId];
+                    keysOrdered[schema.order] = key;
+                  }
+                }
 
-                      if (typeof schema === 'object' && typeof schema.config === 'object') {
-                        html += "<tr><td>" + getShortLabel(fc.fieldSchema[fieldId]);
-                        html += "</td><td><span class=\"" + fc.fieldSchema[fieldId].config.class + "\">" + htmlEncode(value[iterator][key]) + "</span></td></tr>";
-                      }
+                keysOrdered = keysOrdered.sort();
+
+                for (key in keysOrdered) {
+                  if (keysOrdered.hasOwnProperty(key)) {
+
+                    schema = fc.fieldSchema[fieldId];
+                    if (typeof schema === 'object' && typeof schema.config === 'object') {
+                      html += "<tr><td>" + getShortLabel(fc.fieldSchema[keysOrdered[key]]);
+                      html += "</td><td><span class=\"" + fc.fieldSchema[keysOrdered[key]].config.class + "\">" + htmlEncode(value[iterator][keysOrdered[key]]) + "</span></td></tr>";
                     }
                   }
                 }
               }
+            }
+            if(typeof field.config === 'object' && typeof field.config.grouplet !== 'undefined' && value.length > 0) {
+              html +='<tr><th colspan="2" class="fc-end-of-grouplet"></th></tr>';
             }
 
             return html;
@@ -5006,6 +5015,12 @@ var formcorp = (function () {
                 // Iterate through each page section
                 for (sectionIterator = 0; sectionIterator < page.section.length; sectionIterator += 1) {
                   section = page.section[sectionIterator];
+
+                  if(fc.config.reviewTableShowSectionHeadings !== false) {
+                    if (typeof fc.config.reviewTableShowSectionHeadings[''] !== 'undefined') {
+                      pageHtml += "<tr><th colspan='2' data-section=" + getId(section) + ">" + tokenise(htmlEncode(section.label)) + "</th></tr>";
+                    }
+                  }
 
                   // Ensure the section has a set of fields
                   if (section === undefined || section.field === undefined || typeof section.field !== "object") {
@@ -6390,7 +6405,7 @@ var formcorp = (function () {
               if (isValidString) {
                 html += renderReviewTableString(field, value);
               } else if (isValidObject) {
-                if ($.isArray(value) && field.type !== 'grouplet') {
+                if ($.isArray(value) && field.type === 'grouplet' && field.config.repeatable) {
                   html += renderReviewTableArray(field, value);
                 } else {
                   if (typeof field === 'object') {
@@ -12599,6 +12614,7 @@ var formcorp = (function () {
 
             // Default values
             this.config = {
+              reviewTableShowSectionHeadings: false,
               activePageOffset: 250,
               administrativeEdit: false,
               analytics: true,
