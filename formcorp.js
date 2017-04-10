@@ -4863,10 +4863,11 @@ var formcorp = (function () {
             // If string, output
             if (typeof value === "string") {
               if(field.config.class) {
+                // the symbols are added in :before content in the CSS
                 if(field.config.class.indexOf('fc-input-symbol-dollar') > -1){
-                  html += '<span class="' + field.config.class + '">$ ' + htmlEncode(value) + '</span>';
+                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
                 } else if(field.config.class.indexOf('fc-input-symbol-percent') > -1) {
-                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + ' %</span>';
+                  html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
                 } else {
                   html += '<span class="' + field.config.class + '">' + htmlEncode(value) + '</span>';
                 }
@@ -4899,7 +4900,7 @@ var formcorp = (function () {
             // Array - repeatable grouplet
             for (iterator = 0; iterator < value.length; iterator += 1) {
               if (typeof value[iterator] === "object") {
-                html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + "</th></tr>";
+                html += "<tr><th colspan='2'>" + htmlEncode(getShortLabel(field)) + ' #' + (iterator + 1) + "</th></tr>";
                 var keysOrdered = [];
                 for (key in value[iterator]) {
                   if (value[iterator].hasOwnProperty(key)) {
@@ -4942,7 +4943,7 @@ var formcorp = (function () {
               }
             }
             if(typeof field.config === 'object' && typeof field.config.grouplet !== 'undefined' && value.length > 0) {
-              html +='<tr><th colspan="2" class="fc-end-of-grouplet"></th></tr>';
+              //html +='<tr><th colspan="2" class="fc-end-of-grouplet"></th></tr>';
             }
 
             return html;
