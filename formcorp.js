@@ -1356,7 +1356,6 @@ var formcorp = (function () {
             } else if (field.type === 'matrix') {
               return validateMatrixField(field);
             } else if (field.type === 'fileUpload') {
-              // console.log('dio', validateFileUpload(field, value).concat(evaluateRequiredLogic(field, value)));
               return validateFileUpload(field, value).concat(evaluateRequiredLogic(field, JSON.parse(value) || ''));
             } else {
               errors = evaluateRequiredLogic(field, value);
@@ -1382,7 +1381,6 @@ var formcorp = (function () {
                   // Test required data
                   dataField = $('[fc-data-group="' + id + '"] [data-required="true"]');
                   if(fieldIsEmpty(dataField)) {
-                    console.log(util.isEmpty(field.config.emptyErrorMessage));
                     errors.push(util.isEmpty(field.config.emptyErrorMessage)?fc.lang.emptyFieldError:field.config.emptyErrorMessage);
                   }
                 }
@@ -1913,21 +1911,19 @@ var formcorp = (function () {
             } else if (field.type === 'idmatrix') {
               if (typeof formcorp.const.IDMatrix === 'undefined')
                 return;
-              var idMatrixLoadInterval = setInterval(function() {
-                value = getValue(fieldId);
-                if (typeof value === 'undefined' || typeof value.status !== 'string') {
-                  errors.push('IDMatrix hasn\'t yet been initialised.');
-                } else {
-                  // If a status exists, check to see if IDMatrix has been successfully completed
-                  switch (value.status) {
-                    case formcorp.const.IDMatrix.State.Consent:
-                    case formcorp.const.IDMatrix.State.Ready:
-                    case formcorp.const.IDMatrix.State.Verification:
-                      errors.push('You must go through electronic verification.');
-                      break
-                  }
+              value = getValue(fieldId);
+              if (typeof value === 'undefined' || typeof value.status !== 'string') {
+                errors.push('IDMatrix hasn\'t yet been initialised.');
+              } else {
+                // If a status exists, check to see if IDMatrix has been successfully completed
+                switch (value.status) {
+                  case formcorp.const.IDMatrix.State.Consent:
+                  case formcorp.const.IDMatrix.State.Ready:
+                  case formcorp.const.IDMatrix.State.Verification:
+                    errors.push('You must go through electronic verification.');
+                    break
                 }
-              }, 100);
+              }
             }
 
             // If repeatable and required, check the amount of values
@@ -2059,7 +2055,6 @@ var formcorp = (function () {
               //   });
               // }
 
-              // console.log(2, evaluateRequiredLogic(field, value), value, getId(field));
               // if(evaluateRequiredLogic(field, value).length < 1) {
               //   return;
               // }
@@ -2359,7 +2354,7 @@ var formcorp = (function () {
                 // Convert page to conditions to JS boolean logic
                 if (typeof page.toCondition === 'object' && Object.keys(page.toCondition).length > 0) {
                   for (key in page.toCondition) {
-                    if (page.toCondition.hasOwnProperty(key)) {
+                    if (getPageById(key) && page.toCondition.hasOwnProperty(key)) {
                       try {
                         page.toCondition[key] = toBooleanLogic($.parseJSON(page.toCondition[key]));
                       } catch (ignore) {
@@ -2976,7 +2971,10 @@ var formcorp = (function () {
            * @param obj
            * @param value
            */
-          setDomValue = function (obj, value) {
+          setDomValue = function (obj, value, validate) {
+            if (typeof validate === 'undefined') {
+              validate = true;
+            }
             var fieldGroup = $(obj).find('.fc-fieldgroup'),
               valInputs = fieldGroup.find('input[type=text],input[type=tel],textarea,input[type=range],input[type=hidden]'),
               selector;
@@ -2984,7 +2982,7 @@ var formcorp = (function () {
             if (valInputs.length > 0) {
               // Input type text
               valInputs.val(value);
-              if(typeof value === 'string' && value.length > 0)
+              if(typeof value === 'string' && value.length > 0 && validate)
                 valInputs.trigger('blur');
 
               // Range, set the outcome value
@@ -3011,7 +3009,7 @@ var formcorp = (function () {
            * @param obj
            * @param fieldId
            */
-          setFieldValue = function (obj, fieldId) {
+          setFieldValue = function (obj, fieldId, validate) {
             log('setFieldValue');
             log(obj);
             log(fieldId);
@@ -3024,13 +3022,17 @@ var formcorp = (function () {
               populateValue,
               unrestorableFieldTypes = ['emailVerification', 'smsVerification'];
 
+            if (typeof validate === 'undefined') {
+              validate = true;
+            }
+
             // If no value found, try and use default
             value = getValue(fieldId);
 
             if (util.isEmpty(util.trim(value)) && schema !== undefined) {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
-              if (populateFromId.length > 0 && !$.isNumeric(populateFromId)) {
+              if (populateFromId.length > 0 && !$.isNumeric(populateFromId) && schema.type !== 'grouplet') {
                 if (fc.fields[populateFromId] !== undefined) {
                   value = fc.fields[populateFromId];
                   if(getConfig(schema, 'maxLength', false)) {
@@ -3038,18 +3040,20 @@ var formcorp = (function () {
                   }
 
                   // Update the value
-                  setVirtualValue(fieldId, value);
+                  setVirtualValue(fieldId, value, fc.fields, false, false);
                   // update DOM for display the value
                   var target = fc.domContainer.find('div[fc-data-group="' + fieldId + '"]');
                   if (target.length > 0) {
-                    setDomValue(target, value);
-                    var errors = getFieldErrors(fieldId, value, '');
-                    if (errors !== undefined && errors.length > 0) {
-                      removeFieldSuccess(fieldId);
-                      showFieldError(fieldId, errors);
-                    } else {
-                      removeFieldError(fieldId);
-                      showFieldSuccess(fieldId);
+                    setDomValue(target, value, validate);
+                    if (validate) {
+                      var errors = getFieldErrors(fieldId, value, '');
+                      if (errors !== undefined && errors.length > 0) {
+                        removeFieldSuccess(fieldId);
+                        showFieldError(fieldId, errors);
+                      } else {
+                        removeFieldError(fieldId);
+                        showFieldSuccess(fieldId);
+                      }
                     }
                   }
 
@@ -3058,7 +3062,7 @@ var formcorp = (function () {
                   if (!$.isArray(prePopulate) || prePopulate.length === 0) {
                     return;
                   }
-                  prepopulate(schema, value);
+                  prepopulate(schema, value, validate);
                 }
               }
 
@@ -3114,14 +3118,14 @@ var formcorp = (function () {
               } else if (schema.type === 'matrix') {
                 loadMatrixFieldValues(fieldId, value);
               } else if (schema.type === 'fileUpload') {
-                setDomValue(obj, value);
+                setDomValue(obj, value, validate);
                 if (value.length > 2) {
                   buildFileList(fieldId, value);
                 }
               }
               else {
                 // Otherwise set standard value in the DOM
-                setDomValue(obj, value);
+                setDomValue(obj, value, validate);
               }
             }
           },
@@ -3141,7 +3145,7 @@ var formcorp = (function () {
             // Iterate through each field and set a value
             rootElement.find('div[fc-data-group]').each(function () {
               fieldId = $(this).attr('fc-data-group');
-              setFieldValue(this, fieldId);
+              setFieldValue(this, fieldId, false);
             });
           },
 
@@ -4943,8 +4947,7 @@ var formcorp = (function () {
            * @param fieldId
            * @returns {*}
            */
-          renderReviewTable = function (fieldId) {
-
+          renderReviewTable = function (fieldId, callback) {
             var html = '', stageIterator, stage, pageIterator, page, sectionIterator, section, fieldIterator, field, pageHtml, fieldHtml;
 
             // var firstPageId = getFirstPageId();
@@ -5014,7 +5017,21 @@ var formcorp = (function () {
                     field = section.field[fieldIterator];
 
                     // Fetch the field html
-                    if( getConfig(field,'visibility','').length === 0  || (getConfig(field,'visibility','').length > 0 && eval(getBooleanLogic(getConfig(field,'visibility')))) ){
+                    var visible = function(visibilityLogic) {
+                      var parsedLogic;
+                      if (util.isEmpty(visibilityLogic)) {
+                        return true;
+                      }
+                      try {
+                        parsedLogic = JSON.parse(visibilityLogic);
+                      } catch(ignore) {}
+                      if (typeof parsedLogic !== 'undefined' && util.isEmpty(parsedLogic)) {
+                        return true;
+                      }
+                      return eval(getBooleanLogic(visibilityLogic));
+                    }(getConfig(field, 'visibility', ''));
+
+                    if (visible) {
                       fieldHtml = $('<div></div>').append(renderSummaryField(field));
                       // Append page, section and field meta data to the container
                       if (fieldHtml.find('tr').length > 0) {
@@ -5771,7 +5788,7 @@ var formcorp = (function () {
                   //Assign the value to fc.fields
                   save = save[id];
 
-                  if(triggersValidation) {
+                  if(triggersValidation && !getConfig(parentField, 'repeatable', false)) {
                     validForm($('.fc-field[fc-data-group="'+id+'"]'));
                   }
                 }
@@ -6324,17 +6341,24 @@ var formcorp = (function () {
          * @param value
          * @returns {*}
          */
-        renderReviewTableGrouplet = function (field, value) {
+        renderReviewTableGrouplet = function (field, value, label, index) {
           var html = "", key;
+          // var label = util.isEmpty(getShortLabel(field)) ? label : getShortLabel(field);
 
           // Grouplet, need to recursively output
+          if (!isNaN(parseInt(index))) {
+            index++;
+            if (typeof label === 'string') {
+              html += "<tr><th colspan='2'>" + label.replace(/ ?grouplet ?$/i, '') + ' ' + index + "</th></tr>";
+            }
+          }
           for (key in value) {
             if (value.hasOwnProperty(key)) {
-              html += renderSummaryField(fc.fieldSchema[key], value[key]);
+              html += renderSummaryField(fc.fieldSchema[key], value[key], label, key);
             }
           }
 
-          return html;
+          return (typeof field === 'object') ? html + '<tr><th colspan="2" class="fc-end-of-grouplet"></th></tr>' : html;
         };
 
         /**
@@ -6343,7 +6367,7 @@ var formcorp = (function () {
          * @param value
          * @returns {string}
          */
-        renderSummaryField = function (field, value) {
+        renderSummaryField = function (field, value, label, index) {
           var html = '', id, isValidObject, isValidString;
 
           // Retrieve the id of the field and its value
@@ -6366,10 +6390,13 @@ var formcorp = (function () {
               if (isValidString) {
                 html += renderReviewTableString(field, value);
               } else if (isValidObject) {
-                if ($.isArray(value)) {
+                if ($.isArray(value) && field.type !== 'grouplet') {
                   html += renderReviewTableArray(field, value);
                 } else {
-                  html += renderReviewTableGrouplet(field, value);
+                  if (typeof field === 'object') {
+                    label = getShortLabel(field);
+                  }
+                  html += renderReviewTableGrouplet(field, value, label, index);
                 }
               }
             }
@@ -7375,7 +7402,6 @@ var formcorp = (function () {
               return fallback;
             }
           }
-          // console.log(field.config.label, field.config);
           if(Array.isArray(requiredLogicList) && requiredLogicList.length > 0) {
             requiredLogicResult = requiredLogicList.filter(evaluateLogicStatement).map(getErrorMessage(defaultErrorMessage));
             return requiredLogicResult;
@@ -7434,7 +7460,7 @@ var formcorp = (function () {
 
           html += '<input class="fc-fieldinput" formcorp-file-id="' + getId(field) + '" type="file" id="file-' + getId(field) + '" ' + multiple + ' style="display:none;" + accept=" ' + fileTypes + ' " />';
 
-          html += '<span class="fc-fieldinput-attachButton-wrapper"><input class="fc-fieldinput fc-fieldinput-attachButton" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="'+fc.lang.fileUploadCopy+'" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();" style="padding: 5px;" /></span>';
+          html += '<span class="fc-fieldinput-attachButton-wrapper fc-btn"><input class="fc-fieldinput fc-fieldinput-attachButton fc-btn" formcorp-fileinput-id="' + getId(field) + '" type="button" id="fileinput-' + getId(field) + '" value="'+fc.lang.fileUploadCopy+'" data-required="' + required + '" onclick="document.getElementById(\'file-' + getId(field) + '\').click();"></span>';
 
           html += '<div class="fc-file-list"></div>';
           html += '<div class="fc-progress-list" id="fc-progress-list-' +getId(field) + '"></div>'
@@ -8675,7 +8701,7 @@ var formcorp = (function () {
           // If have custom rules determining the page to navigate to, attempt to process them
           if (typeof currentPage.page.toCondition === 'object' && Object.keys(currentPage.page.toCondition).length > 0) {
             for (id in currentPage.page.toCondition) {
-              if (currentPage.page.toCondition.hasOwnProperty(id)) {
+              if (getPageById(id) && currentPage.page.toCondition.hasOwnProperty(id)) {
                 condition = currentPage.page.toCondition[id];
                 if (eval(getBooleanLogic(condition))) {
                   /*if(returnPage) {
@@ -8792,7 +8818,7 @@ var formcorp = (function () {
           }
 
           // If a next page exists and the current page is valid, load the next page
-          if (hasNextPage() && validForm(currentPage, false)) {
+          if (hasNextPage() && validForm(fc.currentPage, false)) {
             fc.functions.loadNextPage(false);
             return true;
           }
@@ -8805,7 +8831,11 @@ var formcorp = (function () {
          * @param field {obj}
          * @param value {*}
          */
-        var prepopulate = function (field, value, obj) {
+        var prepopulate = function (field, value, obj, validate) {
+          if (typeof validate === 'undefined') {
+            validate = true;
+          }
+
           if (typeof obj !== 'object') {
             obj = fc.fields;
           }
@@ -8833,14 +8863,16 @@ var formcorp = (function () {
                 setVirtualValue(fieldTmpId, value, obj, true);
                 var target = fc.domContainer.find('div[fc-data-group="' + fieldTmpId + '"]');
                 if (target.length > 0) {
-                  setDomValue(target, value);
-                  var errors = getFieldErrors(fieldTmpId, value, '');
-                  if (errors !== undefined && errors.length > 0) {
-                    removeFieldSuccess(fieldTmpId);
-                    showFieldError(fieldTmpId, errors);
-                  } else {
-                    removeFieldError(fieldTmpId);
-                    showFieldSuccess(fieldTmpId);
+                  setDomValue(target, value, validate);
+                  if(validate) {
+                    var errors = getFieldErrors(fieldTmpId, value, '');
+                    if (errors !== undefined && errors.length > 0) {
+                      removeFieldSuccess(fieldTmpId);
+                      showFieldError(fieldTmpId, errors);
+                    } else {
+                      removeFieldError(fieldTmpId);
+                      showFieldSuccess(fieldTmpId);
+                    }
                   }
                 }
                 return [fieldTmpId, value] || false;
@@ -8992,7 +9024,6 @@ var formcorp = (function () {
               var $field = $('.fc-field[fc-data-group="' + dataId + '"]');
               var $fields = $field.addBack($field.prevAll('.fc-field'));
               var $section = $field.closest('.fc-section').filter($fields);
-              // console.log('field', $field, validForm($field), false, true);
               validForm($section, true);
               // validForm(fc.domContainer, true);
               if (errors !== undefined && errors.length > 0) {
@@ -10030,7 +10061,7 @@ var formcorp = (function () {
                 }
 
                 fc.preventNextPageLoad = false;
-                if (fc.config.forceNextPageAutoload) {
+                if (fc.config.forceNextPageAutoload && !isSubmitPage(page.page)) {
                   var currentPage = getPageById(fc.currentPage);
                   var formNextPage = nextPage(false, true);
                   if (!isSubmitPage(currentPage) && !isSubmitPage(formNextPage.page) && hasNextPage()) {
@@ -10183,7 +10214,6 @@ var formcorp = (function () {
               var $currentSection = $target.parents('.fc-section');
               var currentSectionId = $currentSection.attr('formcorp-data-id');
               var $currentAndPreviousSections = $currentSection.add($currentSection.prevAll('.fc-section:visible'));
-              // console.log(validForm($('.fc-page-' + fc.pageId), true, true), '.fc-page-' + fc.pageId);
               if(validForm($currentAndPreviousSections, true)) {
                 var $nextSection = $currentSection.nextAll('.fc-section:visible').first();
                 /*function(currentPageId, currentSectionId) {
