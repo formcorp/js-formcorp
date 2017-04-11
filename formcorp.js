@@ -5022,7 +5022,7 @@ var formcorp = (function () {
                   section = page.section[sectionIterator];
 
                   if(fc.config.reviewTableShowSectionHeadings !== false) {
-                    if (typeof fc.config.reviewTableShowSectionHeadings[''] !== 'undefined') {
+                    if ($.inArray(getId(section),fc.config.reviewTableShowSectionHeadings) >= 0) {
                       pageHtml += "<tr><th colspan='2' data-section=" + getId(section) + ">" + tokenise(htmlEncode(section.label)) + "</th></tr>";
                     }
                   }
