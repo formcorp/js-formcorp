@@ -4934,8 +4934,6 @@ var formcorp = (function () {
                   }
                 }
 
-                keysOrdered = keysOrdered.sort();
-
                 for (key in keysOrdered) {
                   if (keysOrdered.hasOwnProperty(key)) {
 
