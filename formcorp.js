@@ -3033,7 +3033,13 @@ var formcorp = (function () {
               // If the pre-populate from config option is set, try to populate from that field
               populateFromId = getConfig(schema, 'populateFrom', '');
               if (populateFromId.length > 0 && !$.isNumeric(populateFromId) && schema.type !== 'grouplet') {
-                if (fc.fields[populateFromId] !== undefined) {
+                var fieldIds = fieldId.split(fc.constants.prefixSeparator);
+                var repeatable = false;
+                if(fieldIds.length > 1){
+                  repeatable = getConfig(fc.fieldSchema[fieldIds[0]], 'repeatable', false);
+                }
+
+                if (fc.fields[populateFromId] !== undefined && ((repeatable && fieldIds.length === 3) || !repeatable)) {
                   value = fc.fields[populateFromId];
                   if(getConfig(schema, 'maxLength', false)) {
                     value = value.slice(0, getConfig(schema, 'maxLength', -1));
