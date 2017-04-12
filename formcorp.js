@@ -4946,9 +4946,6 @@ var formcorp = (function () {
                 }
               }
             }
-            if(typeof field.config === 'object' && typeof field.config.grouplet !== 'undefined' && value.length > 0) {
-              //html +='<tr><th colspan="2" class="fc-end-of-grouplet"></th></tr>';
-            }
 
             return html;
           },
