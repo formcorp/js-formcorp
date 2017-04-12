@@ -1897,7 +1897,10 @@ var formcorp = (function () {
               } else {
                 // Validate a Green ID field
                 var status = session.getApplicationStatus();
-                if (status === GREENID.STATE.PENDING) {
+                if (!session.canStillVerify()) {
+                  // If the user can no longer verification, they can proceed
+                  skipCheck = true;
+                } else if (status === GREENID.STATE.PENDING) {
                   errors.push('You must verify your identity.');
                 } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
                   // Verified, do nothing
