@@ -1900,6 +1900,9 @@ var formcorp = (function () {
                 if (!session.canStillVerify()) {
                   // If the user can no longer verification, they can proceed
                   skipCheck = true;
+                } else if (session.isSkipped()) {
+                  // User has skipped verification
+                  skipCheck = true;
                 } else if (status === GREENID.STATE.PENDING) {
                   errors.push('You must verify your identity.');
                 } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
