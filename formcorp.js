@@ -1905,11 +1905,13 @@ var formcorp = (function () {
                   skipCheck = true;
                 } else if (status === GREENID.STATE.PENDING) {
                   errors.push('You must verify your identity.');
+                  session.triggerValidationError();
                 } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
                   // Verified, do nothing
                   skipCheck = true;
                 } else {
                   errors.push('Please confirm your identity is verified.');
+                  session.triggerValidationError();
                 }
               }
             } else if (field.type === 'date') {
