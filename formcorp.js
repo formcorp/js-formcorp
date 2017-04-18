@@ -12979,14 +12979,11 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           comparisonIn: function (field, comparisonValue, dataId) {
-            if (field === undefined) {
+            if (typeof field === 'undefined') {
               return false;
             }
 
-            var x,
-              value,
-              json,
-              el;
+            var x, value, json, el;
 
             // Attempt to typecast string to json
             try {
@@ -12997,6 +12994,12 @@ var formcorp = (function () {
 
             if (typeof field === 'number') {
               field = '' + field;
+            }
+
+            var definition = fc.fieldSchema[dataId];
+            if (typeof field === 'object' && definition.type === 'greenIdVerification') {
+              // GreenID verification - return special type
+              return fc.greenIdVerificationInValidator(field, comparisonValue, dataId);
             }
 
             // Field can be string
@@ -13024,6 +13027,49 @@ var formcorp = (function () {
             }
 
             return false;
+          },
+
+          /**
+           * Checks whether greenID has successfully verified
+           * @param field
+           * @param comparisonValue
+           * @param dataId
+           * @returns {boolean}
+           */
+          greenIdVerificationInValidator: function (field, comparisonValue, dataId) {
+            // Default to not verified
+            var result = 'not_verified';
+
+            if (typeof field === 'object') {
+              if (field.skipped === 'true' || field.skipped === true) {
+                // User has skipped verification
+                result = 'skipped';
+              } else {
+                try {
+                  var applicationState = field.result.return.verificationResult.outcome;
+                  switch (applicationState) {
+                    case 'VERIFIED':
+                    case 'VERIFIED_ADMIN':
+                    case 'VERIFIED_WITH_CHANGES':
+                    case 'PENDING':
+                      result = 'verified';
+                      break;
+                    case 'LOCKED_OUT':
+                      result = 'not_verified';
+                      break;
+                    case 'IN_PROGRESS':
+                    default:
+                      result = 'not_verified';
+                  }
+
+                } catch (e) {
+                  result = 'not_verified';
+                }
+              }
+            }
+
+            // With a valid result, return the standard IN validator
+            return fc.comparisonIn(result, comparisonValue, dataId);
           },
 
           /**
