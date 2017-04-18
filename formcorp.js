@@ -7655,7 +7655,9 @@ var formcorp = (function () {
               form_values: formData
             };
 
+            fc.domContainer.trigger(fc.jsEvents.onStartSaving);
             api('page/submit', data, 'put', function(data) {
+              fc.domContainer.trigger(fc.jsEvents.onFinishSaving);
               if (typeof data === 'object' && data.success === true) {
                 api('digsig/gateway/upload', { 'field_id' : field._id.$id }, 'POST', function(data) {
                   if (typeof data === 'object' && data.success === true) {
@@ -8589,7 +8591,7 @@ var formcorp = (function () {
           }
 
           // Store the previous page
-          if (isNextPage === true && fc.currentPage !== undefined) {
+          if (isNextPage === true && fc.currentPage !== undefined && !fc.prevPages.hasOwnProperty(pageId)) {
             fc.prevPages[pageId] = getPageById(fc.currentPage);
           }
 
@@ -9896,7 +9898,9 @@ var formcorp = (function () {
 
           fc.preventNextPageLoad = true;
 
+          fc.domContainer.trigger(fc.jsEvents.onStartSaving);
           api('page/next', data, 'put', function (data) {
+            fc.domContainer.trigger(fc.jsEvents.onFinishSaving);
             var lastPage,
               offset,
               nextPageId = false;
@@ -11971,7 +11975,9 @@ var formcorp = (function () {
             };
 
           // Fire off the API call
+          fc.domContainer.trigger(fc.jsEvents.onStartSaving);
           api('page/submit', data, 'put', function (data) {
+            fc.domContainer.trigger(fc.jsEvents.onFinishSaving);
             var key;
             if (typeof data === "object" && data.success === true) {
               // Update activity (server last active timestamp updated)
@@ -12213,7 +12219,9 @@ var formcorp = (function () {
               onFieldBlur: 'onFieldBlur',
               onCustomerAuthResult: 'onCustomerAuthResult',
               onFormStateChange: 'onFormStateChange',
-              onPageRender: 'onPageRender'
+              onPageRender: 'onPageRender',
+              onStartSaving: 'onStartSaving',
+              onFinishSaving: 'onFinishSaving',
             };
 
             /**
