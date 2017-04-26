@@ -5927,6 +5927,7 @@ var formcorp = (function () {
           getFirstPage,
           loadSettings,
           initRender,
+          doRender,
           autoLoadLibs,
           setSchemaData,
           verifySession,
@@ -11686,7 +11687,46 @@ var formcorp = (function () {
          * @param data object
          */
         initRender = function (data) {
+          if (typeof fc.initParams === 'object' && Object.keys(fc.initParams).length > 0) {
+            var tags = fc.getAllFieldTags(true);
+            var params = {};
 
+            // Cater for machine values
+            for (var key in fc.initParams) {
+              if (fc.initParams.hasOwnProperty(key)) {
+                if (typeof tags[key] !== 'undefined') {
+                  params[tags[key]] = fc.initParams[key];
+                } else {
+                  params[key] = fc.initParams[key];
+                }
+              }
+            }
+
+            var postData = {
+              form_values: params
+            };
+
+            api('page/next', postData, 'put', function (result) {
+              // Render the form after successful callback
+              $.extend(fc.fields, params);
+
+              if (Object.keys(fc.saveQueue).length > 0) {
+                $.extend(fc.saveQueue, params);
+              }
+
+              doRender(data);
+            });
+          } else {
+            // No initialisation params, render out the form
+            doRender(data);
+          }
+        };
+
+        /**
+         * Perform the rendering.
+         * @param data object
+         */
+        doRender = function (data) {
           var firstPageId;
 
           fc.isRendered = false;
@@ -11715,7 +11755,6 @@ var formcorp = (function () {
           setTimeout(function() {
             setCurrentSection(currentSectionId, true);
           }, (fc.config.pageAnimations)?fc.config.pageAnimations.prev.delay:0);
-
         };
 
         /**
@@ -12037,15 +12076,25 @@ var formcorp = (function () {
            * @param container
            */
           init: function (publicKey, container) {
-            this.publicKey = publicKey;
-            this.container = container;
-            this.jQueryContainer = '#' + container;
+            if (typeof publicKey === 'string' && publicKey.length > 0) {
+              this.publicKey = publicKey;
+            }
+
+            if (typeof container === 'string' && container.length > 0) {
+              this.container = container;
+            }
+
+            this.jQueryContainer = '#' + this.container;
             this.domContainer = $(this.jQueryContainer);
 
             // Callbacks
             this.callbacks = {
               afterRender: []
             };
+
+            if (typeof this.initParams !== 'object') {
+              this.initParams = {};
+            }
 
             // Temporary placeholders for objects to be populated
             this.fields = {};
@@ -12569,6 +12618,40 @@ var formcorp = (function () {
            */
           setChannel: function (channel) {
             this.channel = channel;
+          },
+
+          /**
+           * Set public key.
+           * @param publicKey
+           */
+          setPublicKey: function (publicKey) {
+            if (typeof publicKey === 'string') {
+              this.publicKey = publicKey;
+            }
+          },
+
+          /**
+            * Set initialisation params
+            * @param params
+            */
+          setInitParams: function (params) {
+            if (typeof this.initParams !== 'object') {
+              this.initParams = {};
+            }
+
+            if (typeof params === 'object') {
+              this.initParams = params;
+            }
+          },
+
+          /**
+           * Set the container
+           * @param container
+           */
+          setContainer: function (container) {
+            if (typeof container === 'string') {
+              this.container = container;
+            }
           },
 
           /**
