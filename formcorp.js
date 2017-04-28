@@ -1897,13 +1897,21 @@ var formcorp = (function () {
               } else {
                 // Validate a Green ID field
                 var status = session.getApplicationStatus();
-                if (status === GREENID.STATE.PENDING) {
+                if (!session.canStillVerify()) {
+                  // If the user can no longer verification, they can proceed
+                  skipCheck = true;
+                } else if (session.isSkipped()) {
+                  // User has skipped verification
+                  skipCheck = true;
+                } else if (status === GREENID.STATE.PENDING) {
                   errors.push('You must verify your identity.');
+                  session.triggerValidationError();
                 } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
                   // Verified, do nothing
                   skipCheck = true;
                 } else {
                   errors.push('Please confirm your identity is verified.');
+                  session.triggerValidationError();
                 }
               }
             } else if (field.type === 'date') {
@@ -12979,14 +12987,11 @@ var formcorp = (function () {
            * @returns {boolean}
            */
           comparisonIn: function (field, comparisonValue, dataId) {
-            if (field === undefined) {
+            if (typeof field === 'undefined') {
               return false;
             }
 
-            var x,
-              value,
-              json,
-              el;
+            var x, value, json, el;
 
             // Attempt to typecast string to json
             try {
@@ -12997,6 +13002,12 @@ var formcorp = (function () {
 
             if (typeof field === 'number') {
               field = '' + field;
+            }
+
+            var definition = fc.fieldSchema[dataId];
+            if (typeof field === 'object' && definition.type === 'greenIdVerification') {
+              // GreenID verification - return special type
+              return fc.greenIdVerificationInValidator(field, comparisonValue, dataId);
             }
 
             // Field can be string
@@ -13024,6 +13035,49 @@ var formcorp = (function () {
             }
 
             return false;
+          },
+
+          /**
+           * Checks whether greenID has successfully verified
+           * @param field
+           * @param comparisonValue
+           * @param dataId
+           * @returns {boolean}
+           */
+          greenIdVerificationInValidator: function (field, comparisonValue, dataId) {
+            // Default to not verified
+            var result = 'not_verified';
+
+            if (typeof field === 'object') {
+              if (field.skipped === 'true' || field.skipped === true) {
+                // User has skipped verification
+                result = 'skipped';
+              } else {
+                try {
+                  var applicationState = field.result.return.verificationResult.outcome;
+                  switch (applicationState) {
+                    case 'VERIFIED':
+                    case 'VERIFIED_ADMIN':
+                    case 'VERIFIED_WITH_CHANGES':
+                    case 'PENDING':
+                      result = 'verified';
+                      break;
+                    case 'LOCKED_OUT':
+                      result = 'not_verified';
+                      break;
+                    case 'IN_PROGRESS':
+                    default:
+                      result = 'not_verified';
+                  }
+
+                } catch (e) {
+                  result = 'not_verified';
+                }
+              }
+            }
+
+            // With a valid result, return the standard IN validator
+            return fc.comparisonIn(result, comparisonValue, dataId);
           },
 
           /**
