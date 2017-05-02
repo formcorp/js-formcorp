@@ -6024,6 +6024,21 @@ var formcorp = (function () {
                 }
                 return a;
               }(schema),
+              getGroup: function(pageId) {
+                var group = false;
+                for (var label in schema) {
+                  for (var page in schema[label]) {
+                    if (page === pageId) {
+                      group = schema[label];
+                      break;
+                    }
+                  }
+                  if (group) {
+                    break;
+                  }
+                }
+                return group;
+              },
               getStep: function(pageId) {
                 if(!this.hash[pageId])
                   return false;
@@ -6096,21 +6111,32 @@ var formcorp = (function () {
                 this.currentStepNumber = this.currentStep.step;
                 this.$stepCount.html('Step ' + this.currentStepNumber + ' of ' + this.stepCount + ': ' + this.currentStep.label);
                 this.render();
-                this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
+                setTimeout(function() {
+                  this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
+                }.bind(this), fc.config.pageAnimations.next.delay || 0);
               },
               updateSection: function() {
-                if(!fc.config.sectionManagement)
+                if (!fc.config.sectionManagement)
                   return;
                 var curr = this.currentStepNumber -1;
                 var count = this.stepCount;
+                var currentPageId = this.currentPage.page._id.$id;
                 var left = curr / (count -1) * 100;
                 var $currentSection = $('.fc-current-section');
-                var $sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible');
+                var $sections = $('.fc-page-' + currentPageId).find('.fc-section:visible');
                 var i = $sections.index($currentSection) +1;
-                var sections = $('.fc-page-' + this.currentPage.page._id.$id).find('.fc-section:visible').length +1;
+                var sections = $('.fc-page-' + currentPageId).find('.fc-section:visible').length +1;
+                var group = this.getGroup(currentPageId);
+                var pagesInGroup = Object.keys(group).length;
+                var currentPageIndex = Object.keys(group).indexOf(currentPageId);
+                var ratio = currentPageIndex / pagesInGroup;
 
-                if(this.currentStepNumber < this.stepCount)
-                  left += (100/(count -1)/sections * i);
+                if (this.currentStepNumber < this.stepCount) {
+                  var stepChunk = 100 / (count -1);
+                  var pageChunk = stepChunk / pagesInGroup;
+                  var sectionChunk = pageChunk / sections;
+                  left = stepChunk * curr + pageChunk * currentPageIndex + sectionChunk * i;
+                }
                 else {
                   left = 100;
                 }
@@ -6128,7 +6154,7 @@ var formcorp = (function () {
                 this.$stepsBar = $('<div class="fc-steps-bar"></div>');
                 this.$bar = $('<div class="fc-progress-bar"></div>');
                 this.$progress = $('<div class="fc-progress"></div>');
-                this.$path = $('<div class="fc-complete-path"></div>');
+                this.$path = $('<div class="fc-complete-path" style="width:0"></div>');
                 this.$barContainer = $('<div class="fc-progress-bar-container"></div>').append(this.$stepCount).append(this.$bar.append(this.$stepsBar).append(this.$progress));
 
                 fc.domContainer.prepend(this.$barContainer);
@@ -6152,7 +6178,8 @@ var formcorp = (function () {
                 }(left - 100);
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
                 this.$currentStep.find('.progress-bar-label').html(label);
-                this.updateSection();
+                setTimeout(this.updateSection.bind(this), fc.config.pageAnimations.next.delay || 0);
+                // this.updateSection();
               },
               groupLabelAlignment: function(order, count) {
                 if(order < count / 2)
