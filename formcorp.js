@@ -6004,7 +6004,24 @@ var formcorp = (function () {
           progressBarOffset,
           getCurrentSection,
           setCurrentSection,
+          goBackToPage,
           util;
+
+          goBackToPage = function(pageId) {
+            var isPageInTheFlow = false;
+
+            for (var page in fc.prevPages) {
+              if (page === pageId) {
+                isPageInTheFlow = true;
+              }
+            }
+
+            if (!isPageInTheFlow) {
+              return false;
+            }
+
+            return loadPrevPage(pageId);
+          }
 
           progressBarFactory = function(schema, config) {
             return {
@@ -10144,12 +10161,12 @@ var formcorp = (function () {
         /**
          * Load the previous page
          */
-        loadPrevPage = function () {
+        loadPrevPage = function (_pageId) {
           if (fc.config.showPrevPageButton !== true) {
             return false;
           }
 
-          var previousPageId = getPreviousPage();
+          var previousPageId = _pageId || getPreviousPage();
           render(previousPageId);
           setTimeout(function() {
             setCurrentSection(getCurrentSection(previousPageId), true);
@@ -12966,6 +12983,7 @@ var formcorp = (function () {
           afterRender: afterRender,
           validForm: validForm,
           getFieldValue: getFieldValue,
+          goBackToPage: goBackToPage,
 
           /**
            * Returns true if a page is valid, false if not
