@@ -7063,7 +7063,7 @@ var formcorp = (function () {
           /*jslint nomen: true*/
           var required = typeof field.config.required === 'boolean' ? field.config.required : false,
             fieldId = prefix + field._id.$id,
-            html = '<input id="fc-field-' + fieldId + '" class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input id="fc-field-' + fieldId + '" class="fc-fieldinput" type="text" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder', '') + '">';
           /*jslint nomen: false*/
           return html;
         };
