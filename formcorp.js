@@ -11114,7 +11114,7 @@ var formcorp = (function () {
          */
         loadCssFiles = function () {
           var cssId = 'formcorp-css',
-            cssUri = 'formcorp.css',
+            cssUri = fc.config.baseCssFile,
             iterator;
 
           if ($('#' + cssId).length === 0) {
@@ -12735,6 +12735,7 @@ var formcorp = (function () {
               updateHash: true,
               useTags: true,
               verificationModal: false,
+              baseCssFile: 'formcorp.css',
             };
 
             // Minimum event queue interval (to prevent server from getting slammed)
