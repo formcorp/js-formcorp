@@ -11610,8 +11610,8 @@ var formcorp = (function () {
           $currentSection.addClass('fc-current-section');
           fc.currentSection = sectionId;
 
-          if(typeof scrollToSection === 'boolean' && scrollToSection) {
-            if($currentSection.length > 0)
+          if (typeof scrollToSection === 'boolean' && scrollToSection && fc.config.autoScrollToNextSection) {
+            if ($currentSection.length > 0)
               $('html, body').stop(true, true).animate({scrollTop:$currentSection.offset().top + fc.config.scrollOffset}, 400, 'swing');
           }
 
@@ -12666,6 +12666,7 @@ var formcorp = (function () {
               autoDiscoverLibs: true,
               autoLoadPages: false,
               autoScrollToNextField: false,
+              autoScrollToNextSection: false,
               autoShiftFocusOnEnter: false,
               buttonInputType: 'submit',
               colonAfterLabel: true,
