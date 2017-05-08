@@ -6196,6 +6196,9 @@ var formcorp = (function () {
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
                 this.$currentStep.find('.progress-bar-label').html(label);
                 setTimeout(this.updateSection.bind(this), fc.config.pageAnimations.next.delay || 0);
+                if (!fc.config.sectionManagement) {
+                  this.$path.css({width:left + '%'});
+                }
                 // this.updateSection();
               },
               groupLabelAlignment: function(order, count) {
