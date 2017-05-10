@@ -6011,8 +6011,10 @@ var formcorp = (function () {
             var isPageInTheFlow = false;
 
             for (var page in fc.prevPages) {
-              if (page === pageId) {
-                isPageInTheFlow = true;
+              if (fc.prevPages.hasOwnProperty(page)) {
+                if (page === pageId) {
+                  isPageInTheFlow = true;
+                }
               }
             }
 
