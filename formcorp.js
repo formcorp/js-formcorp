@@ -6031,13 +6031,17 @@ var formcorp = (function () {
               hash: function(schema) {
                 var a = {};
                 var i = 0;
-                for(var label in schema) {
-                  i++;
-                  for(var page in schema[label]) {
-                    a[page] = {
-                      label: schema[label][page]||label,
-                      index: i,
-                      step: schema[label]
+                for (var label in schema) {
+                  if (schema.hasOwnProperty(label)) {
+                    i++;
+                    for (var page in schema[label]) {
+                      if (schema[label].hasOwnProperty(page)) {
+                        a[page] = {
+                          label: schema[label][page]||label,
+                          index: i,
+                          step: schema[label]
+                        }
+                      }
                     }
                   }
                 }
