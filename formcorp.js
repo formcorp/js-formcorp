@@ -646,7 +646,6 @@ var formcorp = (function () {
            */
           loadLibs = function () {
             var lib;
-
             for (var x = 0; x < fc.libs2Load.length; x += 1) {
               lib = fc.libs2Load[x];
               loadLib(lib);
@@ -5927,6 +5926,8 @@ var formcorp = (function () {
           getFirstPage,
           loadSettings,
           initRender,
+          getFieldTypes,
+          getAllFields,
           autoLoadLibs,
           setSchemaData,
           verifySession,
@@ -11772,26 +11773,72 @@ var formcorp = (function () {
         };
 
         /**
-         * Auto load the form's required library files
-         * @param data object
+         * Return all field types
+         * @param {obj}
+         * @return {array}
          */
-        autoLoadLibs = function (data) {
-          var fields = [], type, field, libsLoaded = 0;
+        getAllFields = function (obj) {
+          var fields = [];
 
-          // Store for future reference
-          fc.schemaData = data;
+          if (typeof obj === 'object') {
+            if (obj.constructor === Array) {
+              // Array
+              for (var i = 0; i < obj.length; i++) {
+                fields = fields.concat(getAllFields(obj[i]));
+              }
+            } else {
+              // Object
+              if (typeof obj.config === 'object') {
+                fields.push(obj);
 
-          // Get the field types that are referenced in the form
-          if (typeof fc.fieldSchema === 'object' && Object.keys(fc.fieldSchema).length > 0) {
-            for (var key in fc.fieldSchema) {
-              if (fc.fieldSchema.hasOwnProperty(key)) {
-                if (typeof fc.fieldSchema[key] === 'object' && typeof fc.fieldSchema[key].type === 'string' && fields.indexOf(fc.fieldSchema[key].type) == -1) {
-                  fields.push(fc.fieldSchema[key].type);
+                // If a grouplet, look recursively through the grouplet
+                if (typeof obj.config.targetGrouplet === 'object' && typeof obj.config.targetGrouplet.field === 'object') {
+                  fields = fields.concat(getAllFields(obj.config.targetGrouplet.field));
+                }
+              } else {
+                for (var key in obj) {
+                  if (obj.hasOwnProperty(key)) {
+                    var field = obj[key];
+                    fields = fields.concat(getAllFields(obj[key]));
+                  }
                 }
               }
             }
           }
 
+          return typeof fields === 'object' ? fields : [];
+        };
+
+        /**
+          * Return the field types
+          * @param {obj}
+          * @return {array}
+          */
+        getFieldTypes = function (obj) {
+          var fieldTypes = [];
+          var fields = getAllFields(fc.fieldSchema);
+
+          for (var i = 0, l = fields.length; i < l; i++) {
+            var field = fields[i];
+            if (typeof field.type === 'string' && fieldTypes.indexOf(field.type) < 0) {
+              fieldTypes.push(field.type);
+            }
+          }
+
+          return fieldTypes;
+        }
+
+        /**
+         * Auto load the form's required library files
+         * @param data object
+         */
+        autoLoadLibs = function (data) {
+          var type, field, libsLoaded = 0;
+
+          // Store for future reference
+          fc.schemaData = data;
+
+          var fields = getFieldTypes(fc.fieldSchema);
           var fieldsIterator, libIterator, lib;
 
           // Iterate through each field and load required libraries
