@@ -8274,6 +8274,9 @@ var formcorp = (function () {
 
             sectionHtml += '</div>';
 
+
+            var lastSection = false;
+            sectionHtml += '<div class="fc-section-end">';
             if(fc.config.showNextSectionButtons) {
               var label = 'Next';
 
@@ -8285,7 +8288,6 @@ var formcorp = (function () {
                 label = fc.config.showNextSectionButtons;
               }
 
-              var lastSection = false;
               if(fc.config.hideLastNextSectionButton){
 
                 if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
@@ -8297,11 +8299,10 @@ var formcorp = (function () {
               }
 
               if(!lastSection){
-                sectionHtml += '<div class="fc-section-end">\
-                  <span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>\
-                </div>';
+                sectionHtml += '<span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>';
               }
             }
+            sectionHtml += '</div>';
             sectionHtml += '</div></div>';
             html += sectionHtml;
           }
