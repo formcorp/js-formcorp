@@ -3845,7 +3845,7 @@ var formcorp = (function () {
             log(value);
 
             if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
-              setVirtualValue(fieldId, value);
+              setVirtualValue(fieldId, value, fc.fields, false, false);
             }
           },
 
