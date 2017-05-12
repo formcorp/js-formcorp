@@ -3602,7 +3602,7 @@ var formcorp = (function () {
               readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
 
-            savedValue = fc.fields[fieldId];
+            savedValue = getValue(fieldId);
 
             // Determine the css class to use
             cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
@@ -7104,13 +7104,14 @@ var formcorp = (function () {
           if (prefix === undefined) {
             prefix = "";
           }
+          var fieldId = prefix + getId(field);
 
           // Initial variables
           var required = typeof field.config.required === 'boolean' ? field.config.required : false,
             step = getConfig(field, 'step', 1),
             min = getConfig(field, 'min', 1),
             max = getConfig(field, 'max', 10),
-            html = '<input class="fc-fieldinput" type="range" min="' + min + '" max="' + max + '" step="' + step + '" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input class="fc-fieldinput" type="range" min="' + min + '" max="' + max + '" step="' + step + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
 
           // Render the outcome/value
           html += '<span class="fc-numeric-outcome"></span>';
