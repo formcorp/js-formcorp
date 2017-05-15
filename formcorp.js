@@ -6137,7 +6137,7 @@ var formcorp = (function () {
                 this.render();
                 setTimeout(function() {
                   this.update(this.currentStepNumber, this.stepCount, this.currentStep.label);
-                }.bind(this), fc.config.pageAnimations.next.delay || 0);
+                }.bind(this), (fc.config.pageAnimations && fc.config.pageAnimations.next) ? fc.config.pageAnimations.next.delay || 0 : 0);
               },
               updateSection: function() {
                 if (!fc.config.sectionManagement)
@@ -6202,7 +6202,7 @@ var formcorp = (function () {
                 }(left - 100);
                 this.$currentStep.css({left:left + '%', transform:'translate(' + translate + '%, 0px)'});
                 this.$currentStep.find('.progress-bar-label').html(label);
-                setTimeout(this.updateSection.bind(this), fc.config.pageAnimations.next.delay || 0);
+                setTimeout(this.updateSection.bind(this), (fc.config.pageAnimations && fc.config.pageAnimations.next) ? fc.config.pageAnimations.next.delay || 0 : 0);
                 if (!fc.config.sectionManagement) {
                   this.$path.css({width:left + '%'});
                 }
@@ -11750,6 +11750,7 @@ var formcorp = (function () {
             fc.schema = orderSchema(data);
             if (typeof fc.schema.stage === 'object' && fc.schema.stage.length > 0 && typeof fc.schema.stage[0].page === 'object' && fc.schema.stage[0].page.length > 0) {
               firstPageId = getFirstPage();
+
               // If one page layout, getFirstPage() already rendered
               if (!fc.config.onePage) {
                 fc.currentPage = getFirstPageId();
@@ -11770,6 +11771,18 @@ var formcorp = (function () {
             setCurrentSection(currentSectionId, true);
           }, (fc.config.pageAnimations)?fc.config.pageAnimations.prev.delay:0);
 
+          var channel = fc.channel || fc.constants.defaultChannel || 'Master';
+          var firstPage;
+          if (fc.schema.channel) {
+            firstPage = fc.schema.channel.filter(function(c) {
+              return c.name === channel;
+            }).pop().default;
+          } else {
+            firstPage = getId(fc.schema.stage[0].page[0].page);
+          }
+          if (!fc.prevPages.hasOwnProperty(firstPage)) {
+            fc.prevPages[firstPage] = getPageById(firstPage);
+          }
         };
 
         /**
