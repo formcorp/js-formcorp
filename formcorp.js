@@ -5284,6 +5284,7 @@ var formcorp = (function () {
             }
             /*jslint nomen: false*/
 
+
             if (typeof fields === 'object') {
               for (iterator in fields) {
                 if (fields.hasOwnProperty(iterator)) {
@@ -5940,6 +5941,7 @@ var formcorp = (function () {
           hasNextPage,
           loadNextPage,
           loadPrevPage,
+          cleanSaveValues,
           processSaveQueue,
           showDeleteDialog,
           showRepeatableEditDialog,
@@ -7719,7 +7721,7 @@ var formcorp = (function () {
             data = {
               form_id: fc.formId,
               page_id: fc.currentPage,
-              form_values: formData
+              form_values: cleanSaveValues(formData)
             };
 
             fc.domContainer.trigger(fc.jsEvents.onStartSaving);
@@ -12056,6 +12058,41 @@ var formcorp = (function () {
         };
 
         /**
+        * Clean values to be saved.
+        * @param {obj} values
+        */
+        cleanSaveValues = function(values) {
+          var field;
+          var value;
+
+          if (typeof values === 'object') {
+            if (Array.isArray(values)) {
+              // Array of values
+              for (var i = 0, l = values.length; i < l; i++) {
+                values[i] = cleanSaveValues(values[i]);
+              }
+            } else {
+              // Object
+              for (var key in values) {
+                if (values.hasOwnProperty(key)) {
+                  value = values[key];
+
+                  if (typeof value === 'object') {
+                    if (typeof value.result === 'object' && typeof value.result.return === 'object') {
+                      delete values[key].result.return;
+                    } else {
+                      values[key] = cleanSaveValues(values[key]);
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          return values;
+        };
+
+        /**
          * Process the save queue
          */
         processSaveQueue = function () {
@@ -12080,25 +12117,17 @@ var formcorp = (function () {
           }
 
           // Filter out values from the save queue
-          var field;
-          for (var key in fc.saveQueue) {
-            if (fc.saveQueue.hasOwnProperty(key) && typeof fc.fieldSchema[key] === 'object') {
-              field = fc.fieldSchema[key];
-              if (field.type === 'greenIdVerification' && typeof fc.saveQueue[key].result === 'object') {
-                // Don't send up the values of the remote verification result, this is purely server-side
-                delete fc.saveQueue[key].result;
-              }
-            }
-          }
+          var queue = $.extend(true, {}, fc.saveQueue);
+          queue = cleanSaveValues(queue);
 
           // Store value locally, so we can remove later
           fc.saveQueueRunning = true;
-          var temporaryQueue = fc.saveQueue,
-            data = {
-              form_id: fc.formId,
-              page_id: fc.pageId,
-              form_values: temporaryQueue
-            };
+          var temporaryQueue = queue;
+          var data = {
+            form_id: fc.formId,
+            page_id: fc.pageId,
+            form_values: temporaryQueue
+          };
 
           // Fire off the API call
           fc.domContainer.trigger(fc.jsEvents.onStartSaving);
