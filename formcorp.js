@@ -3606,7 +3606,7 @@ var formcorp = (function () {
               readonly = (field.config.readOnly)?'disabled':'';
             /*jslint nomen: false*/
 
-            savedValue = fc.fields[fieldId];
+            savedValue = getValue(fieldId);
 
             // Determine the css class to use
             cssClass = getConfig(field, 'inline', false) === true ? 'fc-inline' : 'fc-block';
@@ -3849,7 +3849,7 @@ var formcorp = (function () {
             log(value);
 
             if (typeof fieldId === 'string' && fieldId.length > 0 && !$.isNumeric(fieldId)) {
-              setVirtualValue(fieldId, value);
+              setVirtualValue(fieldId, value, fc.fields, false, false);
             }
           },
 
@@ -7108,13 +7108,14 @@ var formcorp = (function () {
           if (prefix === undefined) {
             prefix = "";
           }
+          var fieldId = prefix + getId(field);
 
           // Initial variables
           var required = typeof field.config.required === 'boolean' ? field.config.required : false,
             step = getConfig(field, 'step', 1),
             min = getConfig(field, 'min', 1),
             max = getConfig(field, 'max', 10),
-            html = '<input class="fc-fieldinput" type="range" min="' + min + '" max="' + max + '" step="' + step + '" formcorp-data-id="' + getId(field) + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
+            html = '<input class="fc-fieldinput" type="range" min="' + min + '" max="' + max + '" step="' + step + '" formcorp-data-id="' + fieldId + '" data-required="' + required + '" placeholder="' + getConfig(field, 'placeholder') + '">';
 
           // Render the outcome/value
           html += '<span class="fc-numeric-outcome"></span>';
@@ -8277,6 +8278,9 @@ var formcorp = (function () {
 
             sectionHtml += '</div>';
 
+
+            var lastSection = false;
+            sectionHtml += '<div class="fc-section-end">';
             if(fc.config.showNextSectionButtons) {
               var label = 'Next';
 
@@ -8288,7 +8292,6 @@ var formcorp = (function () {
                 label = fc.config.showNextSectionButtons;
               }
 
-              var lastSection = false;
               if(fc.config.hideLastNextSectionButton){
 
                 if (typeof nextPageObj === "object" || (isSubmitPage(page) === false && nextPageObj === false)) {
@@ -8300,11 +8303,10 @@ var formcorp = (function () {
               }
 
               if(!lastSection){
-                sectionHtml += '<div class="fc-section-end">\
-                  <span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>\
-                </div>';
+                sectionHtml += '<span class="fc-next-section-button-wrapper"><input type="button" value="'+label+'" class="fc-next-section-button"></span>';
               }
             }
+            sectionHtml += '</div>';
             sectionHtml += '</div></div>';
             html += sectionHtml;
           }
