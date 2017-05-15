@@ -9927,11 +9927,15 @@ var formcorp = (function () {
             fc.saveQueue = {};
           }
 
+          // Data to send to the server
+          var sendData = $.extend(true, {}, formData);
+          sendData = cleanSaveValues(sendData);
+
           // Build the data object to send with the request
           data = {
             form_id: fc.formId,
             page_id: fc.currentPage,
-            form_values: formData
+            form_values: sendData
           };
           // Determine whether the application should be marked as complete
           var id = fc.currentPage;
@@ -12145,10 +12149,10 @@ var formcorp = (function () {
                     delete fc.saveQueue[key];
                   } else if (typeof fc.saveQueue[key] === 'object' && typeof temporaryQueue[key] === 'object') {
                     // Objects were provided, compare the json string
-                    if (JSON.stringify(fc.saveQueue[key]) === JSON.stringify(temporaryQueue[key])) {
+                    if (JSON.stringify(queue[key]) === JSON.stringify(temporaryQueue[key])) {
                       delete fc.saveQueue[key];
                     }
-                  } else if (fc.saveQueue[key] === temporaryQueue[key]) {
+                  } else if (queue[key] === temporaryQueue[key]) {
                     // Otherwise two objects are identical, delete them
                     delete fc.saveQueue[key];
                   }
