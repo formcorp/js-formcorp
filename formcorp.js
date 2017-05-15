@@ -12079,6 +12079,18 @@ var formcorp = (function () {
             return;
           }
 
+          // Filter out values from the save queue
+          var field;
+          for (var key in fc.saveQueue) {
+            if (fc.saveQueue.hasOwnProperty(key) && typeof fc.fieldSchema[key] === 'object') {
+              field = fc.fieldSchema[key];
+              if (field.type === 'greenIdVerification' && typeof fc.saveQueue[key].result === 'object') {
+                // Don't send up the values of the remote verification result, this is purely server-side
+                delete fc.saveQueue[key].result;
+              }
+            }
+          }
+
           // Store value locally, so we can remove later
           fc.saveQueueRunning = true;
           var temporaryQueue = fc.saveQueue,
