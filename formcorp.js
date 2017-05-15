@@ -1895,22 +1895,26 @@ var formcorp = (function () {
                 errors.push('GreenID has not been initialised for field');
               } else {
                 // Validate a Green ID field
-                var status = session.getApplicationStatus();
-                if (!session.canStillVerify()) {
-                  // If the user can no longer verification, they can proceed
-                  skipCheck = true;
-                } else if (session.isSkipped()) {
-                  // User has skipped verification
-                  skipCheck = true;
-                } else if (status === GREENID.STATE.PENDING) {
-                  errors.push('You must verify your identity.');
-                  session.triggerValidationError();
-                } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
-                  // Verified, do nothing
+                if (session.fatalError) {
                   skipCheck = true;
                 } else {
-                  errors.push('Please confirm your identity is verified.');
-                  session.triggerValidationError();
+                  var status = session.getApplicationStatus();
+                  if (!session.canStillVerify()) {
+                    // If the user can no longer verification, they can proceed
+                    skipCheck = true;
+                  } else if (session.isSkipped()) {
+                    // User has skipped verification
+                    skipCheck = true;
+                  } else if (status === GREENID.STATE.PENDING) {
+                    errors.push('You must verify your identity.');
+                    session.triggerValidationError();
+                  } else if (status === GREENID.STATE.VERIFIED || status === GREENID.STATE.REJECTED) {
+                    // Verified, do nothing
+                    skipCheck = true;
+                  } else {
+                    errors.push('Please confirm your identity is verified.');
+                    session.triggerValidationError();
+                  }
                 }
               }
             } else if (field.type === 'date') {
