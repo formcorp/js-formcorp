@@ -12643,6 +12643,7 @@ var formcorp = (function () {
            * Expose modal functions
            */
          showModal: showModal,
+         hideModal: hideModal,
 
           /**
            * Retrieve a URL parameter by name
