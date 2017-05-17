@@ -10918,9 +10918,11 @@ var formcorp = (function () {
               }
               var $fieldContainer = $('.fc-tag-' + tag);
               var $field = $fieldContainer.find('input, select, textarea');
-              var field = fc.fieldSchema[$field.attr('formcorp-data-id')];
+              var fieldId = $field.attr('formcorp-data-id');
+              var field = fc.fieldSchema[fieldId];
               $fieldContainer.removeClass('fc-hide fc-enter-manually-hide');
-              $field.off('input')
+              fc.fields[fieldId] = '';
+              $field.val('').off('input')
               .on('input', function(str, $lookupField, fields) {
                 return function() {
                   var summary = str;
@@ -11783,17 +11785,20 @@ var formcorp = (function () {
             setCurrentSection(currentSectionId, true);
           }, (fc.config.pageAnimations)?fc.config.pageAnimations.prev.delay:0);
 
-          var channel = fc.channel || fc.constants.defaultChannel || 'Master';
+          var channel = fc.channel || fc.constants.defaultChannel || 'master';
           var firstPage;
           if (fc.schema.channel) {
-            firstPage = fc.schema.channel.filter(function(c) {
+            var currentChannel = fc.schema.channel.filter(function(c) {
               return c.name === channel;
-            }).pop().default;
-          } else {
-            firstPage = getId(fc.schema.stage[0].page[0].page);
-          }
-          if (!fc.prevPages.hasOwnProperty(firstPage)) {
-            fc.prevPages[firstPage] = getPageById(firstPage);
+            }).pop();
+            if (typeof currentChannel === 'object') {
+              firstPage = currentChannel['default'];
+            } else {
+              firstPage = getId(fc.schema.stage[0].page[0].page);
+            }
+            if (!fc.prevPages.hasOwnProperty(firstPage) && typeof firstPage === 'string' && firstPage.length > 0 && util.isNotEmpty(getPageById(firstPage))) {
+              fc.prevPages[firstPage] = getPageById(firstPage);
+            }
           }
         };
 
@@ -12644,6 +12649,7 @@ var formcorp = (function () {
            */
          showModal: showModal,
          hideModal: hideModal,
+         replaceTokens: replaceTokens,
 
           /**
            * Retrieve a URL parameter by name
