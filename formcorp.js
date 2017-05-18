@@ -5609,7 +5609,6 @@ var formcorp = (function () {
             if (typeof pageId !== 'string' || pageId.length === 0 || pageId.indexOf(fc.constants.prefixSeparator) > -1) {
               return;
             }
-            fc.currentPage = pageId;
 
             $('.fc-page[data-page-id="' + fc.currentPage + '"] .fc-pagination').show();
             $('.fc-page').each(function () {
@@ -11794,7 +11793,7 @@ var formcorp = (function () {
             if (typeof currentChannel === 'object') {
               firstPage = currentChannel['default'];
             } else {
-              firstPage = getId(fc.schema.stage[0].page[0].page);
+              firstPage = getId(fc.schema.stage[0].page[0]);
             }
             if (!fc.prevPages.hasOwnProperty(firstPage) && typeof firstPage === 'string' && firstPage.length > 0 && util.isNotEmpty(getPageById(firstPage))) {
               fc.prevPages[firstPage] = getPageById(firstPage);
