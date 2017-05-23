@@ -11720,7 +11720,7 @@ var formcorp = (function () {
                 fc.prevPages[id] = page;
 
                 // If next page is a submit page, do not render it
-                if (isSubmitPage(nextPageObj.page) === true) {
+                if (isSubmitPage(nextPageObj.page) === true || id === fc.currentPage) {
                   continueLoading = false;
                   break;
                 }
