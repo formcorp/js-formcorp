@@ -12098,8 +12098,8 @@ var formcorp = (function () {
                 if (values.hasOwnProperty(key)) {
                   value = values[key];
 
-                  if (typeof value === 'object') {
-                    if (typeof value.result === 'object' && typeof value.result.return === 'object') {
+                  if (value !== null && typeof value === 'object') {
+                    if (value.result !== null && typeof value.result === 'object' && value.result.return !== null && typeof value.result.return === 'object') {
                       delete values[key].result.return;
                     } else {
                       values[key] = cleanSaveValues(values[key]);
